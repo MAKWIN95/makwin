@@ -1,0 +1,6 @@
+Applying changes:
+- Header.tsx: add breadcrumb prop, change MAKWIN font weight to thinner
+- songs.ts: add language and translations fields
+- SongDetail.tsx: add version toggle, compute positions from displayedLyrics, left-align lyrics lines, increase legend size
+
+Run: npx tsc --noEmit after edits
