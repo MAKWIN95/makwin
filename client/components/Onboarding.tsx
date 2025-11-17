@@ -149,19 +149,29 @@ export default function Onboarding() {
            style={{ top: popStyle.top, left: popStyle.left }}>
           <div className="relative max-w-[90vw] w-[min(400px,90vw)] bg-[hsl(var(--popover))] rounded-xl p-4 sm:p-6 shadow-2xl border border-[hsl(var(--border))] transition-all">
           {rect && (
-            <svg viewBox="0 0 24 12" fill="currentColor" style={{
-              position: 'absolute',
-              left: '50%',
-              top: popStyle.top > rect.top + window.scrollY ? '-12px' : '100%',
-              transform: `translateX(-50%) rotate(${popStyle.top > rect.top + window.scrollY ? '0deg' : '180deg'})`,
-              width: '24px',
-              height: '12px',
-              color: 'hsl(var(--popover))',
-              filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))',
-              zIndex: 1
-            }}>
-              <path d="M12 0L24 12H0z" />
-            </svg>
+            (() => {
+              const elementCenterX = rect.left + window.scrollX + rect.width / 2;
+              const popupRect = popRef.current?.getBoundingClientRect() || { width: 320 };
+              const popupCenterX = popStyle.left + popupRect.width / 2;
+              const arrowLeft = elementCenterX - popStyle.left;
+              const isArrowPointingUp = popStyle.top > rect.top + window.scrollY;
+              
+              return (
+                <svg viewBox="0 0 24 12" fill="currentColor" style={{
+                  position: 'absolute',
+                  left: `${Math.max(12, Math.min(arrowLeft, popupRect.width - 12))}px`,
+                  top: isArrowPointingUp ? '-12px' : '100%',
+                  transform: `translateX(-50%) rotate(${isArrowPointingUp ? '0deg' : '180deg'})`,
+                  width: '24px',
+                  height: '12px',
+                  color: 'hsl(var(--popover))',
+                  filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))',
+                  zIndex: 1
+                }}>
+                  <path d="M12 0L24 12H0z" />
+                </svg>
+              );
+            })()
           )}
           
           <div className="flex items-start justify-between">

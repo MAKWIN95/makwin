@@ -124,6 +124,35 @@ html * {
   50% { opacity: 1; transform: translateY(2px); }
 }
 
+/* Notification slide from navbar */
+@keyframes notifyFromNavIn {
+  from { transform: translateY(-18px) scale(0.98); opacity: 0; }
+  to { transform: translateY(0) scale(1); opacity: 1; }
+}
+
+@keyframes notifyFromNavOut {
+  from { transform: translateY(0) scale(1); opacity: 1; }
+  to { transform: translateY(-8px) scale(0.98); opacity: 0; }
+}
+
+.notify-from-nav {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  top: 64px; /* justo debajo de la navbar */
+  z-index: 60;
+  min-width: 320px;
+  max-width: calc(100% - 2rem);
+  border-radius: 10px;
+  box-shadow: 0 10px 30px rgba(2,6,23,0.12);
+  animation: notifyFromNavIn 380ms cubic-bezier(0.2,0,0.2,1) both;
+}
+
+.notify-from-nav.leave {
+  animation: notifyFromNavOut 320ms cubic-bezier(0.2,0,0.2,1) both;
+}
+
+
 
 
 @layer base {

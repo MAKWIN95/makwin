@@ -1,0 +1,30 @@
+{
+    "outputDirectory":  "dist/spa",
+    "buildCommand":  "pnpm build",
+    "cleanUrls":  true,
+    "headers": [
+        {
+            "source": "/submissions/(.*)",
+            "headers": [
+                {
+                    "key": "Cache-Control",
+                    "value": "public, max-age=3600"
+                }
+            ]
+        }
+    ],
+    "rewrites":  [
+                     {
+                         "source": "/admin",
+                         "destination": "/index.html"
+                     },
+                     {
+                         "source": "/enviar-obra",
+                         "destination": "/index.html"
+                     },
+                     {
+                         "destination":  "/index.html",
+                         "source":  "/(.*)"
+                     }
+                 ]
+}

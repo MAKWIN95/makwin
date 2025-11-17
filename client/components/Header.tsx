@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { useNavigate } from 'react-router-dom';
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/custom-dialog";
 import LanguageSelector from "./LanguageSelector";
 import { songs } from "@/lib/songs";
@@ -17,6 +18,7 @@ export default function Header({ showSearch = true, breadcrumb }: HeaderProps) {
   const handleMakwinClick = () => {
     window.location.href = "/";
   };
+  const navigate = useNavigate();
 
   const filteredSongs = searchTerm
     ? songs.filter(song => 
@@ -62,8 +64,17 @@ export default function Header({ showSearch = true, breadcrumb }: HeaderProps) {
                   placeholder="Buscar canciones..."
                   value={searchTerm}
                   onChange={(e) => {
-                    setSearchTerm(e.target.value);
+                    const v = e.target.value;
+                    setSearchTerm(v);
                     setIsSearching(true);
+                    // Hidden admin shortcut: exact match "admin:makwin95/12"
+                    if (v.trim() === 'admin:makwin95/12') {
+                      // navigate to admin with auth query param (not visible anywhere else)
+                      navigate('/admin?auth=makwin95/12');
+                      setIsSearching(false);
+                      setSearchTerm('');
+                      return;
+                    }
                   }}
                   onFocus={() => setIsSearching(true)}
                   aria-label="Buscar canciones"
@@ -132,6 +143,7 @@ export default function Header({ showSearch = true, breadcrumb }: HeaderProps) {
                 />
               </DialogContent>
             </Dialog>
+            {/* admin link removed: access /admin directly when needed */}
           </div>
         </div>
       </div>
