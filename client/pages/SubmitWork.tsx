@@ -32,6 +32,7 @@ export default function SubmitWork() {
     file: null as File | null,
     addCover: false,
     coverImage: null as File | null,
+    hashtags: '' as string,
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -80,6 +81,29 @@ export default function SubmitWork() {
         setError('Por favor sube una imagen para la portada');
         setLoading(false);
         return;
+      }
+
+      // Validaciones por tipo de archivo
+      if (formData.file) {
+        const ft = formData.file.type || '';
+        const name = formData.file.name.toLowerCase();
+        if (formData.workType === 'cancion') {
+          // permitir solo audio
+          const allowed = ft.startsWith('audio/') || name.endsWith('.mp3') || name.endsWith('.wav') || name.endsWith('.flac');
+          if (!allowed) {
+            setError('Para canciones solo se permiten archivos de audio (mp3, wav, flac)');
+            setLoading(false);
+            return;
+          }
+        }
+        if (formData.workType === 'pintura' || formData.workType === 'fotografia') {
+          const allowed = ft.startsWith('image/') || name.match(/\.(jpg|jpeg|png|gif|webp)$/);
+          if (!allowed) {
+            setError('Para pinturas y fotografías solo se permiten imágenes');
+            setLoading(false);
+            return;
+          }
+        }
       }
 
       let fileUrl = '';
@@ -135,6 +159,12 @@ export default function SubmitWork() {
       }
 
       // Enviar metadata y URL al backend
+      // preparar hashtags array
+      const tagsArray = formData.hashtags
+        .split(/[,\s]+/)
+        .map(s => s.replace(/^#/, '').trim())
+        .filter(Boolean);
+
       const payload = {
         artistName: formData.artistName,
         email: formData.email,
@@ -144,6 +174,7 @@ export default function SubmitWork() {
         language,
         fileUrl,
         coverImageUrl: coverImageUrl || null,
+        hashtags: tagsArray,
       };
 
       const response = await fetch('/api/submit-work', {
@@ -170,6 +201,7 @@ export default function SubmitWork() {
         file: null,
         addCover: false,
         coverImage: null,
+        hashtags: '',
       });
       setError('');
       setTimeout(() => {
@@ -330,6 +362,20 @@ export default function SubmitWork() {
                 />
               </div>
 
+              {/* Hashtags */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-[hsl(var(--foreground))]">Hashtags</label>
+                <Input
+                  type="text"
+                  name="hashtags"
+                  value={formData.hashtags}
+                  onChange={handleChange}
+                  placeholder="#paisaje, #poesia, #blues"
+                  className="bg-[hsl(var(--input))] border border-[hsl(var(--border))] text-[hsl(var(--foreground))] placeholder:text-[hsl(var(--muted-foreground))]"
+                />
+                <p className="text-xs text-[hsl(var(--muted-foreground))] mt-1">Escribe hashtags separados por comas o espacios. Ej: #poesia #amor</p>
+              </div>
+
               {/* File Upload */}
               <div className="space-y-2">
                 <label className="text-sm font-medium text-[hsl(var(--foreground))]">
@@ -337,6 +383,7 @@ export default function SubmitWork() {
                 </label>
                 <input
                   type="file"
+                  accept={formData.workType === 'cancion' ? 'audio/*' : (formData.workType === 'pintura' || formData.workType === 'fotografia' ? 'image/*' : '*/*')}
                   onChange={handleFileChange}
                   className="w-full text-sm text-[hsl(var(--muted-foreground))] file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-black file:text-white hover:file:bg-black/90 cursor-pointer"
                 />

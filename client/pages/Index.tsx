@@ -1,7 +1,8 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { songs } from '@/lib/songs';
 import Header from '@/components/Header';
+import { Filter } from 'lucide-react';
 
 interface PublishedWork {
   submissionId: string;
@@ -18,7 +19,11 @@ interface PublishedWork {
 export default function Index() {
   const [searchTerm, setSearchTerm] = useState("");
   const [works, setWorks] = useState<PublishedWork[]>([]);
+  const [filters, setFilters] = useState({ workType: '', sort: 'recent' });
+  const [showFilterPopup, setShowFilterPopup] = useState(false);
+  const [showItems, setShowItems] = useState(false);
   const [loadingWorks, setLoadingWorks] = useState(true);
+  const filterRef = useRef<HTMLDivElement>(null);
   
   const handleMakwinClick = () => {
     window.location.href = '/';
@@ -44,16 +49,58 @@ export default function Index() {
     };
 
     fetchWorks();
+    setTimeout(() => setShowItems(true), 120);
   }, []);
 
-  const filteredSongs = useMemo(() => {
-    if (!searchTerm.trim()) return songs;
-    const term = searchTerm.toLowerCase().trim();
-    return songs.filter(song => 
-      song.title.toLowerCase().includes(term) || 
-      song.artist.toLowerCase().includes(term)
-    );
-  }, [searchTerm]);
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (filterRef.current && !filterRef.current.contains(event.target as Node)) {
+        setShowFilterPopup(false);
+      }
+    };
+    const handleToggleFilter = () => {
+      setShowFilterPopup(prev => !prev);
+    };
+    if (showFilterPopup) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    document.addEventListener('toggleFilterPopup', handleToggleFilter);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('toggleFilterPopup', handleToggleFilter);
+    };
+  }, [showFilterPopup]);
+
+  const filteredAndSorted = useMemo(() => {
+    // Combine songs and works
+    const combined = [
+      ...songs.map(s => ({ ...s, workType: 'cancion' as const, hashtags: [] as string[] })),
+      ...works
+    ];
+
+    // Search: by title, artist, or hashtag
+    const searchLower = searchTerm.toLowerCase();
+    const searched = combined.filter((item: any) => {
+      if (!searchTerm) return true;
+      return item.title.toLowerCase().includes(searchLower) || 
+        item.artistName?.toLowerCase().includes(searchLower) ||
+        item.artist?.toLowerCase().includes(searchLower) ||
+        (Array.isArray(item.hashtags) && item.hashtags.some(tag => tag.toLowerCase().includes(searchLower)));
+    });
+
+    // Filter by workType if specified
+    const typeFiltered = searched.filter(item => {
+      if (!filters.workType) return true;
+      return item.workType.toLowerCase() === filters.workType.toLowerCase();
+    });
+
+    // Sort: recent (default) or oldest
+    return typeFiltered.sort((a: any, b: any) => {
+      const dateA = new Date(a.createdAt || a.publishedAt || a.date || 0).getTime();
+      const dateB = new Date(b.createdAt || b.publishedAt || b.date || 0).getTime();
+      return filters.sort === 'recent' ? dateB - dateA : dateA - dateB;
+    });
+  }, [searchTerm, filters, songs, works]);
 
   return (
     <div className="min-h-screen bg-[hsl(var(--background))]">
@@ -61,98 +108,80 @@ export default function Index() {
 
       {/* Main Content */}
       <main className="w-full page-enter">
-        {/* Grid Container - Songs and Works Combined */}
+        {/* Masonry Container - Songs and Works Combined (Pinterest-like) */}
         <div className="px-4 sm:px-8 py-4 sm:py-6">
-          <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 sm:gap-6">
-            {/* Songs */}
-            {filteredSongs.map((song) => (
-              <Link
-                key={song.id}
-                to={`/song/${song.slug ?? song.id}`}
-                className="group flex flex-col cursor-pointer"
-              >
-                {/* Cover Image */}
-                <div className="relative overflow-hidden rounded-2xl glass-effect aspect-square mb-3 transition-all duration-700 ease-out group-hover:shadow-[0_8px_20px_-10px_rgba(0,0,0,0.2)] group-hover:-translate-y-0.5 group-hover:border-transparent">
-                  <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-all duration-500 ease-out">
-                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_-20%,rgba(255,255,255,0.1),rgba(255,255,255,0.05))]"></div>
-                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_50%,rgba(255,255,255,0.15),transparent)]"></div>
-                  </div>
-                  <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-transform duration-1000 ease-out group-hover:translate-y-[60%] pointer-events-none">
-                    <div className="absolute inset-0 bg-gradient-to-t from-white/20 to-transparent blur-sm"></div>
-                  </div>
-                  <img
-                    src={song.coverUrl}
-                    alt={song.title}
-                    className="w-full h-full object-cover transition-all duration-700 ease-out group-hover:scale-[1.02]"
-                  />
-                </div>
+          {/* Filter Popup */}
+          {showFilterPopup && (
+            <div ref={filterRef} className="max-w-6xl mx-auto mb-4 p-4 border rounded-lg bg-[hsl(var(--popover))] shadow-md">
+              <div className="flex gap-3 items-center flex-wrap">
+                <select value={filters.workType} onChange={e => setFilters(f => ({ ...f, workType: e.target.value }))} className="px-3 py-2 border rounded bg-[hsl(var(--input))] text-sm">
+                  <option value="">Todos los tipos</option>
+                  <option value="pintura">Pintura</option>
+                  <option value="fotografia">Fotografía</option>
+                  <option value="poema">Poema</option>
+                  <option value="cancion">Canción</option>
+                  <option value="video">Video</option>
+                </select>
+                <select value={filters.sort} onChange={e => setFilters(f => ({ ...f, sort: e.target.value }))} className="px-3 py-2 border rounded bg-[hsl(var(--input))] text-sm">
+                  <option value="recent">Más recientes</option>
+                  <option value="oldest">Más antiguos</option>
+                </select>
+                <button onClick={() => setFilters({ workType: '', sort: 'recent' })} className="px-3 py-2 text-sm rounded border bg-[hsl(var(--popover))]">Limpiar</button>
+              </div>
+            </div>
+          )}
+          <div className="columns-2 sm:columns-3 lg:columns-4 xl:columns-5 2xl:columns-6 gap-4">
+            {/* Combined Works and Songs */}
+            {filteredAndSorted.map((item: any) => {
+              const isSong = item.workType === 'cancion';
+              const isPoem = item.workType?.toLowerCase().includes('poesia') || 
+                            item.workType?.toLowerCase().includes('poema') || 
+                            item.workType?.toLowerCase().includes('texto');
+              const gradient = getWorkGradient(item.workType);
+              
+              // For songs: use coverUrl
+              // For works with poems: prefer coverImageUrl, fallback to description preview
+              // For other works: use fileUrl if available
+              const showCoverImage = !isSong && item.coverImageUrl && isPoem;
+              const showMainImage = !isSong && item.fileUrl && !isPoem;
+              const songCover = isSong && item.coverUrl;
 
-                {/* Title and Artist */}
-                <div className="flex flex-col min-w-0 px-1">
-                  <h3 className="text-xs sm:text-sm font-light text-[hsl(var(--foreground))] whitespace-normal break-words group-hover:text-[hsl(var(--foreground))/0.7] transition-colors duration-300">
-                    {song.title}
-                  </h3>
-                  <p className="text-xs font-light text-[hsl(var(--foreground))/0.4] mt-0.5 transition-colors duration-300 group-hover:text-[hsl(var(--foreground))/0.5]">
-                    {song.artist}
-                  </p>
-                </div>
-              </Link>
-            ))}
-
-            {/* Published Works */}
-            {!loadingWorks && works.map((work) => {
-              const isPoem = work.workType.toLowerCase().includes('poesia') || 
-                            work.workType.toLowerCase().includes('poema') || 
-                            work.workType.toLowerCase().includes('texto');
-              const gradient = getWorkGradient(work.workType);
-              const showCoverImage = work.coverImageUrl && isPoem;
-              const showMainImage = work.fileUrl && (work.workType.toLowerCase().includes('fotografia') || work.workType.toLowerCase().includes('fotografía'));
+              const linkId = isSong ? item.id : item.submissionId;
+              const linkSlug = isSong ? (item.slug ?? item.id) : linkId;
+              const linkPath = isSong ? `/song/${linkSlug}` : `/work/${linkId}`;
 
               return (
                 <Link
-                  key={work.submissionId}
-                  to={`/work/${work.submissionId}`}
-                  className="group flex flex-col cursor-pointer"
+                  key={linkId}
+                  to={linkPath}
+                  className={`group inline-block w-full mb-4 break-inside-avoid cursor-pointer transition-all duration-300 ${showItems ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}`}
                 >
-                  {/* Work Image/Preview */}
-                  <div className={`relative overflow-hidden rounded-2xl glass-effect aspect-square mb-3 transition-all duration-700 ease-out group-hover:shadow-[0_8px_20px_-10px_rgba(0,0,0,0.2)] group-hover:-translate-y-0.5 group-hover:border-transparent ${!showCoverImage && !showMainImage ? `bg-gradient-to-br ${gradient}` : ''} flex items-center justify-center`}>
-                    <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-all duration-500 ease-out">
-                      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_-20%,rgba(255,255,255,0.1),rgba(255,255,255,0.05))]"></div>
-                      <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_50%,rgba(255,255,255,0.15),transparent)]"></div>
-                    </div>
-                    <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-transform duration-1000 ease-out group-hover:translate-y-[60%] pointer-events-none">
-                      <div className="absolute inset-0 bg-gradient-to-t from-white/20 to-transparent blur-sm"></div>
-                    </div>
-                    {showCoverImage ? (
-                      <img
-                        src={work.coverImageUrl}
-                        alt={work.title}
-                        className="w-full h-full object-cover transition-all duration-700 ease-out group-hover:scale-[1.02]"
-                      />
+                  {/* Cover Image */}
+                  <div className={`overflow-hidden rounded-2xl glass-effect transition-all duration-300 ease-out ${!songCover && !showCoverImage && !showMainImage ? `bg-gradient-to-br ${gradient}` : ''}`}>
+                    {songCover ? (
+                      <img src={item.coverUrl} alt={item.title} className="w-full h-auto object-cover block" />
+                    ) : showCoverImage ? (
+                      <img src={item.coverImageUrl} alt={item.title} className="w-full h-auto object-cover block" />
                     ) : showMainImage ? (
-                      <img
-                        src={work.fileUrl}
-                        alt={work.title}
-                        className="w-full h-full object-cover transition-all duration-700 ease-out group-hover:scale-[1.02]"
-                      />
+                      <img src={item.fileUrl} alt={item.title} className="w-full h-auto object-cover block" />
                     ) : isPoem ? (
-                      <div className="p-4 text-center flex items-center justify-center h-full">
-                        <p className="text-[hsl(var(--card-foreground))] text-xs line-clamp-4 px-2">
-                          "{work.description.split('\n')[0].substring(0, 40)}..."
+                      <div className="p-4 text-left min-h-80 flex flex-col justify-start bg-gradient-to-br from-pink-600 to-pink-900">
+                        <p className="text-[hsl(var(--card-foreground))] text-sm leading-relaxed line-clamp-6">
+                          {item.description.split('\n').filter(line => line.trim()).slice(0, 3).join(' ')}
                         </p>
                       </div>
                     ) : (
-                      <span className="text-4xl">🎨</span>
+                      <div className="p-6 text-center text-4xl">🎨</div>
                     )}
                   </div>
 
                   {/* Title and Artist */}
-                  <div className="flex flex-col min-w-0 px-1">
+                  <div className="px-1 mt-2">
                     <h3 className="text-xs sm:text-sm font-light text-[hsl(var(--foreground))] whitespace-normal break-words group-hover:text-[hsl(var(--foreground))/0.7] transition-colors duration-300">
-                      {work.title}
+                      {item.title}
                     </h3>
                     <p className="text-xs font-light text-[hsl(var(--foreground))/0.4] mt-0.5 transition-colors duration-300 group-hover:text-[hsl(var(--foreground))/0.5]">
-                      {work.artistName}
+                      {item.artist || item.artistName}
                     </p>
                   </div>
                 </Link>

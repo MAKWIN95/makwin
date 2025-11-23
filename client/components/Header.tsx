@@ -4,6 +4,7 @@ import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/custom-dia
 import LanguageSelector from "./LanguageSelector";
 import { songs } from "@/lib/songs";
 import { Link } from "react-router-dom";
+import { Filter } from "lucide-react";
 
 interface HeaderProps {
   showSearch?: boolean;
@@ -61,7 +62,7 @@ export default function Header({ showSearch = true, breadcrumb }: HeaderProps) {
                 <input
                   id="site-search-input"
                   type="search"
-                  placeholder="Buscar canciones..."
+                  placeholder="Buscar obras..."
                   value={searchTerm}
                   onChange={(e) => {
                     const v = e.target.value;
@@ -77,7 +78,7 @@ export default function Header({ showSearch = true, breadcrumb }: HeaderProps) {
                     }
                   }}
                   onFocus={() => setIsSearching(true)}
-                  aria-label="Buscar canciones"
+                  aria-label="Buscar obras"
                   className="w-full px-4 py-2 text-sm bg-[hsl(var(--background))] border border-[hsl(var(--border))] rounded-lg focus:outline-none focus:ring-1 focus:ring-[hsl(var(--ring))] transition-all duration-300 placeholder:text-[hsl(var(--muted-foreground))] hover:border-[hsl(var(--ring))/0.5]"
                 />
                 {isSearching && searchTerm && (
@@ -122,6 +123,17 @@ export default function Header({ showSearch = true, breadcrumb }: HeaderProps) {
           </div>
 
           <div className="flex items-center gap-4 flex-shrink-0">
+            <button 
+              id="filter-btn" 
+              className="p-2 hover:bg-[hsl(var(--accent))/0.1] rounded-lg transition-colors duration-150"
+              aria-label="Filtrar obras"
+              onClick={() => {
+                const event = new Event('toggleFilterPopup');
+                document.dispatchEvent(event);
+              }}
+            >
+              <Filter size={20} className="text-[hsl(var(--foreground))/0.7] hover:text-[hsl(var(--foreground))]" />
+            </button>
             <div id="lang-selector-wrap" className="whitespace-nowrap"><LanguageSelector /></div>
             <Dialog>
               <DialogTrigger asChild>

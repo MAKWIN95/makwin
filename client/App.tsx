@@ -13,6 +13,7 @@ import NotFound from "./pages/NotFound";
 import SubmitWork from "./pages/SubmitWork";
 import SubmittedWorks from "./pages/SubmittedWorks";
 import Admin from "./pages/Admin";
+import RequestChange from "./pages/RequestChange";
 import ThemeBulb from "@/components/ThemeBulb";
 import SubmitButton from "@/components/SubmitButton";
 import { I18nProvider } from "@/lib/i18n";
@@ -37,6 +38,7 @@ const App = () => (
             <Route path="/song/:id" element={<SongDetail />} />
             <Route path="/work/:id" element={<WorkDetail />} />
             <Route path="/enviar-obra" element={<SubmitWork />} />
+            <Route path="/solicitud-cambio" element={<RequestChange />} />
             <Route path="/obras-enviadas" element={<SubmittedWorks />} />
             <Route path="/admin" element={<Admin />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

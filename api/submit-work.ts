@@ -15,7 +15,8 @@ async function sendEmailWithResend(
   description: string,
   fileUrl?: string,
   isConfirmation: boolean = false,
-  workType?: string
+  workType?: string,
+  artistEmail?: string
 ): Promise<boolean> {
   try {
     const resendApiKey = process.env.RESEND_API_KEY;
@@ -106,7 +107,7 @@ async function sendEmailWithResend(
       
       <div class="info-group">
         <div class="info-label">Email del Artista</div>
-        <div class="info-value">${toEmail}</div>
+        <div class="info-value">${artistEmail || toEmail}</div>
       </div>
       
       <div class="info-group">
@@ -196,7 +197,7 @@ export default async function handler(
   }
 
   try {
-    const { artistName, email, workType, title, description, language, fileUrl, coverImageUrl } =
+    const { artistName, email, workType, title, description, language, fileUrl, coverImageUrl, hashtags } =
       req.body;
 
     // Validación
@@ -219,6 +220,7 @@ export default async function handler(
       language,
       fileUrl: fileUrl || null,
       coverImageUrl: coverImageUrl || null,
+      hashtags: Array.isArray(hashtags) ? hashtags : (typeof hashtags === 'string' && hashtags ? hashtags.split(',').map((h: string) => h.trim()) : []),
       timestamp: new Date().toISOString(),
       status: "pending",
     };
@@ -237,10 +239,10 @@ export default async function handler(
     }
 
     // Enviar email de confirmación al artista
-    await sendEmailWithResend(email, artistName, title, submissionId, description, fileUrl, true, workType);
+    await sendEmailWithResend(email, artistName, title, submissionId, description, fileUrl, true, workType, email);
     
-    // Enviar email de notificación al admin
-    await sendEmailWithResend("sendtomakwin@gmail.com", artistName, title, submissionId, description, fileUrl, false, workType);
+    // Enviar email de notificación al admin (mostrar el email real del artista)
+    await sendEmailWithResend("sendtomakwin@gmail.com", artistName, title, submissionId, description, fileUrl, false, workType, email);
 
     // Responder con información útil
     res.status(200).json({
