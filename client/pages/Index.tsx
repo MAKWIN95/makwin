@@ -61,13 +61,19 @@ export default function Index() {
     const handleToggleFilter = () => {
       setShowFilterPopup(prev => !prev);
     };
+    const handleUpdateSearch = (e: Event) => {
+      const customEvent = e as CustomEvent;
+      setSearchTerm(customEvent.detail?.searchTerm || "");
+    };
     if (showFilterPopup) {
       document.addEventListener('mousedown', handleClickOutside);
     }
     document.addEventListener('toggleFilterPopup', handleToggleFilter);
+    document.addEventListener('updateSearchTerm', handleUpdateSearch);
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
       document.removeEventListener('toggleFilterPopup', handleToggleFilter);
+      document.removeEventListener('updateSearchTerm', handleUpdateSearch);
     };
   }, [showFilterPopup]);
 
