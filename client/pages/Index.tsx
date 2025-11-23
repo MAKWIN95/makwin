@@ -145,12 +145,10 @@ export default function Index() {
                             item.workType?.toLowerCase().includes('texto');
               const gradient = getWorkGradient(item.workType);
               
-              // For songs: use coverUrl
-              // For works with poems: prefer coverImageUrl, fallback to description preview
-              // For other works: use fileUrl if available
-              const showCoverImage = !isSong && item.coverImageUrl && isPoem;
-              const showMainImage = !isSong && item.fileUrl && !isPoem;
-              const songCover = isSong && item.coverUrl;
+              // Display logic: prefer coverImageUrl if available, fallback to fileUrl or song cover
+              const hasCoverImage = !!item.coverImageUrl;
+              const hasMainImage = !!item.fileUrl;
+              const hasSongCover = isSong && !!item.coverUrl;
 
               const linkId = isSong ? item.id : item.submissionId;
               const linkSlug = isSong ? (item.slug ?? item.id) : linkId;
@@ -163,13 +161,13 @@ export default function Index() {
                   className={`group inline-block w-full mb-4 break-inside-avoid cursor-pointer transition-all duration-300 ${showItems ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}`}
                 >
                   {/* Cover Image */}
-                  <div className={`overflow-hidden rounded-2xl glass-effect transition-all duration-300 ease-out ${!songCover && !showCoverImage && !showMainImage ? `bg-gradient-to-br ${gradient}` : ''}`}>
-                    {songCover ? (
-                      <img src={item.coverUrl} alt={item.title} className="w-full h-auto object-cover block" />
-                    ) : showCoverImage ? (
+                  <div className={`overflow-hidden rounded-2xl glass-effect transition-all duration-300 ease-out ${!hasCoverImage && !hasMainImage && !hasSongCover ? `bg-gradient-to-br ${gradient}` : ''}`}>
+                    {hasCoverImage ? (
                       <img src={item.coverImageUrl} alt={item.title} className="w-full h-auto object-cover block" />
-                    ) : showMainImage ? (
+                    ) : hasMainImage && !isPoem ? (
                       <img src={item.fileUrl} alt={item.title} className="w-full h-auto object-cover block" />
+                    ) : hasSongCover ? (
+                      <img src={item.coverUrl} alt={item.title} className="w-full h-auto object-cover block" />
                     ) : isPoem ? (
                       <div className="p-4 text-left min-h-80 flex flex-col justify-start bg-gradient-to-br from-pink-600 to-pink-900">
                         <p className="text-[hsl(var(--card-foreground))] text-sm leading-relaxed line-clamp-6">
