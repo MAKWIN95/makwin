@@ -23,56 +23,87 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
-  const [isInitialized, setIsInitialized] = useState(false);
 
+  // Fetch profile without being a dependency
   const fetchProfile = useCallback(async (userId: string) => {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', userId)
-      .single();
-    if (!error && data) setProfile(data as Profile);
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+      if (!error && data) {
+        setProfile(data as Profile);
+      }
+    } catch (err) {
+      console.error('[AuthContext] Error fetching profile:', err);
+    }
   }, []);
 
   const refreshProfile = useCallback(async () => {
     if (user) await fetchProfile(user.id);
   }, [user, fetchProfile]);
 
+  // Initialize auth on mount only
   useEffect(() => {
     let isMounted = true;
 
     const initAuth = async () => {
       try {
-        // First, try to get session from storage/URL
+        // Get session from storage
         const { data: { session } } = await supabase.auth.getSession();
         
         if (isMounted) {
           setSession(session);
           setUser(session?.user ?? null);
+          
+          // Fetch profile if user exists
           if (session?.user) {
-            await fetchProfile(session.user.id);
+            try {
+              const { data, error } = await supabase
+                .from('profiles')
+                .select('*')
+                .eq('id', session.user.id)
+                .single();
+              if (!error && data) {
+                setProfile(data as Profile);
+              }
+            } catch (err) {
+              console.error('[AuthContext] Error fetching initial profile:', err);
+            }
           }
         }
       } catch (error) {
         console.error('[AuthContext] Error getting session:', error);
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
 
-    // Initialize auth state
-    initAuth().then(() => {
-      if (isMounted) {
-        setIsInitialized(true);
-        setLoading(false);
-      }
-    });
+    // Initialize auth
+    initAuth();
 
-    // Listen for auth changes (OAuth, signOut, etc)
+    // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       if (isMounted) {
         setSession(session);
         setUser(session?.user ?? null);
+        
         if (session?.user) {
-          await fetchProfile(session.user.id);
+          try {
+            const { data, error } = await supabase
+              .from('profiles')
+              .select('*')
+              .eq('id', session.user.id)
+              .single();
+            if (!error && data) {
+              setProfile(data as Profile);
+            }
+          } catch (err) {
+            console.error('[AuthContext] Error fetching profile on auth change:', err);
+          }
         } else {
           setProfile(null);
         }
@@ -83,7 +114,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       isMounted = false;
       subscription?.unsubscribe();
     };
-  }, [fetchProfile]);
+  }, []); // Only run on mount
 
   const signInWithGoogle = async () => {
     await supabase.auth.signInWithOAuth({
