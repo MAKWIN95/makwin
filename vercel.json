@@ -15,11 +15,27 @@
     ],
     "rewrites":  [
                      {
-                         "source": "/admin",
+                         "source": "/galeria",
                          "destination": "/index.html"
                      },
                      {
-                         "source": "/enviar-obra",
+                         "source": "/login",
+                         "destination": "/index.html"
+                     },
+                     {
+                         "source": "/registro",
+                         "destination": "/index.html"
+                     },
+                     {
+                         "source": "/subir-obra",
+                         "destination": "/index.html"
+                     },
+                     {
+                         "source": "/favoritos",
+                         "destination": "/index.html"
+                     },
+                     {
+                         "source": "/u/:username",
                          "destination": "/index.html"
                      },
                      {

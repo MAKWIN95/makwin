@@ -1,0 +1,1205 @@
+/* Landing Premium Styles with GSAP Animations */
+
+.landing-container {
+  width: 100%;
+  overflow-x: hidden;
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
+  position: relative;
+}
+
+/* Dark theme: slightly more transparent main background to reduce hard contrast */
+:root[data-theme="dark"] .landing-container {
+  background: linear-gradient(135deg, rgba(13,13,15,0.90) 0%, rgba(20,20,22,0.88) 100%);
+}
+
+/* subtle gradient overlay to smooth transition between page background and carousel cards */
+:root[data-theme="dark"] .landing-container::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 18vh;
+  bottom: 0;
+  pointer-events: none;
+  z-index: 4;
+  background: linear-gradient(to bottom, rgba(20,20,22,0.0) 0%, rgba(10,10,12,0.28) 12%, rgba(10,10,12,0.42) 36%, rgba(10,10,12,0.6) 60%, rgba(10,10,12,0.0) 100%);
+}
+
+/* Stars Background - Persistent */
+.stars-background {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.star {
+  position: absolute;
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 50%;
+  animation: twinkle var(--duration) ease-in-out infinite;
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+}
+
+/* Light-mode star variant */
+.star--light {
+  /* In light mode use darker (black-ish) subtle stars to be visible on bright backgrounds */
+  background: rgba(0,0,0,0.12) !important;
+  box-shadow: 0 0 6px rgba(0,0,0,0.06) !important;
+  filter: blur(0.5px);
+}
+
+@keyframes twinkle {
+  0%, 100% {
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* Hero Section */
+.hero-section {
+  position: relative;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+    background: #0d0d0f;
+  z-index: 10;
+}
+
+.hero-bg {
+  position: absolute;
+  inset: 0;
+    background: linear-gradient(135deg, #0d0d0f 0%, #1a1a1d 100%);
+  z-index: 0;
+}
+
+.particle {
+  position: absolute;
+  width: 2px;
+  height: 2px;
+  background: rgba(255, 255, 255, 0.5);
+  border-radius: 50%;
+  animation: float 6s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.hero-content {
+  position: relative;
+  z-index: 10;
+  text-align: center;
+  color: white;
+}
+
+/* small theme tip shown on landing for first-time users */
+.theme-tip {
+  position: fixed;
+  top: 82px;
+  right: 24px;
+  z-index: 60;
+  background: rgba(0,0,0,0.56);
+  color: #fff;
+  padding: 0.5rem 0.75rem;
+  border-radius: 999px;
+  display: inline-flex;
+  gap: 0.5rem;
+  align-items: center;
+  font-size: 0.86rem;
+  backdrop-filter: blur(6px);
+  border: 1px solid rgba(255,255,255,0.06);
+}
+.theme-tip .theme-tip-close {
+  background: transparent;
+  border: none;
+  color: #fff;
+  margin-left: 6px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.hero-title {
+  font-size: clamp(4rem, 12vw, 10rem);
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  margin-bottom: 1rem;
+  text-transform: uppercase;
+}
+
+.hero-subtitle {
+  font-size: clamp(1rem, 3vw, 1.5rem);
+  font-weight: 300;
+  letter-spacing: 0.05em;
+  margin-bottom: 3rem;
+  opacity: 0.9;
+}
+
+.hero-cta {
+  display: inline-block;
+  margin-bottom: 3rem;
+}
+
+/* hero explore spotlight */
+.hero-explore-btn {
+  position: relative;
+  z-index: 12;
+  color: #ffffff !important;
+  border-radius: 10px;
+  overflow: hidden;
+}
+.hero-explore-btn::after {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; right: 0; bottom: 0;
+  background: radial-gradient(circle at var(--mx,50%) var(--my,50%), rgba(255,255,255,0.22) 0%, rgba(255,255,255,0.06) 20%, transparent 40%);
+  opacity: 0;
+  transition: opacity 0.18s ease, border-radius 0.18s ease;
+  pointer-events: none;
+}
+.hero-explore-btn.has-spot::after { opacity: 1; }
+.hero-explore-btn:hover { border-radius: 14px; }
+
+
+/* Scroll Indicator */
+.scroll-indicator {
+  display: flex;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.6);
+  margin: 2rem auto 0 auto;
+  opacity: 0;
+  backdrop-filter: blur(12px);
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 50px;
+  width: 120px;
+  height: 56px;
+  align-items: center;
+}
+
+.scroll-indicator svg {
+  width: 88px;
+  height: 28px;
+  stroke-width: 3;
+  animation: bounce-arrow 1.5s ease-in-out infinite;
+}
+
+@keyframes bounce-arrow {
+  0%, 100% {
+    transform: translateY(0);
+    opacity: 0.6;
+  }
+  50% {
+    transform: translateY(8px);
+    opacity: 1;
+  }
+}
+
+/* Liquid Glass Navbar - Fixed, transforms from hero */
+.liquid-navbar {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 100;
+  opacity: 0;
+  backdrop-filter: blur(12px);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 50px;
+  padding: 0.75rem 2rem;
+  width: 90%;
+  max-width: 900px;
+  transition: all 0.3s ease;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.25);
+}
+
+.navbar-content {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 2rem;
+  align-items: center;
+  justify-items: center;
+}
+
+.navbar-brand {
+  font-size: 1.25rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: white;
+  justify-self: start;
+}
+
+.navbar-center {
+  font-size: 0.95rem;
+  font-weight: 300;
+  letter-spacing: 0.05em;
+  color: rgba(255, 255, 255, 0.9);
+  white-space: nowrap;
+}
+
+.btn-navbar {
+  background: rgba(255, 255, 255, 0.14) !important;
+  color: white !important;
+  border: 1px solid rgba(255, 255, 255, 0.22) !important;
+  padding: 0.5rem 1.5rem !important;
+  border-radius: 25px !important;
+  justify-self: end;
+  backdrop-filter: blur(10px);
+}
+
+.btn-navbar:hover {
+  background: rgba(255, 255, 255, 0.25) !important;
+  border-color: rgba(255, 255, 255, 0.5) !important;
+}
+
+/* Ensure good contrast on light/white sections */
+[data-theme="light"] .liquid-navbar {
+  /* make navbar darker in light theme to match bulb look */
+  background: rgba(0,0,0,0.12) !important;
+  border: 1px solid rgba(255,255,255,0.9) !important;
+  color: #fff;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.12) !important;
+}
+
+[data-theme="light"] .liquid-navbar .navbar-brand,
+[data-theme="light"] .liquid-navbar .navbar-center {
+  color: #fff !important;
+}
+
+[data-theme="light"] .liquid-navbar .btn-navbar {
+  background: rgba(255,255,255,0.06) !important;
+  color: #fff !important;
+  border: 1px solid rgba(255,255,255,0.18) !important;
+}
+
+/* When navbar is overlapping a very light background, darken it slightly so white text remains readable */
+.liquid-navbar.liquid-navbar--on-light {
+  transition: background 0.28s ease, border-color 0.28s ease, color 0.28s ease;
+  background: rgba(0,0,0,0.12) !important;
+  border-color: rgba(0,0,0,0.12) !important;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.18) !important;
+}
+
+/* Hero adjustments for light theme: make hero lighter and text dark */
+[data-theme="light"] .hero-section {
+  background: linear-gradient(135deg, #f5f6f7 0%, #efeff1 100%);
+}
+
+[data-theme="light"] .hero-bg {
+  background: linear-gradient(135deg, #f5f6f7 0%, #efeff1 100%);
+}
+
+[data-theme="light"] .hero-content {
+  color: #000000;
+}
+
+[data-theme="light"] .hero-title,
+[data-theme="light"] .hero-subtitle {
+  color: #000000;
+}
+
+/* Ensure Merch (section-2) is dark in dark theme and readable */
+:root[data-theme="dark"] .section-2 {
+  background: linear-gradient(135deg, #0a0a0b 0%, #141416 100%);
+  color: #ffffff;
+}
+
+:root[data-theme="dark"] .section-2 .section-title,
+:root[data-theme="dark"] .section-2 .section-desc {
+  color: #ffffff;
+}
+
+/* Ensure submit-like matches bulb in dark theme specifically for gallery */
+:root[data-theme="dark"] .submit-like {
+  background: rgba(0,0,0,0.18) !important;
+  border: 1px solid rgba(255,255,255,0.12) !important;
+  color: #fff !important;
+}
+
+/* Fix 'MAKWIN Locales' special section for light theme */
+[data-theme="light"] .section.special {
+  background: linear-gradient(180deg, #f7f7f8 0%, #efeff1 100%);
+  color: #071017;
+}
+
+[data-theme="light"] .section.special .section-title,
+[data-theme="light"] .section.special .section-desc {
+  color: #071017;
+}
+
+/* Theme bulb adjustments: in light mode make bulb slightly dark translucent with white border */
+[data-theme="light"] .theme-bulb {
+  background: rgba(0,0,0,0.08);
+  border: 1px solid rgba(255,255,255,0.98);
+  color: #fff;
+  backdrop-filter: blur(8px);
+}
+
+[data-theme="light"] .theme-bulb .theme-bulb-svg .bulb-outline,
+[data-theme="light"] .theme-bulb .theme-bulb-svg .bulb-base {
+  stroke: #ffffff !important;
+}
+
+/* submit-like button in light theme should match theme-bulb appearance */
+[data-theme="light"] .submit-like {
+  background: rgba(0,0,0,0.08) !important;
+  border: 1px solid rgba(255,255,255,0.98) !important;
+  color: #fff !important;
+  backdrop-filter: blur(8px) !important;
+}
+
+/* Sections Wrapper */
+.sections-wrapper {
+  position: relative;
+  z-index: 5;
+}
+
+/* Carousel-specific: remove full-section backgrounds so cards sit on same canvas
+   and reduce vertical spacing to make cards more compact */
+.sections-wrapper.horizontal-carousel .section {
+  background: transparent !important;
+  min-height: 60vh;
+  padding: 2rem 1.25rem;
+}
+.sections-wrapper.horizontal-carousel .section-inner {
+  gap: 2rem;
+}
+.sections-wrapper.horizontal-carousel .section-image {
+  background: transparent;
+}
+
+/* Horizontal carousel for landing sections on wide screens */
+.sections-wrapper.horizontal-carousel {
+  display: flex;
+  gap: 2rem;
+  overflow-x: auto;
+  padding: 2rem 1rem;
+  scroll-snap-type: x mandatory;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+}
+
+.sections-wrapper.horizontal-carousel .section {
+  min-width: 78%;
+  flex: 0 0 78%;
+  scroll-snap-align: start;
+  margin: 0 0.5rem;
+}
+
+/* allow cards to animate outside their box during slide transitions */
+.sections-wrapper.horizontal-carousel .section {
+  overflow: visible;
+}
+
+/* hint the compositor to optimize transforms and opacity changes */
+.sections-wrapper.horizontal-carousel .section {
+  will-change: transform, opacity;
+}
+
+/* Active card styling for smoother perceived motion */
+.sections-wrapper.horizontal-carousel .section {
+  transition: transform 600ms cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 600ms cubic-bezier(0.4, 0.0, 0.2, 1), opacity 500ms ease;
+  transform-origin: center center;
+  opacity: 0.85;
+}
+.sections-wrapper.horizontal-carousel .section.is-active {
+  transform: scale(1.04);
+  box-shadow: 0 25px 50px rgba(0,0,0,0.35), 0 8px 16px rgba(255,255,255,0.08);
+  z-index: 60;
+  opacity: 1;
+}
+
+@media (max-width: 900px) {
+  .sections-wrapper.horizontal-carousel .section { min-width: 92%; flex: 0 0 92%; }
+}
+
+/* hide native scrollbar */
+.sections-wrapper.horizontal-carousel::-webkit-scrollbar { display: none; }
+.sections-wrapper.horizontal-carousel { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* Carousel arrow controls */
+
+.carousel-arrow {
+  position: absolute;
+  transform: none;
+  width: 56px;
+  height: 88px; /* taller, stretched vertically */
+  border-radius: 28px;
+  display: grid;
+  place-items: center;
+  background: rgba(0,0,0,0.14);
+  border: 1px solid rgba(255,255,255,0.12);
+  color: #fff;
+  z-index: 90;
+  opacity: 0;
+  pointer-events: none;
+  transition: transform 220ms cubic-bezier(0.2,0.9,0.2,1), opacity 220ms ease, background 220ms ease;
+  backdrop-filter: blur(8px);
+}
+
+.carousel-arrow.visible { opacity: 1; pointer-events: auto; }
+.carousel-arrow:hover { transform: scale(1.16); }
+/* move arrows further from page edges to avoid touching borders */
+.carousel-prev { left: 24px; }
+.carousel-next { right: 24px; }
+
+@media (max-width: 900px) {
+  .carousel-prev { left: 6%; }
+  .carousel-next { right: 6%; }
+}
+
+/* Light theme: avoid darkening on hover; use subtle light background */
+[data-theme="light"] .carousel-arrow {
+  background: rgba(255,255,255,0.06);
+  color: #071017;
+  border: 1px solid rgba(255,255,255,0.12);
+}
+[data-theme="light"] .carousel-arrow:hover {
+  background: rgba(255,255,255,0.08);
+}
+
+.section {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem;
+  overflow: hidden;
+}
+
+.section-inner {
+  max-width: 1200px;
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4rem;
+  align-items: center;
+}
+
+/* Card-like wrapper around content + image to distinguish parts */
+.section-inner {
+  background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.00));
+  border-radius: 18px;
+  padding: 2.5rem;
+  border: 2px solid rgba(255,255,255,0.06);
+}
+
+.section-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.section-title {
+  font-size: clamp(2rem, 5vw, 3.5rem);
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  line-height: 1.1;
+}
+
+.section-desc {
+  font-size: 1.1rem;
+  line-height: 1.6;
+  opacity: 0.8;
+  max-width: 500px;
+}
+
+.section-image {
+  position: relative;
+  aspect-ratio: 1;
+  border-radius: 12px;
+  overflow: hidden;
+  background: hsl(var(--muted));
+}
+
+.image-placeholder {
+  width: 100%;
+  height: 100%;
+  border-radius: 12px;
+}
+
+/* Section Patterns */
+.pattern-1 {
+  background: linear-gradient(135deg, #333 0%, #111 100%);
+}
+
+.pattern-2 {
+  background: linear-gradient(45deg, #1a1a1a 0%, #333 100%);
+}
+
+.pattern-3 {
+  background: linear-gradient(180deg, #222 0%, #000 100%);
+}
+
+.pattern-4 {
+  background: linear-gradient(225deg, #444 0%, #111 100%);
+}
+
+/* Section specific backgrounds */
+.section {
+  background: hsl(var(--background));
+}
+
+.section-0 {
+  background: linear-gradient(135deg, hsl(var(--background)) 0%, hsl(var(--muted)) 100%);
+}
+
+.section-1 {
+  background: hsl(var(--background));
+}
+
+.section-2 {
+  background: linear-gradient(45deg, hsl(var(--muted)) 0%, hsl(var(--background)) 100%);
+}
+
+.section-3 {
+  background: linear-gradient(135deg, hsl(var(--background)) 0%, hsl(var(--muted)) 100%);
+}
+
+.section.special {
+  background: linear-gradient(180deg, #000 0%, #1a1a1a 100%);
+  color: white;
+}
+
+.section.special .section-title,
+.section.special .section-desc {
+  color: white;
+}
+
+.section.special .section-desc {
+  opacity: 0.9;
+}
+
+/* Buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.875rem 2rem;
+  border-radius: 0.375rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.3s ease;
+  border: none;
+  cursor: pointer;
+  font-size: 1rem;
+}
+
+.btn-primary {
+  background: rgba(255, 255, 255, 0.95);
+  color: #1a1a1f;
+  border: 2px solid white;
+}
+
+.btn-primary:hover {
+  transform: scale(1.05);
+  box-shadow: 0 20px 40px rgba(255, 255, 255, 0.2);
+}
+
+.btn-liquid {
+  /* Slightly transparent, clarified liquid glass */
+  background: rgba(255, 255, 255, 0.06);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  backdrop-filter: blur(10px);
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-liquid::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    45deg,
+    rgba(255, 255, 255, 0.1) 0%,
+    rgba(255, 255, 255, 0.3) 50%,
+    rgba(255, 255, 255, 0.1) 100%
+  );
+  background-size: 200% 200%;
+  animation: shimmer 3s infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 200% 200%;
+  }
+  50% {
+    background-position: -200% -200%;
+  }
+  100% {
+    background-position: 200% 200%;
+  }
+}
+
+.btn-liquid:hover {
+  background: rgba(255, 255, 255, 0.26);
+  border-color: rgba(255, 255, 255, 0.6);
+  transform: scale(1.05);
+}
+
+/* Light mode adjustments for btn-liquid */
+[data-theme="light"] .btn-liquid {
+  background: rgba(255,255,255,0.92);
+  color: #000;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+/* Specific Marketplace CTA in light mode: darker to stand out */
+[data-theme="light"] .section-1 .btn-liquid {
+  background: rgba(0,0,0,0.08) !important;
+  color: #000 !important;
+  border: 1px solid rgba(0,0,0,0.12) !important;
+}
+
+[data-theme="light"] .btn-liquid:hover {
+  background: rgba(0, 0, 0, 0.12);
+  border-color: rgba(0, 0, 0, 0.4);
+}
+
+[data-theme="light"] .section-desc {
+  color: rgba(0, 0, 0, 0.7);
+}
+
+/* Footer Spacer */
+.footer-spacer {
+  height: 4rem;
+  background: hsl(var(--background));
+}
+
+/* Dark Theme Support */
+:root[data-theme="dark"] .section {
+  background: linear-gradient(135deg, hsl(0, 0%, 5%) 0%, hsl(0, 0%, 15%) 100%);
+}
+
+:root[data-theme="dark"] .section.special {
+  background: linear-gradient(180deg, #000 0%, #1a1a1a 100%);
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+  .section-inner {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+
+  .section {
+    min-height: auto;
+    padding: 3rem 1.5rem;
+  }
+
+  .section-image {
+    aspect-ratio: 4/3;
+  }
+
+  .hero-title {
+    font-size: 2.5rem;
+  }
+
+  .hero-subtitle {
+    font-size: 1rem;
+  }
+
+  .section-title {
+    font-size: 1.75rem;
+  }
+
+  .section-desc {
+    font-size: 1rem;
+  }
+
+  .btn {
+    padding: 0.75rem 1.5rem;
+    font-size: 0.95rem;
+  }
+
+  .liquid-navbar {
+    width: 95%;
+    padding: 0.6rem 1.5rem;
+  }
+
+  .navbar-content {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .navbar-brand {
+    justify-self: center;
+  @@
+  @@/* Header Liquid Glass Enhancement */
+  @@header {
+  @@  backdrop-filter: blur(12px) !important;
+  @@  background: rgba(255, 255, 255, 0.08) !important;
+  @@  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  @@  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1) !important;
+  @@}
+  @@
+  @@[data-theme="dark"] header {
+  @@  background: rgba(255, 255, 255, 0.05) !important;
+  @@}
+  }
+
+  .navbar-center {
+    display: none;
+  }
+
+  .btn-navbar {
+    justify-self: center;
+  }
+}
+
+/* Sections Wrapper */
+.sections-wrapper {
+  position: relative;
+  z-index: 5;
+}
+
+.section {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem;
+  overflow: hidden;
+}
+
+.section-inner {
+  max-width: 1200px;
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4rem;
+  align-items: center;
+}
+
+.section-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.section-title {
+  font-size: clamp(2rem, 5vw, 3.5rem);
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  line-height: 1.1;
+}
+
+.section-desc {
+  font-size: 1.1rem;
+  line-height: 1.6;
+  opacity: 0.8;
+  max-width: 500px;
+}
+
+.section-image {
+  position: relative;
+  aspect-ratio: 1;
+  border-radius: 12px;
+  overflow: hidden;
+  background: hsl(var(--muted));
+}
+
+.image-placeholder {
+  width: 100%;
+  height: 100%;
+  border-radius: 12px;
+}
+
+/* Section Patterns */
+.pattern-1 {
+  background: linear-gradient(135deg, #333 0%, #111 100%);
+}
+
+.pattern-2 {
+  background: linear-gradient(45deg, #1a1a1a 0%, #333 100%);
+}
+
+.pattern-3 {
+  background: linear-gradient(180deg, #222 0%, #000 100%);
+}
+
+.pattern-4 {
+  background: linear-gradient(225deg, #444 0%, #111 100%);
+}
+
+/* Section specific backgrounds */
+.section {
+  background: hsl(var(--background));
+}
+
+.section-0 {
+  background: linear-gradient(135deg, hsl(var(--background)) 0%, hsl(var(--muted)) 100%);
+}
+
+.section-1 {
+  background: hsl(var(--background));
+}
+
+.section-2 {
+  /* Slightly darker than pure white so navbar and CTAs keep contrast */
+  background: linear-gradient(135deg, #f7f7f8 0%, #f2f3f4 100%);
+  color: #000;
+}
+
+/* In dark theme, section-2 should never be white */
+:root[data-theme="dark"] .section-2 {
+  background: linear-gradient(135deg, #0b0b0c 0%, #101112 100%);
+  color: #fff;
+}
+
+/* reveal-edge overlay for image soft border during reveal */
+.reveal-edge {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  background: rgba(255,255,255,0.02);
+  backdrop-filter: blur(8px);
+  transition: width 1.2s ease-out, opacity 0.6s ease-out;
+}
+
+/* soften section edges with blurred pseudo-elements for diffused transitions */
+.section::before,
+.section::after {
+  content: '';
+  position: absolute;
+  left: 0; right: 0;
+  height: 4rem;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.00));
+  filter: blur(12px);
+  z-index: 1;
+}
+.section::before { top: -2.5rem; }
+.section::after { bottom: -2.5rem; transform: rotate(180deg); }
+
+/* Ensure card backgrounds adapt to light/dark themes */
+:root[data-theme="light"] .section-inner {
+  background: linear-gradient(180deg, rgba(255,255,255,0.9), rgba(246,246,247,0.9));
+  border: 1px solid rgba(255,255,255,0.85);
+  box-shadow: 0 8px 28px rgba(12,12,14,0.04);
+}
+
+:root[data-theme="dark"] .section-inner {
+  background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.00));
+  border: 1px solid rgba(255,255,255,0.04);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.45);
+}
+
+/* Ensure images (placeholders) are enclosed inside the card look */
+.section-image .image-placeholder {
+  border-radius: 10px;
+  background: linear-gradient(180deg, rgba(0,0,0,0.04), rgba(0,0,0,0.02));
+}
+
+/* Page transition overlay */
+.page-transition-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(13,13,15,0.06);
+  opacity: 0;
+  z-index: 9999;
+}
+
+.section-3 {
+  background: linear-gradient(135deg, hsl(var(--background)) 0%, hsl(var(--muted)) 100%);
+}
+
+.section.special {
+  background: linear-gradient(180deg, #000 0%, #1a1a1a 100%);
+  color: white;
+}
+
+.section.special .section-title,
+.section.special .section-desc {
+  color: white;
+}
+
+.section.special .section-desc {
+  opacity: 0.9;
+}
+
+/* Buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.875rem 2rem;
+  border-radius: 0.375rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.3s ease;
+  border: none;
+  cursor: pointer;
+  font-size: 1rem;
+}
+
+.btn-primary {
+  background: rgba(255, 255, 255, 0.95);
+  color: #1a1a1f;
+  border: 2px solid white;
+}
+.btn-primary:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.6);
+  box-shadow: inset -2px -2px 8px rgba(255, 255, 255, 0.3), inset 2px 2px 8px rgba(255, 255, 255, 0.1);
+  animation: glassReflect 0.6s ease-out;
+}
+
+@keyframes glassReflect {
+  0% {
+    box-shadow: inset -2px -2px 8px rgba(255, 255, 255, 0.3), inset 2px 2px 8px rgba(255, 255, 255, 0.1);
+  }
+  50% {
+    box-shadow: inset 2px 2px 12px rgba(255, 255, 255, 0.4), inset -2px -2px 12px rgba(255, 255, 255, 0.05);
+  }
+  100% {
+    box-shadow: inset -2px -2px 8px rgba(255, 255, 255, 0.3), inset 2px 2px 8px rgba(255, 255, 255, 0.1);
+  }
+}
+
+.btn-liquid {
+  background: rgba(255, 255, 255, 0.12);
+  color: hsl(var(--foreground));
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  backdrop-filter: blur(10px);
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-liquid::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    45deg,
+    rgba(255, 255, 255, 0.1) 0%,
+    rgba(255, 255, 255, 0.3) 50%,
+    rgba(255, 255, 255, 0.1) 100%
+  );
+  background-size: 200% 200%;
+  animation: shimmer 3s infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 200% 200%;
+  }
+  50% {
+    background-position: -200% -200%;
+  }
+  100% {
+    background-position: 200% 200%;
+  }
+}
+
+.btn-liquid:hover {
+  background: rgba(255, 255, 255, 0.18);
+  border-color: rgba(255, 255, 255, 0.5);
+  transform: scale(1.05);
+}
+
+/* Light mode adjustments for btn-liquid */
+[data-theme="light"] .btn-liquid {
+  background: rgba(0, 0, 0, 0.08);
+  color: #000;
+  border: 2px solid rgba(0, 0, 0, 0.2);
+}
+
+[data-theme="light"] .btn-liquid:hover {
+  /* avoid darkening on hover; only scale and subtle shadow */
+  transform: scale(1.04);
+  box-shadow: 0 10px 30px rgba(12,12,14,0.06);
+}
+
+/* Make light-mode white surfaces slightly gray with a subtle gradient to avoid flat white */
+[data-theme="light"] .section,
+[data-theme="light"] .section-2,
+[data-theme="light"] .hero-section {
+  background: linear-gradient(135deg, #f7f7f8 0%, #f2f3f4 100%);
+}
+
+[data-theme="light"] .btn-liquid {
+  background: linear-gradient(135deg, #ffffff 0%, #f6f7f8 100%);
+  box-shadow: 0 6px 18px rgba(12,12,14,0.04);
+}
+
+[data-theme="light"] .section-desc {
+  color: rgba(0, 0, 0, 0.7);
+}
+
+/* Hero explore button - in light mode use dark text and no color shift on hover */
+[data-theme="light"] .hero-explore-btn {
+  color: #071017 !important;
+  background: linear-gradient(135deg, #ffffff 0%, #f7f7f8 100%);
+  border-radius: 12px;
+  padding: 0.75rem 1.5rem;
+}
+
+[data-theme="light"] .hero-explore-btn:hover {
+  transform: scale(1.05);
+  background: linear-gradient(135deg, #ffffff 0%, #f7f7f8 100%);
+  box-shadow: 0 10px 30px rgba(12,12,14,0.06);
+}
+
+/* Ensure buttons in light mode do not darken on hover globally */
+[data-theme="light"] .btn:hover {
+  background: inherit !important;
+  transform: scale(1.03);
+  box-shadow: 0 8px 26px rgba(12,12,14,0.05);
+}
+
+/* Stars for light mode: gray, soft and diffused */
+[data-theme="light"] .star {
+  background: rgba(15,15,20,0.12) !important;
+  box-shadow: 0 0 8px rgba(15,15,20,0.04);
+  filter: blur(0.4px);
+  opacity: 0.6;
+}
+
+/* Navbar style in light mode: more like the bulb (transparent darkish interior + white border) */
+[data-theme="light"] .liquid-navbar {
+  background: rgba(0,0,0,0.06) !important;
+  border: 1px solid rgba(255,255,255,0.9) !important;
+  color: #fff;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.12) !important;
+}
+
+[data-theme="light"] .liquid-navbar .navbar-brand,
+[data-theme="light"] .liquid-navbar .navbar-center {
+  color: #fff !important;
+}
+
+[data-theme="light"] .liquid-navbar .btn-navbar {
+  background: rgba(255,255,255,0.06) !important;
+  color: #fff !important;
+  border: 1px solid rgba(255,255,255,0.18) !important;
+}
+
+[data-theme="light"] .liquid-navbar .btn-navbar:hover {
+  transform: scale(1.05);
+  background: rgba(255,255,255,0.08) !important;
+}
+
+/* Gallery header variant (Header component) should match landing navbar appearance */
+[data-theme="light"] .gallery-navbar {
+  background: rgba(0,0,0,0.06) !important;
+  border: 1px solid rgba(255,255,255,0.9) !important;
+  color: #fff;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.12) !important;
+}
+
+[data-theme="light"] .gallery-navbar .btn-navbar,
+[data-theme="light"] .gallery-navbar .btn-navbar:hover {
+  background: rgba(255,255,255,0.06) !important;
+  color: #fff !important;
+}
+
+.header-offset { position: relative; }
+.header-offset::before {
+  content: '';
+  position: absolute;
+  top: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: calc(min(900px, 92%));
+  height: 6px;
+  border-radius: 8px;
+  background: linear-gradient(180deg, rgba(0,0,0,0.06), rgba(0,0,0,0.02));
+  pointer-events: none;
+  filter: blur(6px);
+  opacity: 0.9;
+}
+
+/* Footer Spacer */
+.footer-spacer {
+  height: 4rem;
+  background: hsl(var(--background));
+}
+
+/* Dark Theme Support */
+:root[data-theme="dark"] .section {
+  background: linear-gradient(135deg, hsl(0, 0%, 5%) 0%, hsl(0, 0%, 15%) 100%);
+}
+
+:root[data-theme="dark"] .section.special {
+  background: linear-gradient(180deg, #000 0%, #1a1a1a 100%);
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+  .section-inner {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+
+  .section {
+    min-height: auto;
+    padding: 3rem 1.5rem;
+  }
+
+  .section-image {
+    aspect-ratio: 4/3;
+  }
+
+  .hero-title {
+    font-size: 2.5rem;
+  }
+
+  .hero-subtitle {
+    font-size: 1rem;
+  }
+
+  .section-title {
+    font-size: 1.75rem;
+  }
+
+  .section-desc {
+    font-size: 1rem;
+  }
+
+  .btn {
+    padding: 0.75rem 1.5rem;
+    font-size: 0.95rem;
+  }
+
+  .liquid-navbar {
+    width: 95%;
+    padding: 0.6rem 1.5rem;
+  }
+
+  .navbar-content {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .navbar-brand {
+    justify-self: center;
+  }
+
+  .navbar-center {
+    display: none;
+  }
+
+  .btn-navbar {
+    justify-self: center;
+  }
+}

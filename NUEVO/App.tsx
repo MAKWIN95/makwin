@@ -9,12 +9,12 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
 // Pages
 import Landing from "./pages/Landing";
-import Gallery from "./pages/Gallery";
+import Gallery from "./pages/Gallery";          // ← replaces Index
 import Merch from "./pages/Merch";
 import Marketplace from "./pages/Marketplace";
 import SongDetail from "./pages/SongDetail";
 import WorkDetail from "./pages/WorkDetail";
-import UploadWork from "./pages/UploadWork";
+import UploadWork from "./pages/UploadWork";    // ← replaces SubmitWork
 import UserProfile from "./pages/UserProfile";
 import Saved from "./pages/Saved";
 import Login from "./pages/Login";
@@ -75,4 +75,3 @@ const App = () => (
 );
 
 createRoot(document.getElementById("root")!).render(<App />);
-

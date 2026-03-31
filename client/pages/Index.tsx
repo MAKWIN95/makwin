@@ -1,8 +1,23 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
+import WorkTypeIcon from '@/components/WorkTypeIcon';
 import { songs } from '@/lib/songs';
 import Header from '@/components/Header';
+import Footer from '@/components/Footer';
 import { Filter } from 'lucide-react';
+import { useI18n } from '@/lib/i18n';
+import { useStarsBackground } from '@/hooks/use-stars-background';
+
+function MetaGrid({ title, artist, date }: { title: string; artist?: string; date?: string }) {
+  // Grid with three columns: title (flexible, wraps), artist (auto, may wrap), date (auto, no-wrap)
+  return (
+    <div className="w-full text-gray-500 text-xs" style={{ display: 'grid', gridTemplateColumns: '1fr auto auto', gap: '0.5rem', alignItems: 'start' }}>
+      <div className="break-words">{title}</div>
+      <div className="px-2 text-center break-words">{artist}</div>
+      <div className="text-right whitespace-nowrap">{date}</div>
+    </div>
+  );
+}
 
 interface PublishedWork {
   submissionId: string;
@@ -17,39 +32,59 @@ interface PublishedWork {
 }
 
 export default function Index() {
+  const { language: currentLang, t } = useI18n();
   const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [works, setWorks] = useState<PublishedWork[]>([]);
   const [filters, setFilters] = useState({ workType: '', sort: 'recent' });
   const [showFilterPopup, setShowFilterPopup] = useState(false);
   const [showItems, setShowItems] = useState(false);
   const [loadingWorks, setLoadingWorks] = useState(true);
+  const [filterStyle, setFilterStyle] = useState<React.CSSProperties | null>(null);
   const filterRef = useRef<HTMLDivElement>(null);
   
+  // Initialize stars background
+  useStarsBackground('gallery-stars-background');
+  
   const handleMakwinClick = () => {
-    window.location.href = '/';
+    // Reset filters and search
+    setSearchTerm('');
+    setDebouncedSearch('');
+    setFilters({ workType: '', sort: 'recent' });
   };
 
-  // Fetch published works
-  useEffect(() => {
-    const fetchWorks = async () => {
-      try {
-        const response = await fetch("/api/get-submissions");
-        const data = await response.json();
-        if (data.submissions) {
-          const published = data.submissions.filter(
-            (work: PublishedWork) => work.status === "published"
-          );
-          setWorks(published);
-        }
-      } catch (error) {
-        console.error("Error fetching published works:", error);
-      } finally {
-        setLoadingWorks(false);
+  // Fetch published works (exposed so Header can trigger reload)
+  const fetchWorks = async () => {
+    try {
+      setLoadingWorks(true);
+      const response = await fetch("/api/get-submissions");
+      const data = await response.json();
+      if (data.submissions) {
+        const published = data.submissions.filter(
+          (work: PublishedWork) => work.status === "published"
+        );
+        setWorks(published);
       }
-    };
+    } catch (error) {
+      console.error("Error fetching published works:", error);
+    } finally {
+      setLoadingWorks(false);
+    }
+  };
 
+  // initial load
+  useEffect(() => {
     fetchWorks();
-    setTimeout(() => setShowItems(true), 120);
+    // Small delay so items appear together (0.5s for testing)
+    const t = setTimeout(() => setShowItems(true), 500);
+    return () => clearTimeout(t);
+  }, []);
+
+  // listen for reload requests from header
+  useEffect(() => {
+    const onReload = () => fetchWorks();
+    document.addEventListener('reloadGallery', onReload as EventListener);
+    return () => document.removeEventListener('reloadGallery', onReload as EventListener);
   }, []);
 
   useEffect(() => {
@@ -59,6 +94,15 @@ export default function Index() {
       }
     };
     const handleToggleFilter = () => {
+      // Compute popup position under the filter button
+      const btn = document.getElementById('filter-btn');
+      if (btn) {
+        const rect = btn.getBoundingClientRect();
+        const popupWidth = 220; // narrower popup
+        const left = rect.left + rect.width / 2 - popupWidth / 2 + window.scrollX;
+        const top = rect.bottom + 8 + window.scrollY;
+        setFilterStyle({ position: 'absolute', left: `${Math.max(8, left)}px`, top: `${top}px`, width: `${popupWidth}px` });
+      }
       setShowFilterPopup(prev => !prev);
     };
     const handleUpdateSearch = (e: Event) => {
@@ -78,16 +122,26 @@ export default function Index() {
   }, [showFilterPopup]);
 
   const filteredAndSorted = useMemo(() => {
-    // Combine songs and works
+    // Combine songs and works - add missing fields to songs for compatibility
     const combined = [
-      ...songs.map(s => ({ ...s, workType: 'cancion' as const, hashtags: [] as string[] })),
+      ...songs.map(s => ({ 
+        ...s, 
+        workType: 'cancion' as const, 
+        hashtags: [] as string[],
+        artistName: s.artist,
+        submissionId: s.id,
+        // Map coverUrl to coverImageUrl for consistency with grid rendering
+        coverImageUrl: s.coverUrl,
+        // keep releaseDate from songs so we can display song dates
+        releaseDate: s.releaseDate
+      })),
       ...works
     ];
 
     // Search: by title, artist, or hashtag
-    const searchLower = searchTerm.toLowerCase();
+    const searchLower = debouncedSearch.toLowerCase();
     const searched = combined.filter((item: any) => {
-      if (!searchTerm) return true;
+      if (!debouncedSearch) return true;
       return item.title.toLowerCase().includes(searchLower) || 
         item.artistName?.toLowerCase().includes(searchLower) ||
         item.artist?.toLowerCase().includes(searchLower) ||
@@ -108,9 +162,38 @@ export default function Index() {
     });
   }, [searchTerm, filters, songs, works]);
 
+  // Debounce searchTerm updates so results appear after 0.5s and fade-in
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(searchTerm), 500);
+    return () => clearTimeout(t);
+  }, [searchTerm]);
+
+  // trigger fade-in when debounced search or filters change
+  useEffect(() => {
+    setShowItems(false);
+    const t = setTimeout(() => setShowItems(true), 500);
+    return () => clearTimeout(t);
+  }, [debouncedSearch, filters]);
+
+  // format date per language: es => DD/MM/YY, en => MM/DD/YY. Prefer releaseDate for songs.
+  const pad2 = (n: number) => String(n).padStart(2, '0');
+  const formatDateString = (item: any) => {
+    const dateStr = item.releaseDate || item.publishedAt || item.createdAt || item.timestamp || item.date;
+    if (!dateStr) return '';
+    const d = new Date(dateStr);
+    if (Number.isNaN(d.getTime())) return '';
+    const dd = pad2(d.getDate());
+    const mm = pad2(d.getMonth() + 1);
+    const yy = String(d.getFullYear()).slice(-2);
+    if (currentLang === 'es') return `${dd}/${mm}/${yy}`;
+    return `${mm}/${dd}/${yy}`;
+  };
+
   return (
-    <div className="min-h-screen bg-[hsl(var(--background))]">
-      <Header />
+    <div className="min-h-screen bg-[hsl(var(--background))] relative">
+      <div id="gallery-stars-background" className="stars-background"></div>
+      <div className="relative z-10 page-enter">
+        <Header showSearchCentered={true} />
 
       {/* Main Content */}
       <main className="w-full page-enter">
@@ -118,22 +201,20 @@ export default function Index() {
         <div className="px-4 sm:px-8 py-4 sm:py-6">
           {/* Filter Popup */}
           {showFilterPopup && (
-            <div ref={filterRef} className="max-w-6xl mx-auto mb-4 p-4 border rounded-lg bg-[hsl(var(--popover))] shadow-md">
-              <div className="flex gap-3 items-center flex-wrap">
-                <select value={filters.workType} onChange={e => setFilters(f => ({ ...f, workType: e.target.value }))} className="px-3 py-2 border rounded bg-[hsl(var(--input))] text-sm">
-                  <option value="">Todos los tipos</option>
-                  <option value="pintura">Pintura</option>
-                  <option value="fotografia">Fotografía</option>
-                  <option value="poema">Poema</option>
-                  <option value="cancion">Canción</option>
-                  <option value="video">Video</option>
-                </select>
-                <select value={filters.sort} onChange={e => setFilters(f => ({ ...f, sort: e.target.value }))} className="px-3 py-2 border rounded bg-[hsl(var(--input))] text-sm">
-                  <option value="recent">Más recientes</option>
-                  <option value="oldest">Más antiguos</option>
-                </select>
-                <button onClick={() => setFilters({ workType: '', sort: 'recent' })} className="px-3 py-2 text-sm rounded border bg-[hsl(var(--popover))]">Limpiar</button>
-              </div>
+            <div ref={filterRef} style={filterStyle || undefined} className="z-50 bg-white dark:bg-[hsl(var(--popover))] border border-[hsl(var(--border))] rounded-xl shadow-lg p-3 flex flex-col gap-2 items-stretch animate-in fade-in slide-in-from-top-2 duration-200">
+              <select value={filters.workType} onChange={e => setFilters(f => ({ ...f, workType: e.target.value }))} className="w-full px-2 py-2 border border-gray-300 dark:border-gray-600 rounded bg-[hsl(var(--input))] text-sm">
+                <option value="">{t('filter.allTypes')}</option>
+                <option value="pintura">{t('filter.painting')}</option>
+                <option value="fotografia">{t('filter.photography')}</option>
+                <option value="poema">{t('filter.poem')}</option>
+                <option value="cancion">{t('filter.song')}</option>
+                <option value="video">{t('filter.video')}</option>
+              </select>
+              <select value={filters.sort} onChange={e => setFilters(f => ({ ...f, sort: e.target.value }))} className="w-full px-2 py-2 border border-gray-300 dark:border-gray-600 rounded bg-[hsl(var(--input))] text-sm">
+                <option value="recent">{t('filter.recent')}</option>
+                <option value="oldest">{t('filter.oldest')}</option>
+              </select>
+              <button onClick={() => setFilters({ workType: '', sort: 'recent' })} className="w-full px-2 py-2 text-sm rounded border border-gray-300 dark:border-gray-600 bg-[hsl(var(--popover))]">{t('filter.clear')}</button>
             </div>
           )}
           <div className="columns-2 sm:columns-3 lg:columns-4 xl:columns-5 2xl:columns-6 gap-4">
@@ -145,10 +226,19 @@ export default function Index() {
                             item.workType?.toLowerCase().includes('texto');
               const gradient = getWorkGradient(item.workType);
               
-              // Display logic: prefer coverImageUrl if available, fallback to fileUrl or song cover
+              // Imagen para pinturas/fotos: coverImageUrl > fileUrl
+              const isPainting = item.workType?.toLowerCase().includes('pintura');
+              const isPhoto = item.workType?.toLowerCase().includes('fotografia') || item.workType?.toLowerCase().includes('fotografía');
               const hasCoverImage = !!item.coverImageUrl;
               const hasMainImage = !!item.fileUrl;
               const hasSongCover = isSong && !!item.coverUrl;
+              // Canciones verticales especiales
+              const verticalSongs = [
+                'Before Summer Ends',
+                'You Left Me For The Other Guy',
+                'Your Problems Are Not Mine Anymore'
+              ];
+              const isVerticalSong = isSong && verticalSongs.includes(item.title);
 
               const linkId = isSong ? item.id : item.submissionId;
               const linkSlug = isSong ? (item.slug ?? item.id) : linkId;
@@ -160,40 +250,54 @@ export default function Index() {
                   to={linkPath}
                   className={`group inline-block w-full mb-4 break-inside-avoid cursor-pointer transition-all duration-300 ${showItems ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}`}
                 >
-                  {/* Cover Image */}
-                  <div className={`overflow-hidden rounded-2xl glass-effect transition-all duration-300 ease-out ${!hasCoverImage && !hasMainImage && !hasSongCover ? `bg-gradient-to-br ${gradient}` : ''}`}>
+                  {/* Imagen principal */}
+                  <div className={`overflow-hidden rounded-2xl glass-effect transition-all duration-300 ease-out transform will-change-transform group-hover:scale-105 group-hover:shadow-lg relative z-10 ${!hasCoverImage && !hasMainImage && !hasSongCover ? `bg-gradient-to-br ${gradient}` : ''}`}>
+                    {/* Work type badge moved to bottom center (adaptive color) */}
+                    {(() => {
+                      const imgSrc = item.coverImageUrl || item.fileUrl || item.coverUrl || null;
+                      const isPoemLocal = item.workType?.toLowerCase().includes('poesia') || item.workType?.toLowerCase().includes('poema') || item.workType?.toLowerCase().includes('texto');
+                      const forceTheme = isPoemLocal && !imgSrc;
+                      return <WorkTypeIcon workType={item.workType} imageSrc={imgSrc} forceThemeColor={forceTheme} />;
+                    })()}
                     {hasCoverImage ? (
                       <img src={item.coverImageUrl} alt={item.title} className="w-full h-auto object-cover block" />
-                    ) : hasMainImage && !isPoem ? (
+                    ) : (isPainting || isPhoto) && hasMainImage ? (
                       <img src={item.fileUrl} alt={item.title} className="w-full h-auto object-cover block" />
-                    ) : hasSongCover ? (
-                      <img src={item.coverUrl} alt={item.title} className="w-full h-auto object-cover block" />
+                    ) : isSong && hasSongCover ? (
+                      <img src={item.coverUrl} alt={item.title} className={`w-full h-56 object-cover block ${isVerticalSong ? 'aspect-[3/4]' : ''}`} />
                     ) : isPoem ? (
-                      <div className="p-4 text-left min-h-80 flex flex-col justify-start bg-gradient-to-br from-pink-600 to-pink-900">
-                        <p className="text-[hsl(var(--card-foreground))] text-sm leading-relaxed line-clamp-6">
-                          {item.description.split('\n').filter(line => line.trim()).slice(0, 3).join(' ')}
-                        </p>
+                      <div className="flex items-center justify-center min-h-56 w-full">
+                        <div className="bg-white dark:bg-[hsl(var(--background))] border border-[hsl(var(--border))] rounded-xl px-6 py-6 w-full flex items-center justify-center">
+                          <p className="text-center text-[hsl(var(--foreground))] text-base font-light whitespace-pre-line leading-relaxed">&quot;{item.description.split('\n').filter(line => line.trim()).slice(0, 4).join('\n')}&quot;</p>
+                        </div>
                       </div>
                     ) : (
-                      <div className="p-6 text-center text-4xl">🎨</div>
+                      <div className="p-6 text-center text-4xl">3a8</div>
                     )}
+
+                    
                   </div>
 
-                  {/* Title and Artist */}
-                  <div className="px-1 mt-2">
-                    <h3 className="text-xs sm:text-sm font-light text-[hsl(var(--foreground))] whitespace-normal break-words group-hover:text-[hsl(var(--foreground))/0.7] transition-colors duration-300">
-                      {item.title}
-                    </h3>
-                    <p className="text-xs font-light text-[hsl(var(--foreground))/0.4] mt-0.5 transition-colors duration-300 group-hover:text-[hsl(var(--foreground))/0.5]">
-                      {item.artist || item.artistName}
-                    </p>
+                  {/* Metadata bar: fuera de la imagen, justo debajo */}
+                  <div className="mt-3 text-center px-2">
+                    <div className="w-full text-xs sm:text-sm px-2 py-1">
+                      <div className="text-center leading-tight text-sm font-medium break-words text-[hsl(var(--foreground))]">{item.title}</div>
+                      <div className="mt-0.5 flex items-center justify-center text-[hsl(var(--muted-foreground))] text-xs gap-2">
+                        <div className="max-w-[60%] text-center break-words">{item.artist || item.artistName}</div>
+                        <div aria-hidden className="text-[hsl(var(--muted-foreground))]">●</div>
+                        <div className="text-center whitespace-nowrap">{formatDateString(item)}</div>
+                      </div>
+                    </div>
                   </div>
+                  
                 </Link>
               );
             })}
           </div>
         </div>
       </main>
+      <Footer />
+      </div>
     </div>
   );
 }
@@ -206,3 +310,4 @@ function getWorkGradient(workType: string): string {
   if (type.includes('poesia') || type.includes('poema') || type.includes('texto')) return 'from-pink-600 to-pink-900';
   return 'from-gray-600 to-gray-800';
 }
+

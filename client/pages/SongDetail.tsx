@@ -11,13 +11,15 @@ export default function SongDetail() {
   const [viewVersion, setViewVersion] = useState<'original'|'translated'>('original');
   // support both legacy id-based routes and new slug-based routes
   const song = useMemo(() => songs.find(s => s.slug === id || s.id === id), [id]);
-  const { t } = useI18n();
+  const { t, language: currentLang } = useI18n();
 
-  // Format date based on language
-  const formatDate = (dateStr: string) => {
+  // Format date based on language (defensive: tolerate missing/invalid dates)
+  const formatDate = (dateStr?: string) => {
+    if (!dateStr) return '';
     const date = new Date(dateStr);
+    if (Number.isNaN(date.getTime())) return '';
     if (currentLang === 'es') {
-      return date.toLocaleDateString('es', { 
+      return date.toLocaleDateString('es', {
         day: 'numeric',
         month: 'numeric',
         year: 'numeric'
@@ -46,18 +48,18 @@ export default function SongDetail() {
     return () => document.removeEventListener('click', handleClickOutside);
   }, [selectedAnnotationIndex]);
 
-  // determine displayed content depending on version toggle
-  const { language: currentLang } = useI18n();
-
   // A song has a translation if it has translations for the current UI language
   // and that language is different from the song's original language
   const hasTranslation = Boolean(
-    song.originalLanguage !== currentLang && 
-    song.translations?.[currentLang as 'en' | 'es']
+    song?.originalLanguage !== currentLang && 
+    song?.translations?.[currentLang as 'en' | 'es']
   );
 
-  // Get the content to display (either original or translated)
+  // Get the content to display (either original or translated). Defensive: if song is undefined,
+  // return empty values so rendering won't throw while the data resolves.
   const displayedContent = useMemo(() => {
+    if (!song) return { title: '', description: '', lyrics: '', annotations: [] as any };
+
     // Si estamos en versión original o no hay traducciones, mostramos el contenido original
     if (viewVersion === 'original') {
       return {
@@ -67,7 +69,7 @@ export default function SongDetail() {
         annotations: song.annotations
       };
     }
-    
+
     // Obtenemos la traducción para el idioma actual de la UI
     const translation = song.translations?.[currentLang as 'en' | 'es'];
     if (!translation) {
@@ -80,17 +82,16 @@ export default function SongDetail() {
       };
     }
 
-      // Si hay traducción, usamos el contenido traducido (incluyendo título traducido cuando esté presente)
-      return {
-        title: translation.title || song.title,
+    // Si hay traducción, usamos el contenido traducido (incluyendo título traducido cuando esté presente)
+    return {
+      title: translation.title || song.title,
       description: translation.description,
       lyrics: translation.lyrics,
       annotations: translation.annotations
     };
   }, [song, viewVersion, currentLang]);
-
-  const displayedLyrics = displayedContent.lyrics;
-  const displayedAnnotations = displayedContent.annotations;
+  const displayedLyrics = displayedContent.lyrics || '';
+  const displayedAnnotations = displayedContent.annotations || [];
 
   if (!song) {
     return (
@@ -105,8 +106,9 @@ export default function SongDetail() {
 
   // Compute annotation positions based on the currently displayed lyrics (original or translated)
   const annotationPositions = useMemo(() => {
-    const full = displayedLyrics || '';
-    if (!full) return [] as any;
+    try {
+      const full = displayedLyrics || '';
+      if (!full) return [] as any;
     const lines = full.split('\n');
     const lineStarts: number[] = [];
     let acc = 0;
@@ -187,7 +189,14 @@ export default function SongDetail() {
       } as const;
     });
 
-    return results;
+      return results;
+    } catch (e) {
+      // If anything goes wrong during annotation parsing, fail gracefully and avoid crashing the page.
+      // This prevents a malformed annotation payload from causing a blank page.
+      // eslint-disable-next-line no-console
+      console.error('annotationPositions parsing error', e);
+      return [] as any;
+    }
   }, [displayedLyrics, displayedAnnotations, viewVersion]);
 
   // No scroll animations
@@ -276,7 +285,7 @@ export default function SongDetail() {
               {t('lyrics')}
             </h2>
             <div className="space-y-6 sm:space-y-8">
-              {displayedContent.lyrics.split('\n').map((line, idx) => {
+              {displayedLyrics.split('\n').map((line, idx) => {
                 const annIndexes = annotationPositions
                   .filter((p) => p.found && p.startLine <= idx && p.endLine >= idx)
                   .map((p) => p.idx);

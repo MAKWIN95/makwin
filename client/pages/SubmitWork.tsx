@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from '@/components/Header';
+import Footer from '@/components/Footer';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -29,15 +30,23 @@ export default function SubmitWork() {
     workType: '',
     title: '',
     description: '',
+    lyrics: '' as string,
     file: null as File | null,
     addCover: false,
     coverImage: null as File | null,
     hashtags: '' as string,
+    isForSale: false,
+    price: '' as string,
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, checked } = e.target as HTMLInputElement & { name: string };
+    setFormData(prev => ({ ...prev, [name]: checked }));
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -71,6 +80,13 @@ export default function SubmitWork() {
       // Validación básica
       if (!formData.artistName || !formData.email || !formData.workType || !formData.title || !formData.description) {
         setError('Por favor completa todos los campos');
+        setLoading(false);
+        return;
+      }
+
+      // If song, ensure lyrics provided
+      if (formData.workType === 'cancion' && !formData.lyrics) {
+        setError('Por favor incluye la letra de la canción');
         setLoading(false);
         return;
       }
@@ -173,8 +189,11 @@ export default function SubmitWork() {
         description: formData.description,
         language,
         fileUrl,
+        lyrics: formData.lyrics || null,
         coverImageUrl: coverImageUrl || null,
         hashtags: tagsArray,
+        isForSale: !!formData.isForSale,
+        price: formData.isForSale && formData.price ? Number(formData.price) : null,
       };
 
       const response = await fetch('/api/submit-work', {
@@ -198,10 +217,13 @@ export default function SubmitWork() {
         workType: '',
         title: '',
         description: '',
+        lyrics: '',
         file: null,
         addCover: false,
         coverImage: null,
         hashtags: '',
+        isForSale: false,
+        price: '',
       });
       setError('');
       setTimeout(() => {
@@ -218,7 +240,7 @@ export default function SubmitWork() {
 
   return (
     <div className="min-h-screen bg-[hsl(var(--background))]">
-      <Header />
+      <Header hideSearch={true} />
       <main className="w-full page-enter">
         <div className="px-4 sm:px-8 py-8 sm:py-12">
           <div className="max-w-2xl mx-auto">
@@ -362,6 +384,21 @@ export default function SubmitWork() {
                 />
               </div>
 
+              {/* Lyrics (only for songs) */}
+              {formData.workType === 'cancion' && (
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-[hsl(var(--foreground))]">Letra de la canción</label>
+                  <Textarea
+                    name="lyrics"
+                    value={formData.lyrics}
+                    onChange={handleChange}
+                    placeholder="Pega la letra aquí..."
+                    rows={6}
+                    className="bg-[hsl(var(--input))] border border-[hsl(var(--border))] text-[hsl(var(--foreground))] placeholder:text-[hsl(var(--muted-foreground))] resize-none"
+                  />
+                </div>
+              )}
+
               {/* Hashtags */}
               <div className="space-y-2">
                 <label className="text-sm font-medium text-[hsl(var(--foreground))]">Hashtags</label>
@@ -374,6 +411,21 @@ export default function SubmitWork() {
                   className="bg-[hsl(var(--input))] border border-[hsl(var(--border))] text-[hsl(var(--foreground))] placeholder:text-[hsl(var(--muted-foreground))]"
                 />
                 <p className="text-xs text-[hsl(var(--muted-foreground))] mt-1">Escribe hashtags separados por comas o espacios. Ej: #poesia #amor</p>
+              </div>
+
+              {/* Marketplace options */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-[hsl(var(--foreground))]">¿Publicar también en MakwinPlace?</label>
+                <div className="flex items-center gap-3">
+                  <input type="checkbox" name="isForSale" checked={formData.isForSale} onChange={handleCheckboxChange} />
+                  <span className="text-xs text-[hsl(var(--muted-foreground))]">Marcar para vender la obra en MakwinPlace</span>
+                </div>
+                {formData.isForSale && (
+                  <div className="mt-2">
+                    <label className="text-sm font-medium text-[hsl(var(--foreground))]">Precio (€)</label>
+                    <Input type="number" name="price" value={formData.price} onChange={handleChange} placeholder="0" className="bg-[hsl(var(--input))] border border-[hsl(var(--border))]" />
+                  </div>
+                )}
               </div>
 
               {/* File Upload */}
@@ -408,6 +460,7 @@ export default function SubmitWork() {
           </div>
         </div>
       </main>
+      <Footer />
     </div>
   );
 }

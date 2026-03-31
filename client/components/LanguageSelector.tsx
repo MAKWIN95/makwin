@@ -13,16 +13,16 @@ export default function LanguageSelector() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <button id="lang-selector-btn" className="p-2 rounded-lg transition-colors bg-[hsl(var(--popover))] hover:bg-[hsl(var(--popover))/0.95] dark:bg-[hsl(var(--popover))]">
-          <Globe className="w-5 h-5 text-[hsl(var(--foreground))/0.65] hover:text-[hsl(var(--foreground))/0.85]" />
+        <button id="lang-selector-btn" className="p-1 transition-colors bg-transparent hover:bg-transparent focus:outline-none focus:ring-0" onMouseDown={(e)=>e.preventDefault()}>
+          <Globe className="w-5 h-5 text-[hsl(var(--foreground))]" />
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        <DropdownMenuItem onClick={() => setLanguage('es')}>
+        <DropdownMenuItem onClick={() => { setLanguage('es'); setTimeout(()=> (document.getElementById('lang-selector-btn') as HTMLButtonElement)?.blur(), 50); }}>
           {t('languages.es')}
           <span className="ml-auto opacity-80">{language === 'es' ? <Check className="w-4 h-4" /> : null}</span>
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setLanguage('en')}>
+        <DropdownMenuItem onClick={() => { setLanguage('en'); setTimeout(()=> (document.getElementById('lang-selector-btn') as HTMLButtonElement)?.blur(), 50); }}>
           {t('languages.en')}
           <span className="ml-auto opacity-80">{language === 'en' ? <Check className="w-4 h-4" /> : null}</span>
         </DropdownMenuItem>

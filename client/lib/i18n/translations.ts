@@ -28,8 +28,17 @@ export type TranslationKey =
   | 'onboarding.next'
   | 'onboarding.prev'
   | 'onboarding.finishButton'
-  | 'onboarding.skip';
-  
+  | 'onboarding.skip'
+  | 'search.placeholder'
+  | 'filter.allTypes'
+  | 'filter.painting'
+  | 'filter.photography'
+  | 'filter.poem'
+  | 'filter.song'
+  | 'filter.video'
+  | 'filter.recent'
+  | 'filter.oldest'
+  | 'filter.clear';
 
 export const translations = {
   en: {
@@ -63,7 +72,17 @@ export const translations = {
     'onboarding.next': 'Next',
     'onboarding.prev': 'Previous',
     'onboarding.finishButton': 'Ready',
-    'onboarding.skip': 'Skip'
+    'onboarding.skip': 'Skip',
+    'search.placeholder': 'Search works...',
+    'filter.allTypes': 'All types',
+    'filter.painting': 'Painting',
+    'filter.photography': 'Photography',
+    'filter.poem': 'Poem',
+    'filter.song': 'Song',
+    'filter.video': 'Video',
+    'filter.recent': 'Most recent',
+    'filter.oldest': 'Oldest',
+    'filter.clear': 'Clear'
   },
   es: {
     'lyrics': 'Letra',
@@ -96,6 +115,16 @@ export const translations = {
     'onboarding.next': 'Siguiente',
     'onboarding.prev': 'Anterior',
     'onboarding.finishButton': 'Listo',
-    'onboarding.skip': 'Omitir'
+    'onboarding.skip': 'Omitir',
+    'search.placeholder': 'Buscar obras...',
+    'filter.allTypes': 'Todos los tipos',
+    'filter.painting': 'Pintura',
+    'filter.photography': 'Fotografía',
+    'filter.poem': 'Poema',
+    'filter.song': 'Canción',
+    'filter.video': 'Video',
+    'filter.recent': 'Más recientes',
+    'filter.oldest': 'Más antiguos',
+    'filter.clear': 'Limpiar'
   }
 } as const;

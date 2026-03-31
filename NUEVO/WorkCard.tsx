@@ -1,0 +1,140 @@
+import { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Heart, Bookmark } from 'lucide-react';
+import { supabase, Work } from '@/lib/supabase';
+import { useAuth } from '@/lib/AuthContext';
+
+interface Props {
+  work: Work;
+  onLikeToggle?: (workId: string, liked: boolean) => void;
+  onSaveToggle?: (workId: string, saved: boolean) => void;
+}
+
+const WORK_TYPE_ICONS: Record<string, string> = {
+  pintura: '🎨',
+  fotografia: '📷',
+  poema: '✍️',
+  cancion: '🎵',
+  video: '🎬',
+};
+
+export default function WorkCard({ work, onLikeToggle, onSaveToggle }: Props) {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const [liked, setLiked] = useState(work.liked_by_me ?? false);
+  const [saved, setSaved] = useState(work.saved_by_me ?? false);
+  const [likeCount, setLikeCount] = useState(work.like_count ?? 0);
+  const [likeAnimating, setLikeAnimating] = useState(false);
+
+  const isSong = work.work_type === 'cancion';
+  const isPoem = work.work_type === 'poema';
+  const hasImage = !!(work.cover_url || work.file_url);
+
+  const handleLike = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!user) { navigate('/login'); return; }
+
+    setLikeAnimating(true);
+    setTimeout(() => setLikeAnimating(false), 400);
+
+    if (liked) {
+      setLiked(false);
+      setLikeCount(c => Math.max(c - 1, 0));
+      await supabase.from('likes').delete().eq('user_id', user.id).eq('work_id', work.id);
+    } else {
+      setLiked(true);
+      setLikeCount(c => c + 1);
+      await supabase.from('likes').insert({ user_id: user.id, work_id: work.id });
+    }
+    onLikeToggle?.(work.id, !liked);
+  };
+
+  const handleSave = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!user) { navigate('/login'); return; }
+
+    if (saved) {
+      setSaved(false);
+      await supabase.from('saves').delete().eq('user_id', user.id).eq('work_id', work.id);
+    } else {
+      setSaved(true);
+      await supabase.from('saves').insert({ user_id: user.id, work_id: work.id });
+    }
+    onSaveToggle?.(work.id, !saved);
+  };
+
+  const linkPath = isSong ? `/song/${work.id}` : `/work/${work.id}`;
+
+  return (
+    <Link to={linkPath} className="group block">
+      {/* Image/Media area */}
+      <div className="relative overflow-hidden rounded-2xl glass-effect transition-all duration-300 ease-out transform will-change-transform group-hover:scale-[1.02] group-hover:shadow-xl">
+
+        {/* Work type icon badge — top left */}
+        <div className="absolute top-2 left-2 z-10 w-6 h-6 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center text-xs">
+          {WORK_TYPE_ICONS[work.work_type] ?? '🖼️'}
+        </div>
+
+        {/* Save button — top right */}
+        <button
+          onClick={handleSave}
+          className="absolute top-2 right-2 z-10 w-7 h-7 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:bg-black/60"
+          aria-label="Guardar"
+        >
+          <Bookmark
+            className={`w-3.5 h-3.5 transition-all ${saved ? 'fill-white stroke-white' : 'stroke-white'}`}
+          />
+        </button>
+
+        {/* Media content */}
+        {hasImage ? (
+          <img
+            src={work.cover_url ?? work.file_url ?? ''}
+            alt={work.title}
+            className="w-full h-auto object-cover block"
+            loading="lazy"
+          />
+        ) : isPoem ? (
+          <div className="flex items-center justify-center min-h-48 w-full p-6">
+            <p className="text-center text-[hsl(var(--foreground))] text-sm font-light whitespace-pre-line leading-relaxed line-clamp-6">
+              &quot;{work.description}&quot;
+            </p>
+          </div>
+        ) : (
+          <div className="flex items-center justify-center min-h-40 text-4xl">
+            {WORK_TYPE_ICONS[work.work_type] ?? '🎨'}
+          </div>
+        )}
+      </div>
+
+      {/* Metadata */}
+      <div className="mt-2 px-1 flex items-start justify-between gap-2">
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium text-[hsl(var(--foreground))] truncate leading-tight">{work.title}</p>
+          <Link
+            to={`/u/${work.profiles?.username ?? ''}`}
+            onClick={e => e.stopPropagation()}
+            className="text-xs text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] transition-colors"
+          >
+            {work.profiles?.display_name ?? work.profiles?.username ?? ''}
+          </Link>
+        </div>
+
+        {/* Like button — subtle, premium */}
+        <button
+          onClick={handleLike}
+          className="flex items-center gap-1 text-xs text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] transition-colors shrink-0 mt-0.5"
+          aria-label="Me gusta"
+        >
+          <Heart
+            className={`w-3.5 h-3.5 transition-all duration-200 ${likeAnimating ? 'scale-125' : 'scale-100'} ${liked ? 'fill-current text-rose-500 stroke-rose-500' : ''}`}
+          />
+          {/* Only show count if > 0 — keeps feed clean */}
+          {likeCount > 0 && <span>{likeCount}</span>}
+        </button>
+      </div>
+    </Link>
+  );
+}

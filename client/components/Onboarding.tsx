@@ -24,17 +24,23 @@ export default function Onboarding() {
   const [popStyle, setPopStyle] = useState({ top: 0, left: 0 });
 
   useEffect(() => {
-    const handler = () => {
+    const checkAndShow = () => {
       try {
+        const loc = window.location?.pathname || '/';
         const hasCompletedOnboarding = localStorage.getItem('onboardingCompleted') === '1';
-        if (!hasCompletedOnboarding) {
+        // show onboarding only when on gallery route and not completed
+        if (!hasCompletedOnboarding && loc.startsWith('/galeria')) {
           setVisible(true);
         }
       } catch (e) {
-        // Si hay error con localStorage, mostrar el onboarding
-        setVisible(true);
+        const loc = window.location?.pathname || '/';
+        if (loc.startsWith('/galeria')) setVisible(true);
       }
     };
+    // run on mount
+    checkAndShow();
+    // also keep listening to languageSelected as fallback
+    const handler = () => checkAndShow();
     window.addEventListener('languageSelected', handler);
     return () => window.removeEventListener('languageSelected', handler);
   }, []);

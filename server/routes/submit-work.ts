@@ -10,6 +10,13 @@ interface SubmissionData {
   title: string;
   description: string;
   language: string;
+  fileUrl?: string | null;
+  coverImageUrl?: string | null;
+  hashtags?: string[];
+  lyrics?: string | null;
+  isForSale?: boolean;
+  price?: number | null;
+  status?: string;
   timestamp: string;
 }
 
@@ -184,7 +191,7 @@ export const handleSubmitWork: RequestHandler = async (req, res) => {
   try {
     ensureSubmissionsDir();
 
-    const { artistName, email, workType, title, description, language } = req.body;
+    const { artistName, email, workType, title, description, language, fileUrl, coverImageUrl, hashtags, lyrics, isForSale, price } = req.body;
 
     // Validate required fields
     if (
@@ -199,7 +206,7 @@ export const handleSubmitWork: RequestHandler = async (req, res) => {
       return;
     }
 
-    // Create submission data
+    // Create submission data (extend with marketplace fields)
     const submissionData: SubmissionData = {
       artistName,
       email,
@@ -207,6 +214,13 @@ export const handleSubmitWork: RequestHandler = async (req, res) => {
       title,
       description,
       language,
+      fileUrl: fileUrl || null,
+      coverImageUrl: coverImageUrl || null,
+      hashtags: Array.isArray(hashtags) ? hashtags : (typeof hashtags === 'string' ? [hashtags] : []),
+      lyrics: lyrics || null,
+      isForSale: !!isForSale,
+      price: typeof price === 'number' ? price : (price ? Number(price) : null),
+      status: 'pending',
       timestamp: new Date().toISOString(),
     };
 

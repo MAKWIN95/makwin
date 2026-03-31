@@ -4,19 +4,23 @@ export default function ThemeBulb() {
   const [isDark, setIsDark] = useState<boolean>(() => {
     try {
       const stored = localStorage.getItem("theme");
-      if (stored) return stored === "dark";
+      if (stored !== null) return stored === "dark";
     } catch (e) {}
-    return false;
+    // default to dark on first visit
+    return true;
   });
+  const [raysAnimating, setRaysAnimating] = useState(false);
 
   useEffect(() => {
     const root = document.documentElement;
     if (isDark) {
       root.classList.add("dark");
       try { localStorage.setItem("theme", "dark"); } catch(e) {}
+      try { root.setAttribute('data-theme', 'dark'); } catch(e) {}
     } else {
       root.classList.remove("dark");
       try { localStorage.setItem("theme", "light"); } catch(e) {}
+      try { root.setAttribute('data-theme', 'light'); } catch(e) {}
     }
   }, [isDark]);
 
@@ -46,20 +50,42 @@ export default function ThemeBulb() {
       aria-pressed={isDark}
       aria-label={isDark ? "Activar tema claro" : "Activar tema oscuro"}
       title={isDark ? "Modo oscuro" : "Modo claro"}
-      className={`theme-bulb fixed right-6 bottom-6 z-50 w-12 h-12 flex items-center justify-center transition-all duration-300`}
+      className={`theme-bulb fixed right-6 top-6 z-50 w-14 h-14 flex items-center justify-center transition-all duration-300`}
+      onMouseMove={(e) => {
+        const el = e.currentTarget as HTMLElement;
+        const r = el.getBoundingClientRect();
+        const mx = ((e.clientX - r.left) / r.width) * 100 + '%';
+        const my = ((e.clientY - r.top) / r.height) * 100 + '%';
+        el.style.setProperty('--mx', mx);
+        el.style.setProperty('--my', my);
+      }}
+      onMouseLeave={(e) => {
+        const el = e.currentTarget as HTMLElement;
+        el.style.setProperty('--mx', '50%');
+        el.style.setProperty('--my', '50%');
+      }}
       onClick={() => {
-        // Toggle state and ensure the DOM class is updated reliably
-        setIsDark((s) => {
-          const next = !s;
-          try {
-            const root = document.documentElement;
-            if (next) root.classList.add("dark"); else root.classList.remove("dark");
-            try { localStorage.setItem("theme", next ? "dark" : "light"); } catch(e) {}
-            // quick verification log for debugging (can be removed later)
-            console.log('Theme set (click):', next, 'root has dark:', root.classList.contains('dark'));
-          } catch (e) {}
-          return next;
-        });
+        // Animate rays hiding slowly, then toggle theme
+        setRaysAnimating(true);
+        setTimeout(() => {
+          setIsDark((s) => {
+            const next = !s;
+            try {
+              const root = document.documentElement;
+              if (next) {
+                root.classList.add("dark");
+                root.setAttribute('data-theme', 'dark');
+              } else {
+                root.classList.remove("dark");
+                root.setAttribute('data-theme', 'light');
+              }
+              try { localStorage.setItem("theme", next ? "dark" : "light"); } catch(e) {}
+            } catch (e) {}
+            return next;
+          });
+          // finish animation state after rays hidden
+          setTimeout(() => setRaysAnimating(false), 700);
+        }, 40);
       }}
     >
       <svg
@@ -67,16 +93,16 @@ export default function ThemeBulb() {
         height="36"
         viewBox="-3 -6 30 28"
         xmlns="http://www.w3.org/2000/svg"
-        className="theme-bulb-svg"
+        className={`theme-bulb-svg ${raysAnimating ? 'rays-hide' : ''}`}
         aria-hidden="true"
       >
   {/* Bulb filament + base */}
-  <path className="bulb-base" d="M10 18h4v1.5a1 1 0 0 1-1 1H11a1 1 0 0 1-1-1V18z" strokeWidth="1" fill={isDark ? "#000" : "none"} />
-  <path className="bulb-outline" d="M12 3.5a5 5 0 0 0-3.5 8.5V14a1 1 0 0 0 1 1h5a1 1 0 0 0 1-1v-2A5 5 0 0 0 12 3.5z" strokeWidth="1.2" fill={isDark ? "#000" : "none"} />
+  <path className="bulb-base" d="M10 18h4v1.5a1 1 0 0 1-1 1H11a1 1 0 0 1-1-1V18z" strokeWidth="1" fill="none" stroke="#ffffff" />
+  <path className="bulb-outline" d="M12 3.5a5 5 0 0 0-3.5 8.5V14a1 1 0 0 0 1 1h5a1 1 0 0 0 1-1v-2A5 5 0 0 0 12 3.5z" strokeWidth="1.2" fill="none" stroke="#ffffff" />
 
         {/* Rays - draw outside the bulb so they don't overlap */}
         {!isDark && (
-          <g stroke="#000" strokeWidth="1.4" strokeLinecap="round" fill="none">
+          <g stroke="#ffffff" strokeWidth="1.4" strokeLinecap="round" fill="none" className="rays-group">
             {/* center ray - much higher with large gap */}
             <line className="ray" x1="12" y1="-4.5" x2="12" y2="-1" />
             {/* left ray - far from bulb */}
