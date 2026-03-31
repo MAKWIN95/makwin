@@ -79,12 +79,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               console.error('[AuthContext] Error fetching initial profile:', err);
             }
           }
+          
+          console.log('[AuthContext] Auth initialization complete, setting loading to false');
+          setLoading(false);
         }
       } catch (error) {
         console.error('[AuthContext] Error getting session:', error);
-      } finally {
         if (isMounted) {
-          console.log('[AuthContext] Auth initialization complete, setting loading to false');
           setLoading(false);
         }
       }
@@ -93,17 +94,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Initialize auth
     initAuth();
 
-    // Fallback: Force loading to false after 5 seconds if something gets stuck
+    // Fallback: Force loading to false after 10 seconds if something gets stuck
     timeoutId = setTimeout(() => {
       if (isMounted) {
         console.warn('[AuthContext] Forcing loading=false due to timeout');
         setLoading(false);
       }
-    }, 5000);
+    }, 10000);
 
-    // Listen for auth changes
+    // Listen for auth changes - this is critical for detecting OAuth redirect
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      console.log('[AuthContext] Auth state changed:', _event);
+      console.log('[AuthContext] Auth state changed:', _event, 'User:', session?.user?.id ?? 'No user');
+      
       if (isMounted) {
         setSession(session);
         setUser(session?.user ?? null);
@@ -116,14 +118,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               .eq('id', session.user.id)
               .single();
             if (!error && data) {
+              console.log('[AuthContext] Loaded profile from listener:', data.username);
               setProfile(data as Profile);
+            } else {
+              console.warn('[AuthContext] Could not fetch profile from listener:', error?.message);
             }
           } catch (err) {
-            console.error('[AuthContext] Error fetching profile on auth change:', err);
+            console.error('[AuthContext] Error fetching profile from listener:', err);
           }
         } else {
           setProfile(null);
         }
+        
+        // Always ensure loading is false when auth state changes
+        setLoading(false);
       }
     });
 
