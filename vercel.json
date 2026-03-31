@@ -1,7 +1,7 @@
 {
     "outputDirectory":  "dist/spa",
     "buildCommand":  "pnpm build",
-    "cleanUrls":  true,
+    "cleanUrls":  false,
     "headers": [
         {
             "source": "/submissions/(.*)",
@@ -19,7 +19,15 @@
                          "destination": "/index.html"
                      },
                      {
+                         "source": "/galeria/:slug",
+                         "destination": "/index.html"
+                     },
+                     {
                          "source": "/login",
+                         "destination": "/index.html"
+                     },
+                     {
+                         "source": "/login/:slug",
                          "destination": "/index.html"
                      },
                      {
@@ -27,7 +35,15 @@
                          "destination": "/index.html"
                      },
                      {
+                         "source": "/registro/:slug",
+                         "destination": "/index.html"
+                     },
+                     {
                          "source": "/subir-obra",
+                         "destination": "/index.html"
+                     },
+                     {
+                         "source": "/subir-obra/:slug",
                          "destination": "/index.html"
                      },
                      {
@@ -35,7 +51,59 @@
                          "destination": "/index.html"
                      },
                      {
+                         "source": "/favoritos/:slug",
+                         "destination": "/index.html"
+                     },
+                     {
+                         "source": "/reset-password",
+                         "destination": "/index.html"
+                     },
+                     {
+                         "source": "/reset-password/:slug",
+                         "destination": "/index.html"
+                     },
+                     {
                          "source": "/u/:username",
+                         "destination": "/index.html"
+                     },
+                     {
+                         "source": "/u/:username/:slug",
+                         "destination": "/index.html"
+                     },
+                     {
+                         "source": "/work/:id",
+                         "destination": "/index.html"
+                     },
+                     {
+                         "source": "/work/:id/:slug",
+                         "destination": "/index.html"
+                     },
+                     {
+                         "source": "/song/:id",
+                         "destination": "/index.html"
+                     },
+                     {
+                         "source": "/song/:id/:slug",
+                         "destination": "/index.html"
+                     },
+                     {
+                         "source": "/song",
+                         "destination": "/index.html"
+                     },
+                     {
+                         "source": "/merch",
+                         "destination": "/index.html"
+                     },
+                     {
+                         "source": "/merch/:slug",
+                         "destination": "/index.html"
+                     },
+                     {
+                         "source": "/marketplace",
+                         "destination": "/index.html"
+                     },
+                     {
+                         "source": "/marketplace/:slug",
                          "destination": "/index.html"
                      },
                      {

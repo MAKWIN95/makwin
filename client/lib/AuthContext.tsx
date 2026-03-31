@@ -64,7 +64,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signInWithGoogle = async () => {
     await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: `${window.location.origin}/galeria` },
+      options: { redirectTo: 'https://makwin.vercel.app/galeria' },
     });
   };
 
@@ -115,7 +115,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const resetPassword = async (email: string) => {
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/reset-password`,
+      redirectTo: 'https://makwin.vercel.app/reset-password',
     });
     return { error: error?.message ?? null };
   };
