@@ -26,9 +26,48 @@ import ThemeBulb from "@/components/ThemeBulb";
 import { I18nProvider } from "@/lib/i18n";
 import LanguagePrompt from '@/components/LanguagePrompt';
 import Onboarding from '@/components/Onboarding';
-import { AuthProvider } from "@/lib/AuthContext";
+import { AuthProvider, useAuth } from "@/lib/AuthContext";
 
 const queryClient = new QueryClient();
+
+// Wrapper that waits for auth to be ready
+const RoutesWrapper = () => {
+  const { loading } = useAuth();
+  
+  // Show nothing while loading auth
+  if (loading) {
+    return <div className="w-screen h-screen bg-black" />;
+  }
+
+  return (
+    <Routes>
+      {/* Public */}
+      <Route path="/" element={<Landing />} />
+      <Route path="/galeria" element={<Gallery />} />
+      <Route path="/merch" element={<Merch />} />
+      <Route path="/marketplace" element={<Marketplace />} />
+      <Route path="/song/:id" element={<SongDetail />} />
+      <Route path="/work/:id" element={<WorkDetail />} />
+
+      {/* Auth */}
+      <Route path="/login" element={<Login />} />
+      <Route path="/registro" element={<Register />} />
+
+      {/* Authenticated */}
+      <Route path="/subir-obra" element={<UploadWork />} />
+      <Route path="/favoritos" element={<Saved />} />
+      <Route path="/u/:username" element={<UserProfile />} />
+
+      {/* Legacy redirects */}
+      <Route path="/enviar-obra" element={<Navigate to="/subir-obra" replace />} />
+      <Route path="/obras-enviadas" element={<Navigate to="/galeria" replace />} />
+      <Route path="/admin" element={<Navigate to="/galeria" replace />} />
+
+      {/* 404 */}
+      <Route path="*" element={<NotFound />} />
+    </Routes>
+  );
+};
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -41,32 +80,7 @@ const App = () => (
           <LanguagePrompt />
           <Onboarding />
           <BrowserRouter>
-            <Routes>
-              {/* Public */}
-              <Route path="/" element={<Landing />} />
-              <Route path="/galeria" element={<Gallery />} />
-              <Route path="/merch" element={<Merch />} />
-              <Route path="/marketplace" element={<Marketplace />} />
-              <Route path="/song/:id" element={<SongDetail />} />
-              <Route path="/work/:id" element={<WorkDetail />} />
-
-              {/* Auth */}
-              <Route path="/login" element={<Login />} />
-              <Route path="/registro" element={<Register />} />
-
-              {/* Authenticated */}
-              <Route path="/subir-obra" element={<UploadWork />} />
-              <Route path="/favoritos" element={<Saved />} />
-              <Route path="/u/:username" element={<UserProfile />} />
-
-              {/* Legacy redirects */}
-              <Route path="/enviar-obra" element={<Navigate to="/subir-obra" replace />} />
-              <Route path="/obras-enviadas" element={<Navigate to="/galeria" replace />} />
-              <Route path="/admin" element={<Navigate to="/galeria" replace />} />
-
-              {/* 404 */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
+            <RoutesWrapper />
           </BrowserRouter>
         </AuthProvider>
       </I18nProvider>
