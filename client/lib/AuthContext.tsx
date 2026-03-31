@@ -112,34 +112,57 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         
         if (session?.user) {
           console.log('[AuthContext] Fetching profile for user:', session.user.id);
-          try {
-            console.log('[AuthContext] Starting Supabase query...');
-            const { data, error } = await supabase
-              .from('profiles')
-              .select('*')
-              .eq('id', session.user.id)
-              .single();
-            
-            console.log('[AuthContext] Supabase query response:', { hasData: !!data, hasError: !!error, errorMsg: error?.message });
-            
-            if (!error && data) {
-              console.log('[AuthContext] Loaded profile from listener:', data.username);
-              setProfile(data as Profile);
-            } else {
-              console.warn('[AuthContext] Could not fetch profile from listener:', error?.message);
-              setProfile(null);
+          
+          // Fetch profile but don't block - use timeout
+          const fetchProfileWithTimeout = async () => {
+            try {
+              console.log('[AuthContext] Starting Supabase query with 3s timeout...');
+              
+              // Create a timeout promise that rejects after 3s
+              const timeoutPromise = new Promise((_, reject) => 
+                setTimeout(() => reject(new Error('Profile fetch timeout')), 3000)
+              );
+              
+              // Race: whichever finishes first
+              const queryPromise = supabase
+                .from('profiles')
+                .select('*')
+                .eq('id', session.user.id)
+                .single();
+              
+              const result = await Promise.race([queryPromise, timeoutPromise]);
+              const { data, error } = result as any;
+              
+              console.log('[AuthContext] Supabase query response:', { 
+                hasData: !!data, 
+                hasError: !!error, 
+                errorMsg: error?.message 
+              });
+              
+              if (!error && data && isMounted) {
+                console.log('[AuthContext] Loaded profile from listener:', data.username);
+                setProfile(data as Profile);
+              } else if (error && isMounted) {
+                console.warn('[AuthContext] Could not fetch profile:', error?.message);
+                setProfile(null);
+              }
+            } catch (err: any) {
+              console.warn('[AuthContext] Profile fetch failed/timeout:', err?.message);
+              if (isMounted) {
+                setProfile(null);
+              }
             }
-          } catch (err) {
-            console.error('[AuthContext] Error fetching profile from listener:', err);
-            setProfile(null);
-          }
+          };
+          
+          // Don't await - let it happen in background
+          fetchProfileWithTimeout();
         } else {
           console.log('[AuthContext] No user in session, clearing profile');
           setProfile(null);
         }
         
         console.log('[AuthContext] Auth listener complete, setting loading=false');
-        // Always ensure loading is false when auth state changes
+        // Always ensure loading is false when auth state changes - DON'T WAIT for profile
         setLoading(false);
       }
     });
