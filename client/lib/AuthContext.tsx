@@ -47,11 +47,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Initialize auth on mount only
   useEffect(() => {
     let isMounted = true;
+    let timeoutId: NodeJS.Timeout;
 
     const initAuth = async () => {
       try {
+        console.log('[AuthContext] Starting auth initialization...');
+        
         // Get session from storage
         const { data: { session } } = await supabase.auth.getSession();
+        console.log('[AuthContext] Got session:', session?.user?.id ?? 'No user');
         
         if (isMounted) {
           setSession(session);
@@ -66,7 +70,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 .eq('id', session.user.id)
                 .single();
               if (!error && data) {
+                console.log('[AuthContext] Loaded profile:', data.username);
                 setProfile(data as Profile);
+              } else {
+                console.warn('[AuthContext] Error fetching profile:', error?.message);
               }
             } catch (err) {
               console.error('[AuthContext] Error fetching initial profile:', err);
@@ -77,6 +84,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.error('[AuthContext] Error getting session:', error);
       } finally {
         if (isMounted) {
+          console.log('[AuthContext] Auth initialization complete, setting loading to false');
           setLoading(false);
         }
       }
@@ -85,8 +93,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Initialize auth
     initAuth();
 
+    // Fallback: Force loading to false after 5 seconds if something gets stuck
+    timeoutId = setTimeout(() => {
+      if (isMounted) {
+        console.warn('[AuthContext] Forcing loading=false due to timeout');
+        setLoading(false);
+      }
+    }, 5000);
+
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      console.log('[AuthContext] Auth state changed:', _event);
       if (isMounted) {
         setSession(session);
         setUser(session?.user ?? null);
@@ -112,6 +129,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     return () => {
       isMounted = false;
+      clearTimeout(timeoutId);
       subscription?.unsubscribe();
     };
   }, []); // Only run on mount
