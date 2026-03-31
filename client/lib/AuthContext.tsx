@@ -111,25 +111,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(session?.user ?? null);
         
         if (session?.user) {
+          console.log('[AuthContext] Fetching profile for user:', session.user.id);
           try {
+            console.log('[AuthContext] Starting Supabase query...');
             const { data, error } = await supabase
               .from('profiles')
               .select('*')
               .eq('id', session.user.id)
               .single();
+            
+            console.log('[AuthContext] Supabase query response:', { hasData: !!data, hasError: !!error, errorMsg: error?.message });
+            
             if (!error && data) {
               console.log('[AuthContext] Loaded profile from listener:', data.username);
               setProfile(data as Profile);
             } else {
               console.warn('[AuthContext] Could not fetch profile from listener:', error?.message);
+              setProfile(null);
             }
           } catch (err) {
             console.error('[AuthContext] Error fetching profile from listener:', err);
+            setProfile(null);
           }
         } else {
+          console.log('[AuthContext] No user in session, clearing profile');
           setProfile(null);
         }
         
+        console.log('[AuthContext] Auth listener complete, setting loading=false');
         // Always ensure loading is false when auth state changes
         setLoading(false);
       }
