@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/lib/AuthContext';
 import { useI18n } from '@/lib/i18n';
+import { supabase } from '@/lib/supabase';
 
 export default function Register() {
   const { signUpWithEmail, signInWithGoogle } = useAuth();
@@ -19,10 +20,53 @@ export default function Register() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+  const [usernameError, setUsernameError] = useState('');
+  const [checkingUsername, setCheckingUsername] = useState(false);
+  const usernameTimeoutRef = useRef<NodeJS.Timeout>();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
   };
+
+  // Validate username uniqueness in real-time
+  useEffect(() => {
+    const checkUsername = async () => {
+      if (!form.username || form.username.length < 3) {
+        setUsernameError('');
+        setCheckingUsername(false);
+        return;
+      }
+
+      setCheckingUsername(true);
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('username')
+          .eq('username', form.username.toLowerCase())
+          .single();
+
+        if (data) {
+          setUsernameError(es ? 'Este @ ya está en uso' : 'This username is taken');
+        } else {
+          setUsernameError('');
+        }
+      } catch (err: any) {
+        // If error is 406, it means no row found, which is good
+        if (err.status !== 406) {
+          console.error('[Register] Error checking username:', err);
+        }
+        setUsernameError('');
+      }
+      setCheckingUsername(false);
+    };
+
+    if (usernameTimeoutRef.current) clearTimeout(usernameTimeoutRef.current);
+    usernameTimeoutRef.current = setTimeout(checkUsername, 500);
+
+    return () => {
+      if (usernameTimeoutRef.current) clearTimeout(usernameTimeoutRef.current);
+    };
+  }, [form.username, es]);
 
   const validate = () => {
     if (!form.email || !form.password || !form.username || !form.displayName)
@@ -35,6 +79,8 @@ export default function Register() {
       return es ? 'El nombre de usuario solo puede contener letras, números y guion bajo.' : 'Username can only contain letters, numbers and underscores.';
     if (form.username.length < 3 || form.username.length > 24)
       return es ? 'El nombre de usuario debe tener entre 3 y 24 caracteres.' : 'Username must be 3–24 characters.';
+    if (usernameError)
+      return usernameError;
     return null;
   };
 
@@ -130,7 +176,15 @@ export default function Register() {
                 required
                 className={`${inputClass} pl-8`}
               />
+              {checkingUsername && (
+                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs text-[hsl(var(--muted-foreground))]">
+                  {es ? 'Verificando...' : 'Checking...'}
+                </span>
+              )}
             </div>
+            {usernameError && (
+              <p className="text-sm text-red-500 -mt-1">{usernameError}</p>
+            )}
 
             <input type="email" name="email" placeholder={es ? 'Correo electrónico' : 'Email'}
               value={form.email} onChange={handleChange} required className={inputClass} />
@@ -145,7 +199,7 @@ export default function Register() {
 
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || usernameError !== '' || checkingUsername}
               className="w-full py-3 rounded-xl bg-[hsl(var(--foreground))] text-[hsl(var(--background))] text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50 mt-2"
             >
               {loading ? '…' : (es ? 'Crear cuenta' : 'Create account')}
