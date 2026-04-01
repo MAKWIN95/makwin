@@ -1,16 +1,20 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Heart, Bookmark, Flag } from 'lucide-react';
+import { Heart, Bookmark, Flag, Pencil, Trash2 } from 'lucide-react';
 import { supabase, Work } from '@/lib/supabase';
 import { useAuth } from '@/lib/AuthContext';
 import { useI18n } from '@/lib/i18n';
 import AuthModal from '@/components/AuthModal';
 import ReportModal from '@/components/ReportModal';
+import EditWorkModal from '@/components/EditWorkModal';
+import DeleteWorkModal from '@/components/DeleteWorkModal';
 
 interface Props {
   work: Work;
   onLikeToggle?: (workId: string, liked: boolean) => void;
   onSaveToggle?: (workId: string, saved: boolean) => void;
+  isOwnProfile?: boolean;
+  onWorkChange?: () => void;
 }
 
 const WORK_TYPE_ICONS: Record<string, string> = {
@@ -21,7 +25,7 @@ const WORK_TYPE_ICONS: Record<string, string> = {
   video: '🎬',
 };
 
-export default function WorkCard({ work, onLikeToggle, onSaveToggle }: Props) {
+export default function WorkCard({ work, onLikeToggle, onSaveToggle, isOwnProfile, onWorkChange }: Props) {
   const { user } = useAuth();
   const { language: currentLang } = useI18n();
   const navigate = useNavigate();
@@ -31,6 +35,8 @@ export default function WorkCard({ work, onLikeToggle, onSaveToggle }: Props) {
   const [likeAnimating, setLikeAnimating] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   const isSong = work.work_type === 'cancion';
   const isPoem = work.work_type === 'poema';
@@ -160,28 +166,57 @@ export default function WorkCard({ work, onLikeToggle, onSaveToggle }: Props) {
 
       {/* Actions */}
       <div className="mt-2 px-1 flex items-center justify-between gap-2">
-        {/* Like button — subtle, premium */}
-        <button
-          onClick={handleLike}
-          className="flex items-center gap-1 text-xs text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] transition-colors"
-          aria-label="Me gusta"
-        >
-          <Heart
-            className={`w-3.5 h-3.5 transition-all duration-200 ${likeAnimating ? 'scale-125' : 'scale-100'} ${liked ? 'fill-current text-rose-500 stroke-rose-500' : ''}`}
-          />
-          {/* Only show count if > 0 — keeps feed clean */}
-          {likeCount > 0 && <span>{likeCount}</span>}
-        </button>
+        {isOwnProfile ? (
+          <div className="flex gap-2 w-full">
+            <button
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setShowEditModal(true);
+              }}
+              className="flex items-center gap-1 text-xs text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] transition-colors"
+              title={currentLang === 'es' ? 'Editar' : 'Edit'}
+            >
+              <Pencil className="w-3.5 h-3.5" />
+            </button>
+            <button
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setShowDeleteModal(true);
+              }}
+              className="flex items-center gap-1 text-xs text-[hsl(var(--muted-foreground))] hover:text-red-500 transition-colors"
+              title={currentLang === 'es' ? 'Eliminar' : 'Delete'}
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        ) : (
+          <>
+            {/* Like button — subtle, premium */}
+            <button
+              onClick={handleLike}
+              className="flex items-center gap-1 text-xs text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] transition-colors"
+              aria-label="Me gusta"
+            >
+              <Heart
+                className={`w-3.5 h-3.5 transition-all duration-200 ${likeAnimating ? 'scale-125' : 'scale-100'} ${liked ? 'fill-current text-rose-500 stroke-rose-500' : ''}`}
+              />
+              {/* Only show count if > 0 — keeps feed clean */}
+              {likeCount > 0 && <span>{likeCount}</span>}
+            </button>
 
-        {/* Report button */}
-        <button
-          onClick={handleReport}
-          className="text-xs text-[hsl(var(--muted-foreground))] hover:text-red-500 transition-colors"
-          aria-label="Reportar"
-          title="Reportar obra"
-        >
-          <Flag className="w-3.5 h-3.5" />
-        </button>
+            {/* Report button */}
+            <button
+              onClick={handleReport}
+              className="text-xs text-[hsl(var(--muted-foreground))] hover:text-red-500 transition-colors"
+              aria-label="Reportar"
+              title="Reportar obra"
+            >
+              <Flag className="w-3.5 h-3.5" />
+            </button>
+          </>
+        )}
       </div>
 
       {/* Auth Modal */}
@@ -201,6 +236,27 @@ export default function WorkCard({ work, onLikeToggle, onSaveToggle }: Props) {
         onSuccess={() => {
           // Reporte enviado correctamente
           console.log('[WorkCard] Report sent successfully');
+        }}
+      />
+
+      {/* Edit Modal */}
+      <EditWorkModal
+        isOpen={showEditModal}
+        onClose={() => setShowEditModal(false)}
+        work={work}
+        onSuccess={() => {
+          onWorkChange?.();
+        }}
+      />
+
+      {/* Delete Modal */}
+      <DeleteWorkModal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        workId={work.id}
+        workTitle={work.title}
+        onSuccess={() => {
+          onWorkChange?.();
         }}
       />
     </Link>

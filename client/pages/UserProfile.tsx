@@ -248,7 +248,11 @@ export default function UserProfile() {
           <div className="columns-2 sm:columns-3 lg:columns-4 gap-4">
             {works.map(work => (
               <div key={work.id} className="inline-block w-full mb-4 break-inside-avoid">
-                <WorkCard work={work} />
+                <WorkCard 
+                  work={work} 
+                  isOwnProfile={isOwnProfile}
+                  onWorkChange={loadProfile}
+                />
               </div>
             ))}
           </div>
