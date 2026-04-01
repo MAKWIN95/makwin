@@ -217,6 +217,22 @@ export default function Index() {
               <button onClick={() => setFilters({ workType: '', sort: 'recent' })} className="w-full px-2 py-2 text-sm rounded border border-gray-300 dark:border-gray-600 bg-[hsl(var(--popover))]">{t('filter.clear')}</button>
             </div>
           )}
+          {filteredAndSorted.length === 0 && debouncedSearch ? (
+            <div className="w-full py-16 text-center">
+              <p className="text-[hsl(var(--muted-foreground))] text-lg mb-4">
+                No hay resultados para <span className="font-semibold text-[hsl(var(--foreground))]">"{debouncedSearch}"</span>
+              </p>
+              <p className="text-sm text-[hsl(var(--muted-foreground))]">
+                Intenta con otro término de búsqueda
+              </p>
+              <button
+                onClick={() => { setSearchTerm(''); setDebouncedSearch(''); }}
+                className="mt-4 px-4 py-2 border border-[hsl(var(--border))] rounded-lg text-sm hover:bg-[hsl(var(--muted))] transition-colors"
+              >
+                Limpiar búsqueda
+              </button>
+            </div>
+          ) : (
           <div className="columns-2 sm:columns-3 lg:columns-4 xl:columns-5 2xl:columns-6 gap-4">
             {/* Combined Works and Songs */}
             {filteredAndSorted.map((item: any) => {
@@ -294,6 +310,7 @@ export default function Index() {
               );
             })}
           </div>
+          )}
         </div>
       </main>
       <Footer />
