@@ -63,6 +63,22 @@
                          "destination": "/index.html"
                      },
                      {
+                         "source": "/configuracion",
+                         "destination": "/index.html"
+                     },
+                     {
+                         "source": "/configuracion/:slug",
+                         "destination": "/index.html"
+                     },
+                     {
+                         "source": "/siguiendo",
+                         "destination": "/index.html"
+                     },
+                     {
+                         "source": "/siguiendo/:slug",
+                         "destination": "/index.html"
+                     },
+                     {
                          "source": "/u/:username",
                          "destination": "/index.html"
                      },

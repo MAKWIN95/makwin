@@ -19,6 +19,9 @@ import UserProfile from "./pages/UserProfile";
 import Saved from "./pages/Saved";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
+import ResetPassword from "./pages/ResetPassword";
+import Settings from "./pages/Settings";
+import Following from "./pages/Following";
 import NotFound from "./pages/NotFound";
 
 // Global UI
@@ -52,10 +55,13 @@ const RoutesWrapper = () => {
       {/* Auth */}
       <Route path="/login" element={<Login />} />
       <Route path="/registro" element={<Register />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
 
       {/* Authenticated */}
       <Route path="/subir-obra" element={<UploadWork />} />
       <Route path="/favoritos" element={<Saved />} />
+      <Route path="/siguiendo" element={<Following />} />
+      <Route path="/configuracion" element={<Settings />} />
       <Route path="/u/:username" element={<UserProfile />} />
 
       {/* Legacy redirects */}
