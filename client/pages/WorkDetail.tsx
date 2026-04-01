@@ -1,17 +1,16 @@
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
+import { supabase, Work, Profile } from '@/lib/supabase';
+import { useAuth } from '@/lib/AuthContext';
 import Header from '@/components/Header';
 import { Button } from '@/components/ui/button';
-import { Mail, ArrowLeft, Loader2, Copy, Check } from 'lucide-react';
+import { Heart, Bookmark, Share2, Flag, Loader2, ArrowLeft } from 'lucide-react';
+import { useI18n } from '@/lib/i18n';
 
 function AudioPlayer({ src }: { src: string }) {
   const [playing, setPlaying] = useState(false);
   const [time, setTime] = useState(0);
   const [dur, setDur] = useState(0);
-  const audioRef = (window as any).audioRef || null;
-  const ref = (audioRef as HTMLAudioElement) || null;
-
-  // use internal ref
   const [el, setEl] = useState<HTMLAudioElement | null>(null);
 
   useEffect(() => {
@@ -43,6 +42,8 @@ function AudioPlayer({ src }: { src: string }) {
     setTime(v);
   };
 
+  if (!src) return null;
+
   return (
     <div className="w-full">
       <audio ref={setEl as any} src={src} />
@@ -62,335 +63,276 @@ function AudioPlayer({ src }: { src: string }) {
   );
 }
 
-interface WorkDetail {
-  submissionId: string;
-  artistName: string;
-  email: string;
-  workType: string;
-  title: string;
-  description: string;
-  fileUrl: string | null;
-  coverImageUrl?: string | null;
-  timestamp: string;
-  status: string;
-}
-
 export default function WorkDetail() {
+  const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
-  const [work, setWork] = useState<WorkDetail | null>(null);
+  const { user } = useAuth();
+  const { t } = useI18n();
+  
+  const [work, setWork] = useState<Work | null>(null);
+  const [author, setAuthor] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [showContactDrawer, setShowContactDrawer] = useState(false);
-  const [closingDrawer, setClosingDrawer] = useState(false);
-  const [copied, setCopied] = useState(false);
+  const [liked, setLiked] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [likeCount, setLikeCount] = useState(0);
 
   useEffect(() => {
     const fetchWork = async () => {
+      if (!id) {
+        setError('No work ID provided');
+        setLoading(false);
+        return;
+      }
+
       try {
         setLoading(true);
-        const response = await fetch('/api/get-submissions');
-        const data = await response.json();
-        if (data.submissions) {
-          const found = data.submissions.find(
-            (w: WorkDetail) => w.submissionId === id && w.status === 'published'
-          );
-          if (found) {
-            setWork(found);
-            // Track user preferences for simple recommendation algorithm
-            try {
-              const key = 'makwin_prefs_v1';
-              const raw = localStorage.getItem(key);
-              const prefs = raw ? JSON.parse(raw) : { types: {}, hashtags: {} };
-              const wt = (found.workType || '').toLowerCase();
-              prefs.types[wt] = (prefs.types[wt] || 0) + 1;
-              const tags = Array.isArray((found as any).hashtags) ? (found as any).hashtags : [];
-              tags.forEach((t: string) => {
-                const k = t.replace(/^#/, '').toLowerCase();
-                prefs.hashtags[k] = (prefs.hashtags[k] || 0) + 1;
-              });
-              localStorage.setItem(key, JSON.stringify(prefs));
-            } catch (e) {
-              // ignore
-            }
-          } else {
-            setError('Obra no encontrada');
-          }
+        
+        // Fetch work from Supabase
+        const { data: workData, error: workError } = await supabase
+          .from('works')
+          .select('*, profiles(username, display_name, avatar_url, bio)')
+          .eq('id', id)
+          .eq('status', 'published')
+          .single();
+
+        if (workError || !workData) {
+          setError('Obra no encontrada');
+          setLoading(false);
+          return;
         }
-      } catch (err) {
-        setError('Error al cargar la obra');
-        console.error(err);
+
+        setWork(workData as Work);
+        setAuthor(workData.profiles as Profile);
+        setLikeCount(workData.like_count || 0);
+
+        // Check if user liked/saved this work
+        if (user) {
+          const { data: likes } = await supabase
+            .from('likes')
+            .select('id')
+            .eq('user_id', user.id)
+            .eq('work_id', id)
+            .single();
+
+          const { data: saves } = await supabase
+            .from('saves')
+            .select('id')
+            .eq('user_id', user.id)
+            .eq('work_id', id)
+            .single();
+
+          setLiked(!!likes);
+          setSaved(!!saves);
+        }
+      } catch (err: any) {
+        console.error('[WorkDetail] Error:', err);
+        setError(err?.message || 'Error al cargar la obra');
       } finally {
         setLoading(false);
       }
     };
 
-    if (id) fetchWork();
-  }, [id]);
+    fetchWork();
+  }, [id, user]);
 
-  const formatDate = (timestamp: string): string => {
-    return new Date(timestamp).toLocaleDateString('es-ES', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric',
-    });
-  };
+  const handleLike = async () => {
+    if (!user || !work) return;
 
-  const isPoem = work?.workType.toLowerCase().includes('poesia') || 
-                work?.workType.toLowerCase().includes('poesía') ||
-                work?.workType.toLowerCase().includes('poema') || 
-                work?.workType.toLowerCase().includes('texto');
-
-  const isPhoto = work?.workType.toLowerCase().includes('fotografia') || 
-                 work?.workType.toLowerCase().includes('fotografía') ||
-                 work?.workType.toLowerCase().includes('foto');
-  const isPainting = work?.workType.toLowerCase().includes('pintura') || work?.workType.toLowerCase().includes('painting');
-  const isPhotoOrPainting = Boolean(isPhoto) || Boolean(isPainting);
-  const isSong = work?.workType.toLowerCase().includes('cancion') || work?.workType.toLowerCase().includes('canción') || work?.workType.toLowerCase().includes('musica') || work?.workType.toLowerCase().includes('música');
-
-  const copyEmail = () => {
-    if (work?.email) {
-      navigator.clipboard.writeText(work.email);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+    try {
+      if (liked) {
+        // Unlike
+        await supabase
+          .from('likes')
+          .delete()
+          .eq('user_id', user.id)
+          .eq('work_id', work.id);
+        setLiked(false);
+        setLikeCount(Math.max(0, likeCount - 1));
+      } else {
+        // Like
+        await supabase
+          .from('likes')
+          .insert({ user_id: user.id, work_id: work.id });
+        setLiked(true);
+        setLikeCount(likeCount + 1);
+      }
+    } catch (err) {
+      console.error('[WorkDetail] Error toggling like:', err);
     }
   };
 
-  useEffect(() => {
-    if (showContactDrawer) {
-      document.body.classList.add('drawer-open');
-    } else {
-      document.body.classList.remove('drawer-open');
-    }
-  }, [showContactDrawer]);
+  const handleSave = async () => {
+    if (!user || !work) return;
 
-  const closeDrawer = () => {
-    setClosingDrawer(true);
-    setTimeout(() => {
-      setShowContactDrawer(false);
-      setClosingDrawer(false);
-    }, 360);
+    try {
+      if (saved) {
+        // Unsave
+        await supabase
+          .from('saves')
+          .delete()
+          .eq('user_id', user.id)
+          .eq('work_id', work.id);
+        setSaved(false);
+      } else {
+        // Save
+        await supabase
+          .from('saves')
+          .insert({ user_id: user.id, work_id: work.id });
+        setSaved(true);
+      }
+    } catch (err) {
+      console.error('[WorkDetail] Error toggling save:', err);
+    }
+  };
+
+  const handleReport = async () => {
+    if (!user || !work) {
+      alert('Debes iniciar sesión para reportar una obra');
+      return;
+    }
+
+    const reason = prompt('¿Por qué reportas esta obra?');
+    if (!reason) return;
+
+    try {
+      await supabase
+        .from('reports')
+        .insert({
+          work_id: work.id,
+          reporter_id: user.id,
+          reason: reason,
+        });
+      alert('Reporte enviado. Gracias por ayudarnos a mantener MAKWIN seguro.');
+    } catch (err) {
+      console.error('[WorkDetail] Error reporting:', err);
+      alert('Error al enviar reporte');
+    }
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[hsl(var(--background))] flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-[hsl(var(--foreground))]" />
+      <div className="min-h-screen bg-[hsl(var(--background))]">
+        <Header hideSearch />
+        <div className="flex items-center justify-center h-96">
+          <Loader2 className="w-8 h-8 animate-spin text-[hsl(var(--muted-foreground))]" />
+        </div>
       </div>
     );
   }
 
-  if (!work || error) {
+  if (error || !work) {
     return (
       <div className="min-h-screen bg-[hsl(var(--background))]">
-        <Header showSearch={false} />
-        <main className="max-w-4xl mx-auto px-6 sm:px-8 py-12 sm:py-16 flex flex-col items-center justify-center">
-          <h1 className="text-2xl font-light text-[hsl(var(--foreground))] mb-4">
-            {error || 'Obra no encontrada'}
-          </h1>
-          <Link
-            to="/"
-            className="text-[hsl(var(--foreground))/0.6] hover:text-[hsl(var(--foreground))] transition-colors flex items-center gap-2"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Volver al inicio
-          </Link>
-        </main>
+        <Header hideSearch />
+        <div className="flex flex-col items-center justify-center h-96 gap-4">
+          <p className="text-[hsl(var(--muted-foreground))]">{error || 'Obra no encontrada'}</p>
+          <Button onClick={() => navigate('/galeria')} variant="outline">
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Volver a la galería
+          </Button>
+        </div>
       </div>
     );
   }
 
   return (
     <div className="min-h-screen bg-[hsl(var(--background))]">
-      <Header showSearch={false} breadcrumb={work.title} />
+      <Header hideSearch breadcrumb={work.title} />
 
-      <main className="page-enter">
-        {/* Navigation Back */}
-        <div className="px-6 sm:px-8 pt-8">
-          <Link
-            to="/"
-            className="text-sm font-light text-[hsl(var(--foreground))/0.6] hover:text-[hsl(var(--foreground))] transition-colors inline-flex items-center gap-2 mb-12"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Volver
-          </Link>
+      <main className="w-full max-w-4xl mx-auto px-4 py-8">
+        <button
+          onClick={() => navigate(-1)}
+          className="flex items-center gap-2 text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] mb-6"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Atrás
+        </button>
+
+        {work.cover_url && (
+          <div className="mb-8 rounded-lg overflow-hidden">
+            <img src={work.cover_url} alt={work.title} className="w-full h-96 object-cover" />
+          </div>
+        )}
+
+        <div className="mb-8">
+          <h1 className="text-4xl font-bold text-[hsl(var(--foreground))] mb-4">{work.title}</h1>
+
+          {author && (
+            <Link to={`/u/${author.username}`} className="flex items-center gap-3 mb-6 hover:opacity-80">
+              <div className="w-12 h-12 rounded-full overflow-hidden bg-[hsl(var(--muted))] flex items-center justify-center">
+                {author.avatar_url ? (
+                  <img src={author.avatar_url} alt={author.display_name} className="w-full h-full object-cover" />
+                ) : (
+                  <span className="text-sm font-medium">{author.display_name?.charAt(0) || author.username?.charAt(0)}</span>
+                )}
+              </div>
+              <div>
+                <p className="font-semibold text-[hsl(var(--foreground))]">{author.display_name || author.username}</p>
+                <p className="text-sm text-[hsl(var(--muted-foreground))]">@{author.username}</p>
+              </div>
+            </Link>
+          )}
+
+          {work.description && (
+            <p className="text-[hsl(var(--muted-foreground))] mb-6 whitespace-pre-wrap">{work.description}</p>
+          )}
+
+          {work.hashtags && work.hashtags.length > 0 && (
+            <div className="flex flex-wrap gap-2 mb-6">
+              {work.hashtags.map((tag) => (
+                <span key={tag} className="text-sm text-[hsl(var(--foreground))] bg-[hsl(var(--muted))] px-3 py-1 rounded-full">
+                  #{tag}
+                </span>
+              ))}
+            </div>
+          )}
+
+          {/* Media */}
+          {work.work_type === 'música' && work.file_url && (
+            <div className="mb-8">
+              <AudioPlayer src={work.file_url} />
+            </div>
+          )}
+
+          {work.work_type === 'visual' && work.file_url && (
+            <div className="mb-8 rounded-lg overflow-hidden">
+              <img src={work.file_url} alt={work.title} className="w-full max-h-96 object-cover" />
+            </div>
+          )}
+
+          {work.lyrics && work.work_type === 'música' && (
+            <div className="bg-[hsl(var(--card))] border border-[hsl(var(--border))] rounded-lg p-6 mb-8">
+              <h2 className="text-xl font-semibold text-[hsl(var(--foreground))] mb-4">Letras</h2>
+              <p className="text-[hsl(var(--muted-foreground))] whitespace-pre-wrap">{work.lyrics}</p>
+            </div>
+          )}
         </div>
 
-        {/* Content - Different layouts for photos vs poems */}
-        {isSong ? (
-          // SONG LAYOUT: cover + player
-          <div className="px-6 sm:px-8 pb-12">
-            <div className="max-w-3xl mx-auto text-center">
-              {work.coverImageUrl || work.fileUrl ? (
-                <div className="mx-auto mb-6 rounded-xl overflow-hidden w-full max-w-sm">
-                  <img src={work.coverImageUrl || work.fileUrl || ''} alt={work.title} className="w-full h-auto object-cover" />
-                </div>
-              ) : null}
+        {/* Actions */}
+        <div className="flex gap-3">
+          <Button
+            onClick={handleLike}
+            disabled={!user}
+            variant={liked ? 'default' : 'outline'}
+            className="flex-1"
+          >
+            <Heart className={`w-4 h-4 mr-2 ${liked ? 'fill-current' : ''}`} />
+            {likeCount}
+          </Button>
 
-              <h1 className="text-3xl font-light mb-2">{work.title}</h1>
-              <p className="text-sm text-[hsl(var(--foreground))/0.6] mb-6">{work.artistName}</p>
+          <Button
+            onClick={handleSave}
+            disabled={!user}
+            variant={saved ? 'default' : 'outline'}
+          >
+            <Bookmark className={`w-4 h-4 ${saved ? 'fill-current' : ''}`} />
+          </Button>
 
-              <AudioPlayer src={work.fileUrl || ''} />
-            </div>
-          </div>
-        ) : (isPhotoOrPainting) ? (
-          // PHOTO LAYOUT: Image left, info right
-          <div className="px-6 sm:px-8 pb-12">
-            <div className="max-w-6xl mx-auto">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-                {/* Image - Left Side */}
-                <div className="flex items-start">
-                  <div className="w-full rounded-lg overflow-hidden border border-[hsl(var(--border))]">
-                    <img
-                      src={work.fileUrl}
-                      alt={work.title}
-                      className="w-full h-auto object-cover"
-                    />
-                  </div>
-                </div>
-
-                {/* Info - Right Side */}
-                <div className="flex flex-col justify-start">
-                  <h1 className="text-4xl sm:text-5xl font-light tracking-tight text-[hsl(var(--foreground))] mb-4">
-                    {work.title}
-                  </h1>
-                  <p className="text-2xl font-light text-[hsl(var(--foreground))/0.6] mb-6">
-                    {work.artistName}
-                  </p>
-                  <p className="text-base leading-relaxed text-[hsl(var(--foreground))] mb-8 whitespace-pre-wrap">
-                    "{work.description}"
-                  </p>
-                  <p className="text-xs text-[hsl(var(--foreground))/0.4] uppercase tracking-widest mb-8">
-                    {formatDate(work.timestamp)} • {work.workType}
-                  </p>
-
-                  { (work as any).isForSale && (
-                    <div className="mb-6">
-                      <Link to={`/marketplace`} className="text-sm text-[hsl(var(--foreground))] underline">Comprar esta obra en MakwinPlace →</Link>
-                    </div>
-                  )}
-                  {/* Contact Button */}
-                  <Button
-                    onClick={() => setShowContactDrawer(true)}
-                    className="bg-[hsl(var(--foreground))] text-[hsl(var(--background))] hover:bg-gray-600 w-full sm:w-auto transition-colors duration-200"
-                  >
-                    <Mail className="w-4 h-4 mr-2" />
-                    Contactar Artista
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </div>
-        ) : (
-          // POEM/TEXT LAYOUT: Centered content
-          <div className="px-6 sm:px-8 pb-12">
-            <div className="max-w-2xl mx-auto">
-              {/* Cover Image - If exists */}
-              {work.coverImageUrl && (
-                <div className="mb-12 rounded-lg overflow-hidden border border-[hsl(var(--border))] max-w-sm mx-auto">
-                  <img
-                    src={work.coverImageUrl}
-                    alt="Portada"
-                    className="w-full aspect-square object-cover"
-                  />
-                </div>
-              )}
-
-              {/* Title and Author */}
-              <div className="text-center mb-12">
-                <h1 className="text-4xl sm:text-5xl font-light tracking-tight text-[hsl(var(--foreground))] mb-4">
-                  {work.title}
-                </h1>
-                <p className="text-lg font-light text-[hsl(var(--foreground))/0.6]">
-                  {work.artistName}
-                </p>
-              </div>
-
-              {/* Content - Centered */}
-              <div className="prose prose-invert max-w-none mb-12">
-                <p className="text-center text-base sm:text-lg leading-relaxed text-[hsl(var(--foreground))] whitespace-pre-wrap font-light">
-                  {work.description}
-                </p>
-              </div>
-
-              {/* Metadata */}
-              <div className="text-center mb-12">
-                <p className="text-xs text-[hsl(var(--foreground))/0.4] uppercase tracking-widest">
-                  {formatDate(work.timestamp)} • {work.workType}
-                </p>
-              </div>
-
-              {/* Contact Button */}
-              <div className="flex justify-center">
-                <Button
-                  onClick={() => setShowContactDrawer(true)}
-                  className="bg-[hsl(var(--foreground))] text-[hsl(var(--background))] hover:bg-gray-600 transition-colors duration-200"
-                >
-                  <Mail className="w-4 h-4 mr-2" />
-                  Contactar Artista
-                </Button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Contact Drawer - Animated from bottom */}
-        {showContactDrawer && (
-          <div onClick={() => closeDrawer()} className={`fixed inset-0 bg-black/50 z-60 transition-opacity duration-300 ${closingDrawer ? 'opacity-0' : 'opacity-100'}`}>
-            <div onClick={(e) => e.stopPropagation()} className={`absolute bottom-0 left-1/2 transform -translate-x-1/2 bg-[hsl(var(--background))] border-t border-[hsl(var(--border))] p-6 sm:p-8 rounded-t-2xl w-full max-w-xl z-70 transition-transform duration-300 ${closingDrawer ? 'translate-y-full opacity-0' : 'translate-y-0 opacity-100'}`}>
-              <button
-                onClick={() => closeDrawer()}
-                className="absolute top-4 right-4 text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] transition-colors"
-              >
-                ✕
-              </button>
-
-              <h2 className="text-2xl font-light text-[hsl(var(--foreground))] mb-4">
-                Contactar a {work.artistName}
-              </h2>
-
-              {/* Email Box */}
-              <div className="flex items-center gap-3 mb-6 p-4 bg-[hsl(var(--muted))/0.5] rounded-lg border border-[hsl(var(--border))]">
-                <input
-                  type="text"
-                  value={work.email}
-                  readOnly
-                  className="flex-1 bg-transparent text-[hsl(var(--foreground))] outline-none text-sm"
-                />
-                <button
-                  onClick={copyEmail}
-                  className="p-2 hover:bg-[hsl(var(--muted))] rounded transition-colors"
-                  title="Copiar email"
-                >
-                  {copied ? (
-                    <Check className="w-5 h-5 text-green-600" />
-                  ) : (
-                    <Copy className="w-5 h-5 text-[hsl(var(--foreground))/0.6]" />
-                  )}
-                </button>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex gap-3">
-                <Button
-                  onClick={() => {
-                    window.location.href = `mailto:${work.email}`;
-                  }}
-                  className="flex-1 bg-[hsl(var(--foreground))] text-[hsl(var(--background))] hover:bg-gray-600 transition-colors duration-200"
-                >
-                  <Mail className="w-4 h-4 mr-2" />
-                  Enviar Email
-                </Button>
-                <Button
-                  onClick={() => closeDrawer()}
-                  variant="outline"
-                  className="flex-1 hover:bg-gray-100 transition-colors duration-200"
-                >
-                  Cerrar
-                </Button>
-              </div>
-            </div>
-          </div>
-        )}
+          <Button onClick={handleReport} disabled={!user} variant="outline">
+            <Flag className="w-4 h-4" />
+          </Button>
+        </div>
       </main>
     </div>
   );

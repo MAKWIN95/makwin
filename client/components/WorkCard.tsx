@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Heart, Bookmark } from 'lucide-react';
+import { Heart, Bookmark, Flag } from 'lucide-react';
 import { supabase, Work } from '@/lib/supabase';
 import { useAuth } from '@/lib/AuthContext';
 
@@ -63,6 +63,29 @@ export default function WorkCard({ work, onLikeToggle, onSaveToggle }: Props) {
       await supabase.from('saves').insert({ user_id: user.id, work_id: work.id });
     }
     onSaveToggle?.(work.id, !saved);
+  };
+
+  const handleReport = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!user) { navigate('/login'); return; }
+
+    const reason = prompt('¿Por qué reportas esta obra?');
+    if (!reason) return;
+
+    try {
+      await supabase
+        .from('reports')
+        .insert({
+          work_id: work.id,
+          reporter_id: user.id,
+          reason: reason,
+        });
+      alert('Reporte enviado. Gracias por ayudarnos a mantener MAKWIN seguro.');
+    } catch (err) {
+      console.error('[WorkCard] Error reporting:', err);
+      alert('Error al enviar reporte');
+    }
   };
 
   const linkPath = isSong ? `/song/${work.id}` : `/work/${work.id}`;
@@ -133,6 +156,16 @@ export default function WorkCard({ work, onLikeToggle, onSaveToggle }: Props) {
           />
           {/* Only show count if > 0 — keeps feed clean */}
           {likeCount > 0 && <span>{likeCount}</span>}
+        </button>
+
+        {/* Report button */}
+        <button
+          onClick={handleReport}
+          className="text-xs text-[hsl(var(--muted-foreground))] hover:text-red-500 transition-colors shrink-0 mt-0.5"
+          aria-label="Reportar"
+          title="Reportar obra"
+        >
+          <Flag className="w-3.5 h-3.5" />
         </button>
       </div>
     </Link>
