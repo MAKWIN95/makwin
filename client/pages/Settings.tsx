@@ -204,7 +204,7 @@ export default function Settings() {
               />
             </div>
 
-            <Button type="submit" disabled={passwordLoading} className="w-full">
+            <Button type="submit" disabled={passwordLoading} className="w-full transition-all duration-200 hover:scale-[1.02] hover:shadow-lg active:scale-[0.98]">
               {passwordLoading ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -237,7 +237,7 @@ export default function Settings() {
             onClick={handleSendResetEmail}
             disabled={emailLoading}
             variant="outline"
-            className="w-full"
+            className="w-full transition-all duration-200 hover:scale-[1.02] hover:shadow-lg active:scale-[0.98]"
           >
             {emailLoading ? (
               <>
@@ -259,7 +259,7 @@ export default function Settings() {
           <Button
             onClick={handleSignOut}
             variant="outline"
-            className="w-full"
+            className="w-full transition-all duration-200 hover:scale-[1.02] hover:shadow-lg active:scale-[0.98]"
           >
             <LogOut className="w-4 h-4 mr-2" />
             Cerrar Sesión
@@ -283,7 +283,7 @@ export default function Settings() {
               setDeleteCountdown(5);
             }}
             variant="destructive"
-            className="w-full"
+            className="w-full transition-all duration-200 hover:scale-[1.02] hover:shadow-lg active:scale-[0.98]"
           >
             Eliminar Cuenta
           </Button>

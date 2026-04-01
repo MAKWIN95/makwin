@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Heart, Bookmark, Flag } from 'lucide-react';
 import { supabase, Work } from '@/lib/supabase';
 import { useAuth } from '@/lib/AuthContext';
+import { useI18n } from '@/lib/i18n';
 
 interface Props {
   work: Work;
@@ -20,6 +21,7 @@ const WORK_TYPE_ICONS: Record<string, string> = {
 
 export default function WorkCard({ work, onLikeToggle, onSaveToggle }: Props) {
   const { user } = useAuth();
+  const { language: currentLang } = useI18n();
   const navigate = useNavigate();
   const [liked, setLiked] = useState(work.liked_by_me ?? false);
   const [saved, setSaved] = useState(work.saved_by_me ?? false);
@@ -29,6 +31,18 @@ export default function WorkCard({ work, onLikeToggle, onSaveToggle }: Props) {
   const isSong = work.work_type === 'cancion';
   const isPoem = work.work_type === 'poema';
   const hasImage = !!(work.cover_url || work.file_url);
+
+  // Format date according to language
+  const formatDate = (dateStr: string) => {
+    if (!dateStr) return '';
+    const d = new Date(dateStr);
+    if (Number.isNaN(d.getTime())) return '';
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const dd = pad(d.getDate());
+    const mm = pad(d.getMonth() + 1);
+    const yy = String(d.getFullYear()).slice(-2);
+    return currentLang === 'es' ? `${dd}/${mm}/${yy}` : `${mm}/${dd}/${yy}`;
+  };
 
   const handleLike = async (e: React.MouseEvent) => {
     e.preventDefault();
@@ -133,22 +147,26 @@ export default function WorkCard({ work, onLikeToggle, onSaveToggle }: Props) {
       </div>
 
       {/* Metadata */}
-      <div className="mt-2 px-1 flex items-start justify-between gap-2">
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-[hsl(var(--foreground))] truncate leading-tight">{work.title}</p>
+      <div className="mt-2 px-1">
+        <p className="text-sm font-medium text-[hsl(var(--foreground))] truncate leading-tight">{work.title}</p>
+        <div className="flex items-center justify-between gap-2 mt-1">
           <Link
             to={`/u/${work.profiles?.username ?? ''}`}
             onClick={e => e.stopPropagation()}
             className="text-xs text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] transition-colors"
           >
-            {work.profiles?.display_name ?? work.profiles?.username ?? ''}
+            @{work.profiles?.username ?? work.profiles?.display_name ?? ''}
           </Link>
+          <span className="text-xs text-[hsl(var(--muted-foreground))]">{formatDate(work.created_at)}</span>
         </div>
+      </div>
 
+      {/* Actions */}
+      <div className="mt-2 px-1 flex items-center justify-between gap-2">
         {/* Like button — subtle, premium */}
         <button
           onClick={handleLike}
-          className="flex items-center gap-1 text-xs text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] transition-colors shrink-0 mt-0.5"
+          className="flex items-center gap-1 text-xs text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] transition-colors"
           aria-label="Me gusta"
         >
           <Heart
@@ -161,7 +179,7 @@ export default function WorkCard({ work, onLikeToggle, onSaveToggle }: Props) {
         {/* Report button */}
         <button
           onClick={handleReport}
-          className="text-xs text-[hsl(var(--muted-foreground))] hover:text-red-500 transition-colors shrink-0 mt-0.5"
+          className="text-xs text-[hsl(var(--muted-foreground))] hover:text-red-500 transition-colors"
           aria-label="Reportar"
           title="Reportar obra"
         >

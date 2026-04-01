@@ -1,8 +1,8 @@
-# Fusion Starter
+# Fusion Starter → MAKWIN
 
-A production-ready full-stack React application template with integrated Express server, featuring React Router 6 SPA mode, TypeScript, Vitest, Zod and modern tooling.
+Una aplicación web React full-stack con Express, diseñada específicamente para MAKWIN.
 
-While the starter comes with a express server, only create endpoint when strictly neccesary, for example to encapsulate logic that must leave in the server, such as private keys handling, or certain DB operations, db...
+> **IMPORTANTE**: Lee `SYSTEMS.md` para entender completamente todos los sistemas, arquitectura, y estéticas antes de hacer cambios.
 
 ## Tech Stack
 
