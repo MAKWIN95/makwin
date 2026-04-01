@@ -28,6 +28,7 @@ export interface Profile {
   website: string | null;
   is_verified: boolean;
   is_banned: boolean;
+  language_preference: 'es' | 'en';
   created_at: string;
 }
 

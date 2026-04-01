@@ -211,8 +211,26 @@ export default function Gallery() {
               </div>
             )}
 
+            {/* No results message */}
+            {!loadingInitial && filtered.length === 0 && debouncedSearch && (
+              <div className="w-full py-16 text-center">
+                <p className="text-[hsl(var(--muted-foreground))] text-lg mb-4">
+                  {t('search.noResults')} <span className="font-semibold text-[hsl(var(--foreground))]">"{debouncedSearch}"</span>
+                </p>
+                <p className="text-sm text-[hsl(var(--muted-foreground))] mb-6">
+                  {t('search.tryAgain')}
+                </p>
+                <button
+                  onClick={() => setSearchTerm('')}
+                  className="px-4 py-2 border border-[hsl(var(--border))] rounded-lg text-sm hover:bg-[hsl(var(--muted))] transition-colors"
+                >
+                  {t('search.clear')}
+                </button>
+              </div>
+            )}
+
             {/* Works masonry grid */}
-            {!loadingInitial && (
+            {!loadingInitial && filtered.length > 0 && (
               <div className="columns-2 sm:columns-3 lg:columns-4 xl:columns-5 2xl:columns-6 gap-4">
                 {filtered.map((item: any) => {
                   const isSong = item._isSong;

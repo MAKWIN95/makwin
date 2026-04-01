@@ -67,12 +67,13 @@ export default function WorkDetail() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
-  const { t } = useI18n();
+  const { language: currentLang, t } = useI18n();
   
   const [work, setWork] = useState<Work | null>(null);
   const [author, setAuthor] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [retrying, setRetrying] = useState(0);
   const [liked, setLiked] = useState(false);
   const [saved, setSaved] = useState(false);
   const [likeCount, setLikeCount] = useState(0);
@@ -87,16 +88,24 @@ export default function WorkDetail() {
 
       try {
         setLoading(true);
+        setError('');
         
         // Fetch work from Supabase
         const { data: workData, error: workError } = await supabase
           .from('works')
-          .select('*, profiles(username, display_name, avatar_url, bio)')
+          .select('*, profiles(id, username, display_name, avatar_url, bio, is_verified)')
           .eq('id', id)
           .eq('status', 'published')
           .single();
 
         if (workError || !workData) {
+          // If work not found in first attempt, retry once with delay (for newly uploaded works)
+          if (retrying < 1) {
+            setRetrying(retrying + 1);
+            setLoading(true);
+            setTimeout(() => fetchWork(), 2000);
+            return;
+          }
           setError('Obra no encontrada');
           setLoading(false);
           return;

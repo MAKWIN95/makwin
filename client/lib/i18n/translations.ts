@@ -30,6 +30,9 @@ export type TranslationKey =
   | 'onboarding.finishButton'
   | 'onboarding.skip'
   | 'search.placeholder'
+  | 'search.noResults'
+  | 'search.tryAgain'
+  | 'search.clear'
   | 'filter.allTypes'
   | 'filter.painting'
   | 'filter.photography'
@@ -74,6 +77,9 @@ export const translations = {
     'onboarding.finishButton': 'Ready',
     'onboarding.skip': 'Skip',
     'search.placeholder': 'Search works...',
+    'search.noResults': 'No results for',
+    'search.tryAgain': 'Try another search term',
+    'search.clear': 'Clear search',
     'filter.allTypes': 'All types',
     'filter.painting': 'Painting',
     'filter.photography': 'Photography',
@@ -117,6 +123,9 @@ export const translations = {
     'onboarding.finishButton': 'Listo',
     'onboarding.skip': 'Omitir',
     'search.placeholder': 'Buscar obras...',
+    'search.noResults': 'No hay resultados para',
+    'search.tryAgain': 'Intenta con otro término de búsqueda',
+    'search.clear': 'Limpiar búsqueda',
     'filter.allTypes': 'Todos los tipos',
     'filter.painting': 'Pintura',
     'filter.photography': 'Fotografía',
