@@ -1,4 +1,4 @@
-import React, { useState, useCallback, createContext, useContext, ReactNode } from 'react';
+import React, { useState, useCallback, createContext, useContext, ReactNode, useEffect } from 'react';
 import { translations, TranslationKey } from './translations';
 
 type Language = keyof typeof translations;
@@ -13,8 +13,9 @@ const I18nContext = createContext<I18nContextType | null>(null);
 
 const DEFAULT_LANGUAGE: Language = 'es';
 
-export function I18nProvider({ children }: { children: ReactNode }) {
+export function I18nProvider({ children, initialLanguage }: { children: ReactNode; initialLanguage?: Language }) {
   const [language, setLanguage] = useState<Language>(() => {
+    // Priority: localStorage > default
     const stored = localStorage.getItem('language');
     return (stored as Language) || DEFAULT_LANGUAGE;
   });
@@ -27,6 +28,19 @@ export function I18nProvider({ children }: { children: ReactNode }) {
     setLanguage(newLang);
     localStorage.setItem('language', newLang);
   }, []);
+
+  // Listen for profile language changes
+  useEffect(() => {
+    const handleProfileLanguageLoaded = (event: any) => {
+      const newLang = event.detail?.language as Language;
+      if (newLang && newLang !== language) {
+        setLanguage(newLang);
+      }
+    };
+
+    document.addEventListener('profileLanguageLoaded', handleProfileLanguageLoaded);
+    return () => document.removeEventListener('profileLanguageLoaded', handleProfileLanguageLoaded);
+  }, [language]);
 
   const contextValue: I18nContextType = {
     language,

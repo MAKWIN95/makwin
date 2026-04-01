@@ -40,6 +40,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  // Update language preference when profile updates
+  useEffect(() => {
+    if (profile?.language_preference) {
+      localStorage.setItem('language', profile.language_preference);
+      document.dispatchEvent(new CustomEvent('profileLanguageLoaded', { 
+        detail: { language: profile.language_preference } 
+      }));
+    }
+  }, [profile?.language_preference]);
+
   const refreshProfile = useCallback(async () => {
     if (user) await fetchProfile(user.id);
   }, [user, fetchProfile]);
