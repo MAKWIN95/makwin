@@ -28,10 +28,7 @@ export default function Header({ showSearch = true, showSearchCentered = false, 
   const handleMakwinClick = () => document.dispatchEvent(new CustomEvent('reloadGallery'));
   const handleGoHome = () => navigate('/');
   const handleGoBack = () => {
-    try {
-      const last = sessionStorage.getItem('lastFromSection');
-      if (last !== null) { navigate('/'); return; }
-    } catch (e) {}
+    // Use browser history - it's always more reliable
     window.history.back();
   };
 
