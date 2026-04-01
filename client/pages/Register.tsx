@@ -93,7 +93,20 @@ export default function Register() {
     const { error } = await signUpWithEmail(form.email, form.password, form.username, form.displayName);
     setLoading(false);
     if (error) {
-      setError(error);
+      // Parse and show user-friendly error messages
+      if (error.includes('already registered') || error.includes('already exists')) {
+        setError(es
+          ? `${form.email} ya está registrado. ¿Te gustaría iniciar sesión?`
+          : `${form.email} is already registered. Would you like to sign in?`);
+      } else if (error.includes('password') || error.includes('weak password')) {
+        setError(es
+          ? 'La contraseña no es lo suficientemente segura.'
+          : 'The password is not secure enough.');
+      } else if (error.includes('username') || error.includes('Usuario')) {
+        setError(error); // Custom error from our check
+      } else {
+        setError(error);
+      }
     } else {
       setSuccess(true);
     }
