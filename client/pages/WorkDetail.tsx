@@ -3,6 +3,8 @@ import { useState, useEffect } from 'react';
 import { supabase, Work, Profile } from '@/lib/supabase';
 import { useAuth } from '@/lib/AuthContext';
 import Header from '@/components/Header';
+import AuthModal from '@/components/AuthModal';
+import ReportModal from '@/components/ReportModal';
 import { Button } from '@/components/ui/button';
 import { Heart, Bookmark, Share2, Flag, Loader2, ArrowLeft } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
@@ -77,6 +79,8 @@ export default function WorkDetail() {
   const [liked, setLiked] = useState(false);
   const [saved, setSaved] = useState(false);
   const [likeCount, setLikeCount] = useState(0);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
 
   useEffect(() => {
     const fetchWork = async () => {
@@ -146,7 +150,11 @@ export default function WorkDetail() {
   }, [id, user]);
 
   const handleLike = async () => {
-    if (!user || !work) return;
+    if (!user) {
+      setShowAuthModal(true);
+      return;
+    }
+    if (!work) return;
 
     try {
       if (liked) {
@@ -172,7 +180,11 @@ export default function WorkDetail() {
   };
 
   const handleSave = async () => {
-    if (!user || !work) return;
+    if (!user) {
+      setShowAuthModal(true);
+      return;
+    }
+    if (!work) return;
 
     try {
       if (saved) {
@@ -195,28 +207,13 @@ export default function WorkDetail() {
     }
   };
 
-  const handleReport = async () => {
-    if (!user || !work) {
-      alert('Debes iniciar sesión para reportar una obra');
+  const handleReport = () => {
+    if (!user) {
+      setShowAuthModal(true);
       return;
     }
-
-    const reason = prompt('¿Por qué reportas esta obra?');
-    if (!reason) return;
-
-    try {
-      await supabase
-        .from('reports')
-        .insert({
-          work_id: work.id,
-          reporter_id: user.id,
-          reason: reason,
-        });
-      alert('Reporte enviado. Gracias por ayudarnos a mantener MAKWIN seguro.');
-    } catch (err) {
-      console.error('[WorkDetail] Error reporting:', err);
-      alert('Error al enviar reporte');
-    }
+    if (!work) return;
+    setShowReportModal(true);
   };
 
   if (loading) {
@@ -342,6 +339,25 @@ export default function WorkDetail() {
             <Flag className="w-4 h-4" />
           </Button>
         </div>
+
+        {/* Auth Modal */}
+        <AuthModal
+          isOpen={showAuthModal}
+          onClose={() => setShowAuthModal(false)}
+          title={currentLang === 'es' ? 'Inicia sesión para continuar' : 'Sign in to continue'}
+          description={currentLang === 'es' ? 'Necesitas una cuenta para hacer esto' : 'You need an account to do this'}
+        />
+
+        {/* Report Modal */}
+        <ReportModal
+          isOpen={showReportModal}
+          onClose={() => setShowReportModal(false)}
+          workId={work?.id || ''}
+          userId={user?.id}
+          onSuccess={() => {
+            console.log('[WorkDetail] Report sent successfully');
+          }}
+        />
       </main>
     </div>
   );

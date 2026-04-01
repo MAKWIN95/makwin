@@ -4,6 +4,8 @@ import { Heart, Bookmark, Flag } from 'lucide-react';
 import { supabase, Work } from '@/lib/supabase';
 import { useAuth } from '@/lib/AuthContext';
 import { useI18n } from '@/lib/i18n';
+import AuthModal from '@/components/AuthModal';
+import ReportModal from '@/components/ReportModal';
 
 interface Props {
   work: Work;
@@ -27,6 +29,8 @@ export default function WorkCard({ work, onLikeToggle, onSaveToggle }: Props) {
   const [saved, setSaved] = useState(work.saved_by_me ?? false);
   const [likeCount, setLikeCount] = useState(work.like_count ?? 0);
   const [likeAnimating, setLikeAnimating] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
 
   const isSong = work.work_type === 'cancion';
   const isPoem = work.work_type === 'poema';
@@ -47,7 +51,10 @@ export default function WorkCard({ work, onLikeToggle, onSaveToggle }: Props) {
   const handleLike = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (!user) { navigate('/login'); return; }
+    if (!user) { 
+      setShowAuthModal(true);
+      return;
+    }
 
     setLikeAnimating(true);
     setTimeout(() => setLikeAnimating(false), 400);
@@ -67,7 +74,10 @@ export default function WorkCard({ work, onLikeToggle, onSaveToggle }: Props) {
   const handleSave = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (!user) { navigate('/login'); return; }
+    if (!user) { 
+      setShowAuthModal(true);
+      return;
+    }
 
     if (saved) {
       setSaved(false);
@@ -79,27 +89,14 @@ export default function WorkCard({ work, onLikeToggle, onSaveToggle }: Props) {
     onSaveToggle?.(work.id, !saved);
   };
 
-  const handleReport = async (e: React.MouseEvent) => {
+  const handleReport = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (!user) { navigate('/login'); return; }
-
-    const reason = prompt('¿Por qué reportas esta obra?');
-    if (!reason) return;
-
-    try {
-      await supabase
-        .from('reports')
-        .insert({
-          work_id: work.id,
-          reporter_id: user.id,
-          reason: reason,
-        });
-      alert('Reporte enviado. Gracias por ayudarnos a mantener MAKWIN seguro.');
-    } catch (err) {
-      console.error('[WorkCard] Error reporting:', err);
-      alert('Error al enviar reporte');
+    if (!user) { 
+      setShowAuthModal(true);
+      return;
     }
+    setShowReportModal(true);
   };
 
   const linkPath = isSong ? `/song/${work.id}` : `/work/${work.id}`;
@@ -186,6 +183,26 @@ export default function WorkCard({ work, onLikeToggle, onSaveToggle }: Props) {
           <Flag className="w-3.5 h-3.5" />
         </button>
       </div>
+
+      {/* Auth Modal */}
+      <AuthModal
+        isOpen={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+        title={currentLang === 'es' ? 'Inicia sesión para continuar' : 'Sign in to continue'}
+        description={currentLang === 'es' ? 'Necesitas una cuenta para hacer esto' : 'You need an account to do this'}
+      />
+
+      {/* Report Modal */}
+      <ReportModal
+        isOpen={showReportModal}
+        onClose={() => setShowReportModal(false)}
+        workId={work.id}
+        userId={user?.id}
+        onSuccess={() => {
+          // Reporte enviado correctamente
+          console.log('[WorkCard] Report sent successfully');
+        }}
+      />
     </Link>
   );
 }
