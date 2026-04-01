@@ -21,18 +21,70 @@ export default function Saved() {
   useEffect(() => {
     const load = async () => {
       setLoading(true);
-      const { data } = await supabase
-        .from('saves')
-        .select(`work_id, works(*, profiles(*))`)
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
+      try {
+        // Get saved works with full details
+        const { data: savesData } = await supabase
+          .from('saves')
+          .select('work_id')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false });
 
-      const fetched = (data ?? [])
-        .map((row: any) => row.works)
-        .filter(Boolean)
-        .map((w: Work) => ({ ...w, saved_by_me: true }));
+        if (!savesData || savesData.length === 0) {
+          setWorks([]);
+          setLoading(false);
+          return;
+        }
 
-      setWorks(fetched as Work[]);
+        const workIds = savesData.map(s => s.work_id);
+
+        // Get works with profiles and counts
+        const { data: worksData } = await supabase
+          .from('works')
+          .select(`
+            *,
+            profiles!inner(id, username, display_name, avatar_url, verified)
+          `)
+          .in('id', workIds)
+          .order('created_at', { ascending: false });
+
+        if (!worksData) {
+          setWorks([]);
+          setLoading(false);
+          return;
+        }
+
+        // Get likes count and liked_by_me for each work
+        const worksWithCounts = await Promise.all(
+          worksData.map(async (work: any) => {
+            const { count: likeCount } = await supabase
+              .from('likes')
+              .select('*', { count: 'exact', head: true })
+              .eq('work_id', work.id);
+
+            const { data: likedData } = await supabase
+              .from('likes')
+              .select('user_id')
+              .eq('work_id', work.id)
+              .eq('user_id', user.id)
+              .maybeSingle();
+
+            return {
+              ...work,
+              profiles: {
+                ...work.profiles[0],
+              },
+              like_count: likeCount ?? 0,
+              liked_by_me: !!likedData,
+              saved_by_me: true,
+            };
+          })
+        );
+
+        setWorks(worksWithCounts as Work[]);
+      } catch (err) {
+        console.error('[Saved] Error loading works:', err);
+        setWorks([]);
+      }
       setLoading(false);
     };
     load();
