@@ -28,8 +28,9 @@ export default function Header({ showSearch = true, showSearchCentered = false, 
   const handleMakwinClick = () => document.dispatchEvent(new CustomEvent('reloadGallery'));
   const handleGoHome = () => navigate('/');
   const handleGoBack = () => {
-    // Use browser history - it's always more reliable
-    window.history.back();
+    // Navigate to home instead of using browser history to avoid 404
+    // This ensures users always have a safe place to go back to
+    navigate('/', { replace: true });
   };
 
   useEffect(() => {
