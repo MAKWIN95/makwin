@@ -22,12 +22,19 @@ export default function UserProfile() {
   const [followerCount, setFollowerCount] = useState(0);
   const [followingCount, setFollowingCount] = useState(0);
   const [editing, setEditing] = useState(false);
-  const [editForm, setEditForm] = useState({ display_name: '', bio: '', website: '' });
+  const [editForm, setEditForm] = useState({ display_name: '', bio: '', website: '', instagram_url: '', tiktok_url: '' });
   const [editError, setEditError] = useState('');
   const [saving, setSaving] = useState(false);
   const [avatarUploading, setAvatarUploading] = useState(false);
 
   const isOwnProfile = myProfile?.username === username;
+
+  // Validate URLs don't contain banned content
+  const validateURL = (url: string): boolean => {
+    if (!url) return true;
+    const bannedKeywords = ['gore', 'porn', '+18', '18+', 'xxx', 'adult', 'nsfw'];
+    return !bannedKeywords.some(keyword => url.toLowerCase().includes(keyword));
+  };
 
   useEffect(() => {
     if (!username) return;
@@ -45,7 +52,13 @@ export default function UserProfile() {
 
     if (!profileData) { setLoading(false); return; }
     setProfile(profileData as Profile);
-    setEditForm({ display_name: profileData.display_name ?? '', bio: profileData.bio ?? '', website: profileData.website ?? '' });
+    setEditForm({ 
+      display_name: profileData.display_name ?? '', 
+      bio: profileData.bio ?? '', 
+      website: profileData.website ?? '',
+      instagram_url: profileData.instagram_url ?? '',
+      tiktok_url: profileData.tiktok_url ?? ''
+    });
 
     // Works
     const { data: worksData } = await supabase
@@ -94,6 +107,45 @@ export default function UserProfile() {
   const handleSaveEdit = async () => {
     setSaving(true);
     setEditError('');
+
+    // Validate URLs don't contain banned content
+    if (!validateURL(editForm.website) || !validateURL(editForm.instagram_url) || !validateURL(editForm.tiktok_url)) {
+      setEditError(es 
+        ? 'Una o más URLs contienen contenido no permitido'
+        : 'One or more URLs contain restricted content');
+      setSaving(false);
+      return;
+    }
+
+    // Check change limits
+    if (profile?.display_name !== editForm.display_name && profile?.last_name_change) {
+      const lastChange = new Date(profile.last_name_change);
+      const twoDaysAgo = new Date();
+      twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
+      if (lastChange > twoDaysAgo) {
+        const daysRemaining = Math.ceil((lastChange.getTime() - Date.now()) / (1000 * 60 * 60 * 24)) + 2;
+        setEditError(es 
+          ? `Puedes cambiar tu nombre nuevamente en ${daysRemaining} día(s)`
+          : `You can change your name again in ${daysRemaining} day(s)`);
+        setSaving(false);
+        return;
+      }
+    }
+
+    if (profile?.username !== editForm.username && profile?.last_username_change) {
+      const lastChange = new Date(profile.last_username_change);
+      const oneMonthAgo = new Date();
+      oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+      if (lastChange > oneMonthAgo) {
+        const daysRemaining = Math.ceil((lastChange.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+        setEditError(es 
+          ? `Puedes cambiar tu nombre de usuario en ${daysRemaining} día(s)`
+          : `You can change your username in ${daysRemaining} day(s)`);
+        setSaving(false);
+        return;
+      }
+    }
+
     const { error } = await updateProfile(editForm);
     setSaving(false);
     if (error) { setEditError(error); return; }
@@ -173,6 +225,12 @@ export default function UserProfile() {
                 <input value={editForm.website} onChange={e => setEditForm(p => ({ ...p, website: e.target.value }))}
                   placeholder="https://..." type="url"
                   className="w-full px-3 py-2 rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--input))] text-sm" />
+                <input value={editForm.instagram_url} onChange={e => setEditForm(p => ({ ...p, instagram_url: e.target.value }))}
+                  placeholder="https://instagram.com/..." type="url"
+                  className="w-full px-3 py-2 rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--input))] text-sm" />
+                <input value={editForm.tiktok_url} onChange={e => setEditForm(p => ({ ...p, tiktok_url: e.target.value }))}
+                  placeholder="https://tiktok.com/..." type="url"
+                  className="w-full px-3 py-2 rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--input))] text-sm" />
                 {editError && <p className="text-xs text-red-500">{editError}</p>}
                 <div className="flex gap-2">
                   <button onClick={handleSaveEdit} disabled={saving}
@@ -200,11 +258,37 @@ export default function UserProfile() {
                     href={profile.website.startsWith('http') ? profile.website : `https://${profile.website}`}
                     target="_blank" 
                     rel="noopener noreferrer"
-                    className="text-xs text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] flex items-center gap-1 justify-center sm:justify-start mb-3"
+                    className="text-xs text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] flex items-center gap-1 justify-center sm:justify-start mb-2"
                   >
                     <ExternalLink className="w-3 h-3" /> {profile.website.replace(/^https?:\/\//, '')}
                   </a>
                 )}
+
+                {/* Social Media Links */}
+                <div className="flex gap-3 justify-center sm:justify-start mb-3">
+                  {profile.instagram_url && (
+                    <a 
+                      href={profile.instagram_url}
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      title="Instagram"
+                      className="text-xs text-[hsl(var(--muted-foreground))] hover:text-pink-500 transition-colors"
+                    >
+                      📷 Instagram
+                    </a>
+                  )}
+                  {profile.tiktok_url && (
+                    <a 
+                      href={profile.tiktok_url}
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      title="TikTok"
+                      className="text-xs text-[hsl(var(--muted-foreground))] hover:text-black dark:hover:text-white transition-colors"
+                    >
+                      🎵 TikTok
+                    </a>
+                  )}
+                </div>
 
                 {/* Stats */}
                 <div className="flex gap-6 justify-center sm:justify-start text-sm mb-4">
@@ -229,6 +313,26 @@ export default function UserProfile() {
                     </button>
                   )}
                 </div>
+
+                {/* Social Media Suggestion Banner */}
+                {isOwnProfile && !profile?.instagram_url && !profile?.tiktok_url && (
+                  <div className="mt-4 p-4 rounded-lg bg-blue-500/10 border border-blue-500/30 text-blue-600 dark:text-blue-400 text-xs">
+                    <p className="font-medium mb-2">
+                      {es ? '🎵 Agrega tus redes sociales' : '🎵 Add your social media'}
+                    </p>
+                    <p className="mb-3">
+                      {es 
+                        ? 'Conecta tu Instagram o TikTok para que tus seguidores te encuentren más fácilmente.'
+                        : 'Connect your Instagram or TikTok so your followers can find you more easily.'}
+                    </p>
+                    <button 
+                      onClick={() => setEditing(true)}
+                      className="text-xs underline hover:opacity-80 transition-opacity"
+                    >
+                      {es ? 'Editar perfil →' : 'Edit profile →'}
+                    </button>
+                  </div>
+                )}
               </>
             )}
           </div>
