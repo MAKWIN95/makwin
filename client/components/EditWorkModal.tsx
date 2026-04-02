@@ -50,8 +50,8 @@ export default function EditWorkModal({ isOpen, onClose, work, onSuccess }: Prop
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-      <div className="bg-[hsl(var(--popover))] border border-[hsl(var(--border))] rounded-2xl max-w-md w-full shadow-2xl">
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-[hsl(var(--popover))] border border-[hsl(var(--border))] rounded-2xl max-w-md w-full shadow-2xl" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between p-6 border-b border-[hsl(var(--border))]">
           <h2 className="text-lg font-light text-[hsl(var(--foreground))]">
             {es ? 'Editar obra' : 'Edit work'}

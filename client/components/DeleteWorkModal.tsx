@@ -41,8 +41,8 @@ export default function DeleteWorkModal({ isOpen, onClose, workId, workTitle, on
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-      <div className="bg-[hsl(var(--popover))] border border-[hsl(var(--border))] rounded-2xl max-w-sm w-full shadow-2xl">
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-[hsl(var(--popover))] border border-[hsl(var(--border))] rounded-2xl max-w-sm w-full shadow-2xl" onClick={(e) => e.stopPropagation()}>
         <div className="p-6">
           <div className="flex items-center gap-3 mb-4">
             <div className="w-10 h-10 rounded-full bg-red-500/20 flex items-center justify-center">

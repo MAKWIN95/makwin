@@ -108,6 +108,7 @@ export default function WorkCard({ work, onLikeToggle, onSaveToggle, isOwnProfil
   const linkPath = isSong ? `/song/${work.id}` : `/work/${work.id}`;
 
   return (
+    <>
     <Link to={linkPath} className="group block">
       {/* Image/Media area */}
       <div className="relative overflow-hidden rounded-2xl glass-effect transition-all duration-300 ease-out transform will-change-transform group-hover:scale-[1.02] group-hover:shadow-xl">
@@ -219,46 +220,44 @@ export default function WorkCard({ work, onLikeToggle, onSaveToggle, isOwnProfil
         )}
       </div>
 
-      {/* Auth Modal */}
-      <AuthModal
-        isOpen={showAuthModal}
-        onClose={() => setShowAuthModal(false)}
-        title={currentLang === 'es' ? 'Inicia sesión para continuar' : 'Sign in to continue'}
-        description={currentLang === 'es' ? 'Necesitas una cuenta para hacer esto' : 'You need an account to do this'}
-      />
-
-      {/* Report Modal */}
-      <ReportModal
-        isOpen={showReportModal}
-        onClose={() => setShowReportModal(false)}
-        workId={work.id}
-        userId={user?.id}
-        onSuccess={() => {
-          // Reporte enviado correctamente
-          console.log('[WorkCard] Report sent successfully');
-        }}
-      />
-
-      {/* Edit Modal */}
-      <EditWorkModal
-        isOpen={showEditModal}
-        onClose={() => setShowEditModal(false)}
-        work={work}
-        onSuccess={() => {
-          onWorkChange?.();
-        }}
-      />
-
-      {/* Delete Modal */}
-      <DeleteWorkModal
-        isOpen={showDeleteModal}
-        onClose={() => setShowDeleteModal(false)}
-        workId={work.id}
-        workTitle={work.title}
-        onSuccess={() => {
-          onWorkChange?.();
-        }}
-      />
     </Link>
+
+    {/* Modals OUTSIDE Link to prevent navigation interference */}
+    <AuthModal
+      isOpen={showAuthModal}
+      onClose={() => setShowAuthModal(false)}
+      title={currentLang === 'es' ? 'Inicia sesión para continuar' : 'Sign in to continue'}
+      description={currentLang === 'es' ? 'Necesitas una cuenta para hacer esto' : 'You need an account to do this'}
+    />
+
+    <ReportModal
+      isOpen={showReportModal}
+      onClose={() => setShowReportModal(false)}
+      workId={work.id}
+      userId={user?.id}
+      onSuccess={() => {
+        console.log('[WorkCard] Report sent successfully');
+      }}
+    />
+
+    <EditWorkModal
+      isOpen={showEditModal}
+      onClose={() => setShowEditModal(false)}
+      work={work}
+      onSuccess={() => {
+        onWorkChange?.();
+      }}
+    />
+
+    <DeleteWorkModal
+      isOpen={showDeleteModal}
+      onClose={() => setShowDeleteModal(false)}
+      workId={work.id}
+      workTitle={work.title}
+      onSuccess={() => {
+        onWorkChange?.();
+      }}
+    />
+    </>
   );
 }
