@@ -75,8 +75,8 @@ export default function Register() {
       return es ? 'Las contraseñas no coinciden.' : 'Passwords do not match.';
     if (form.password.length < 8)
       return es ? 'La contraseña debe tener al menos 8 caracteres.' : 'Password must be at least 8 characters.';
-    if (!/^[a-z0-9_]+$/.test(form.username.toLowerCase()))
-      return es ? 'El nombre de usuario solo puede contener letras, números y guion bajo.' : 'Username can only contain letters, numbers and underscores.';
+    if (!/^[a-z0-9]([a-z0-9_.]*[a-z0-9])?$/.test(form.username.toLowerCase()))
+      return es ? 'El nombre de usuario solo puede contener letras, números, puntos y guion bajo. No puede empezar ni terminar con punto.' : 'Username can only contain letters, numbers, dots and underscores. Cannot start or end with a dot.';
     if (form.username.length < 3 || form.username.length > 24)
       return es ? 'El nombre de usuario debe tener entre 3 y 24 caracteres.' : 'Username must be 3–24 characters.';
     if (usernameError)
@@ -185,7 +185,7 @@ export default function Register() {
               <input type="text" name="username"
                 placeholder={es ? 'nombre_usuario' : 'username'}
                 value={form.username}
-                onChange={e => setForm(prev => ({ ...prev, username: e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '') }))}
+                onChange={e => setForm(prev => ({ ...prev, username: e.target.value.toLowerCase().replace(/[^a-z0-9_.]/g, '') }))}
                 required
                 className={`${inputClass} pl-8`}
               />
