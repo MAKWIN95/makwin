@@ -64,7 +64,7 @@ export default function EditWorkModal({ isOpen, onClose, work, onSuccess }: Prop
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="p-6 space-y-4" onClick={(e) => e.stopPropagation()}>
           <div>
             <label className="text-xs font-medium text-[hsl(var(--muted-foreground))] mb-2 block">
               {es ? 'Título' : 'Title'}
@@ -73,6 +73,8 @@ export default function EditWorkModal({ isOpen, onClose, work, onSuccess }: Prop
               type="text"
               value={form.title}
               onChange={e => setForm(p => ({ ...p, title: e.target.value }))}
+              onClick={(e) => e.stopPropagation()}
+              onKeyDown={(e) => e.stopPropagation()}
               className="w-full px-3 py-2 rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--input))] text-sm placeholder:text-[hsl(var(--muted-foreground))]"
               placeholder={es ? 'Título de la obra' : 'Work title'}
               required
@@ -86,6 +88,8 @@ export default function EditWorkModal({ isOpen, onClose, work, onSuccess }: Prop
             <textarea
               value={form.description}
               onChange={e => setForm(p => ({ ...p, description: e.target.value }))}
+              onClick={(e) => e.stopPropagation()}
+              onKeyDown={(e) => e.stopPropagation()}
               className="w-full px-3 py-2 rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--input))] text-sm placeholder:text-[hsl(var(--muted-foreground))] resize-none"
               rows={4}
               placeholder={es ? 'Descripción' : 'Description'}
@@ -100,6 +104,8 @@ export default function EditWorkModal({ isOpen, onClose, work, onSuccess }: Prop
               type="text"
               value={form.hashtags}
               onChange={e => setForm(p => ({ ...p, hashtags: e.target.value }))}
+              onClick={(e) => e.stopPropagation()}
+              onKeyDown={(e) => e.stopPropagation()}
               className="w-full px-3 py-2 rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--input))] text-sm placeholder:text-[hsl(var(--muted-foreground))]"
               placeholder="#arte #musica"
             />

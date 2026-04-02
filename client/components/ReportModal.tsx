@@ -105,7 +105,8 @@ export default function ReportModal({
                     name="reason"
                     value={opt.value}
                     checked={reason === opt.value}
-                    onChange={(e) => setReason(e.target.value)}
+                    onChange={(e) => { e.stopPropagation(); setReason(e.target.value); }}
+                    onClick={(e) => e.stopPropagation()}
                     disabled={loading}
                     className="w-4 h-4"
                   />
@@ -121,6 +122,8 @@ export default function ReportModal({
               <textarea
                 value={customReason}
                 onChange={(e) => setCustomReason(e.target.value)}
+                onClick={(e) => e.stopPropagation()}
+                onKeyDown={(e) => e.stopPropagation()}
                 placeholder={currentLang === 'es' ? 'Cuéntanos más...' : 'Tell us more...'}
                 disabled={loading}
                 rows={3}
