@@ -30,6 +30,7 @@ import ThemeBulb from "@/components/ThemeBulb";
 import { I18nProvider } from "@/lib/i18n";
 import LanguagePrompt from '@/components/LanguagePrompt';
 import Onboarding from '@/components/Onboarding';
+import GoogleSignupModal from '@/components/GoogleSignupModal';
 import { AuthProvider, useAuth } from "@/lib/AuthContext";
 
 const queryClient = new QueryClient();
@@ -97,6 +98,7 @@ const App = () => (
           <ThemeBulb />
           <LanguagePrompt />
           <Onboarding />
+          <GoogleSignupModal />
           <BrowserRouter>
             <RoutesWrapper />
           </BrowserRouter>

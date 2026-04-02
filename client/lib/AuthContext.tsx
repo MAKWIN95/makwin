@@ -7,6 +7,7 @@ interface AuthContextType {
   session: Session | null;
   profile: Profile | null;
   loading: boolean;
+  needsUsernameSetup: boolean;
   signInWithGoogle: () => Promise<void>;
   signInWithEmail: (email: string, password: string) => Promise<{ error: string | null }>;
   signUpWithEmail: (email: string, password: string, username: string, displayName: string) => Promise<{ error: string | null }>;
@@ -14,6 +15,7 @@ interface AuthContextType {
   resetPassword: (email: string) => Promise<{ error: string | null }>;
   updateProfile: (updates: Partial<Pick<Profile, 'display_name' | 'bio' | 'website' | 'avatar_url'>>) => Promise<{ error: string | null }>;
   refreshProfile: () => Promise<void>;
+  completeGoogleSignUp: (username: string, password: string, displayName: string) => Promise<{ error: string | null }>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -23,6 +25,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [needsUsernameSetup, setNeedsUsernameSetup] = useState(false);
 
   // Fetch profile without being a dependency
   const fetchProfile = useCallback(async (userId: string) => {
@@ -152,6 +155,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               if (!error && data && isMounted) {
                 console.log('[AuthContext] Loaded profile from listener:', data.username);
                 setProfile(data as Profile);
+                
+                // Detectar si es un usuario nuevo que necesita configurar username
+                // (Típicamente después de Google OAuth sin username asignado)
+                if (!data.username && session?.user?.user_metadata?.provider === 'google') {
+                  console.log('[AuthContext] Detected new Google user without username');
+                  setNeedsUsernameSetup(true);
+                }
               } else if (error && isMounted) {
                 console.warn('[AuthContext] Could not fetch profile:', error?.message);
                 setProfile(null);
@@ -294,11 +304,53 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { error: error?.message ?? null };
   };
 
+  const completeGoogleSignUp = async (username: string, password: string, displayName: string) => {
+    if (!user) return { error: 'No hay sesión activa.' };
+
+    try {
+      // Check username uniqueness
+      const { data: existing } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('username', username.toLowerCase())
+        .maybeSingle();
+
+      if (existing) return { error: 'Este nombre de usuario ya está en uso.' };
+
+      // Update password in auth
+      const { error: passwordError } = await supabase.auth.updateUser({
+        password: password,
+      });
+
+      if (passwordError) return { error: passwordError.message };
+
+      // Update or create profile with username
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({
+          username: username.toLowerCase(),
+          display_name: displayName,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', user.id);
+
+      if (profileError) return { error: profileError.message };
+
+      // Clear the flag and refresh profile
+      setNeedsUsernameSetup(false);
+      await fetchProfile(user.id);
+
+      return { error: null };
+    } catch (err: any) {
+      return { error: err.message || 'Error completando la configuración' };
+    }
+  };
+
   return (
     <AuthContext.Provider value={{
-      user, session, profile, loading,
+      user, session, profile, loading, needsUsernameSetup,
       signInWithGoogle, signInWithEmail, signUpWithEmail,
-      signOut, resetPassword, updateProfile, refreshProfile,
+      signOut, resetPassword, updateProfile, refreshProfile, completeGoogleSignUp,
     }}>
       {children}
     </AuthContext.Provider>
