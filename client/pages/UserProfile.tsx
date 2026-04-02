@@ -196,8 +196,12 @@ export default function UserProfile() {
                 <p className="text-sm text-[hsl(var(--muted-foreground))] mb-2">@{profile.username}</p>
                 {profile.bio && <p className="text-sm text-[hsl(var(--foreground))] mb-2 max-w-md">{profile.bio}</p>}
                 {profile.website && (
-                  <a href={profile.website} target="_blank" rel="noopener noreferrer"
-                    className="text-xs text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] flex items-center gap-1 justify-center sm:justify-start mb-3">
+                  <a 
+                    href={profile.website.startsWith('http') ? profile.website : `https://${profile.website}`}
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-xs text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] flex items-center gap-1 justify-center sm:justify-start mb-3"
+                  >
                     <ExternalLink className="w-3 h-3" /> {profile.website.replace(/^https?:\/\//, '')}
                   </a>
                 )}
