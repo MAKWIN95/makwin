@@ -42,7 +42,7 @@ export default function Saved() {
           .from('works')
           .select(`
             *,
-            profiles!inner(id, username, display_name, avatar_url, verified)
+            profiles(id, username, display_name, avatar_url, verified)
           `)
           .in('id', workIds)
           .order('created_at', { ascending: false });
@@ -70,9 +70,7 @@ export default function Saved() {
 
             return {
               ...work,
-              profiles: {
-                ...work.profiles[0],
-              },
+              profiles: work.profiles,
               like_count: likeCount ?? 0,
               liked_by_me: !!likedData,
               saved_by_me: true,
