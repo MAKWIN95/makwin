@@ -192,8 +192,49 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signInWithEmail = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    return { error: error?.message ?? null };
+    try {
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      
+      if (error) {
+        // Si falla el login, verificamos si el email existe
+        if (error.message.includes('Invalid login credentials')) {
+          try {
+            const response = await fetch('/api/check-email-exists', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ email }),
+            });
+            const { exists } = await response.json();
+            
+            if (!exists) {
+              return { 
+                error: es 
+                  ? 'Este correo no está registrado' 
+                  : 'This email is not registered' 
+              };
+            }
+            
+            return { 
+              error: es 
+                ? 'Contraseña incorrecta' 
+                : 'Incorrect password' 
+            };
+          } catch (err) {
+            // Si falla la verificación, devolvemos un mensaje genérico
+            return { 
+              error: es 
+                ? 'Email o contraseña incorrectos' 
+                : 'Incorrect email or password' 
+            };
+          }
+        }
+        
+        return { error: error.message };
+      }
+      return { error: null };
+    } catch (err: any) {
+      return { error: err.message || 'Error durante el login' };
+    }
   };
 
   const signUpWithEmail = async (

@@ -3,6 +3,7 @@ import express from "express";
 import cors from "cors";
 import { handleDemo } from "./routes/demo";
 import { handleSubmitWork } from "./routes/submit-work";
+import { checkEmailExists } from "../api/check-email-exists";
 
 export function createServer() {
   const app = express();
@@ -22,6 +23,14 @@ export function createServer() {
 
   // New submission endpoint
   app.post("/api/submit-work", handleSubmitWork);
+
+  // Check if email exists
+  app.post("/api/check-email-exists", async (req, res) => {
+    const result = await checkEmailExists({ body: JSON.stringify(req.body) });
+    const statusCode = result.statusCode;
+    const body = JSON.parse(result.body);
+    res.status(statusCode).json(body);
+  });
 
   return app;
 }
