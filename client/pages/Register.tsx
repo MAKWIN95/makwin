@@ -21,8 +21,11 @@ export default function Register() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const [usernameError, setUsernameError] = useState('');
+  const [emailError, setEmailError] = useState('');
   const [checkingUsername, setCheckingUsername] = useState(false);
+  const [checkingEmail, setCheckingEmail] = useState(false);
   const usernameTimeoutRef = useRef<NodeJS.Timeout>();
+  const emailTimeoutRef = useRef<NodeJS.Timeout>();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
@@ -68,6 +71,46 @@ export default function Register() {
     };
   }, [form.username, es]);
 
+  // Validate email uniqueness in real-time
+  useEffect(() => {
+    const checkEmail = async () => {
+      if (!form.email || !form.email.includes('@')) {
+        setEmailError('');
+        setCheckingEmail(false);
+        return;
+      }
+
+      setCheckingEmail(true);
+      try {
+        const response = await fetch('/api/check-email-exists', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: form.email }),
+        });
+        const { exists } = await response.json();
+
+        if (exists) {
+          setEmailError(es 
+            ? 'Este correo ya tiene una cuenta registrada. ¿Quieres iniciar sesión?' 
+            : 'This email already has an account. Would you like to sign in?');
+        } else {
+          setEmailError('');
+        }
+      } catch (err) {
+        console.error('[Register] Error checking email:', err);
+        setEmailError('');
+      }
+      setCheckingEmail(false);
+    };
+
+    if (emailTimeoutRef.current) clearTimeout(emailTimeoutRef.current);
+    emailTimeoutRef.current = setTimeout(checkEmail, 500);
+
+    return () => {
+      if (emailTimeoutRef.current) clearTimeout(emailTimeoutRef.current);
+    };
+  }, [form.email, es]);
+
   const validate = () => {
     if (!form.email || !form.password || !form.username || !form.displayName)
       return es ? 'Rellena todos los campos.' : 'Fill in all fields.';
@@ -81,6 +124,8 @@ export default function Register() {
       return es ? 'El nombre de usuario debe tener entre 3 y 24 caracteres.' : 'Username must be 3–24 characters.';
     if (usernameError)
       return usernameError;
+    if (emailError)
+      return emailError;
     return null;
   };
 
@@ -199,8 +244,18 @@ export default function Register() {
               <p className="text-sm text-red-500 -mt-1">{usernameError}</p>
             )}
 
-            <input type="email" name="email" placeholder={es ? 'Correo electrónico' : 'Email'}
-              value={form.email} onChange={handleChange} required className={inputClass} />
+            <div className="relative">
+              <input type="email" name="email" placeholder={es ? 'Correo electrónico' : 'Email'}
+                value={form.email} onChange={handleChange} required className={inputClass} />
+              {checkingEmail && (
+                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs text-[hsl(var(--muted-foreground))]">
+                  {es ? 'Verificando...' : 'Checking...'}
+                </span>
+              )}
+            </div>
+            {emailError && (
+              <p className="text-sm text-orange-500 -mt-1">{emailError}</p>
+            )}
 
             <input type="password" name="password" placeholder={es ? 'Contraseña (mín. 8 caracteres)' : 'Password (min. 8 chars)'}
               value={form.password} onChange={handleChange} required className={inputClass} />
@@ -212,7 +267,7 @@ export default function Register() {
 
             <button
               type="submit"
-              disabled={loading || usernameError !== '' || checkingUsername}
+              disabled={loading || usernameError !== '' || emailError !== '' || checkingUsername || checkingEmail}
               className="w-full py-3 rounded-xl bg-[hsl(var(--foreground))] text-[hsl(var(--background))] text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50 mt-2"
             >
               {loading ? '…' : (es ? 'Crear cuenta' : 'Create account')}
