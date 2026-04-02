@@ -1,474 +1,474 @@
-# MAKWIN - Comprehensive Testing Guide
+# MAKWIN - Guía Completa de Testing
 
-## Pre-Testing Setup
+## Configuración Pre-Testing
 
-### Environment
-- **URL**: https://makwin.vercel.app (or localhost:8080 for dev)
-- **Browser**: Use multiple browsers (Chrome, Firefox, Safari, Edge)
-- **Devices**: Test on desktop, tablet, and mobile
-- **Network**: Test with 3G throttling enabled
-- **Time**: Ensure system clock is correct for date-based testing
+### Entorno
+- **URL**: https://makwin.vercel.app (o localhost:3002 para desarrollo)
+- **Navegadores**: Prueba en múltiples navegadores (Chrome, Firefox, Safari, Edge)
+- **Dispositivos**: Desktop, tablet y móvil
+- **Red**: Prueba con throttling de 3G habilitado
+- **Hora**: Asegúrate de que el reloj del sistema sea correcto para pruebas basadas en fechas
 
-### Test Accounts
-Create these test accounts before testing:
-- **Account 1**: email@test.com / TestPass123
-- **Account 2**: second@test.com / SecondPass123  
-- **Google Account**: Any valid Google account
-
----
-
-## ✅ Test Suite
-
-### SECTION 1: Authentication & Auth Flows
-
-#### Test 1a - Email Registration (Valid)
-**Steps:**
-1. Go to `/registro`
-2. Enter: Name: "Test User", Username: "test_user.123", Email: "valid@test.com", Password: "TestPass123", Confirm: "TestPass123"
-3. Click "Crear cuenta"
-4. **Expected**: Email confirmation sent, success page appears
-
-#### Test 1b - Email Registration (Duplicate Email - Real-time)
-**Steps:**
-1. Go to `/registro`
-2. Enter existing email (e.g., existing@test.com)
-3. **Expected**: Orange error appears: "Este correo ya tiene una cuenta registrada"
-4. Submit button should be disabled
-
-#### Test 1c - Email Registration (Invalid Username Format)
-**Steps:**
-1. Go to `/registro`
-2. Username: ".invalid" (starts with dot)
-3. **Expected**: Error: "El nombre de usuario solo puede contener letras, números, puntos y guion bajo"
-
-#### Test 1d - Email Registration (Username Too Short)
-**Steps:**
-1. Go to `/registro`
-2. Username: "ab"
-3. **Expected**: Error shown during validation
-
-#### Test 1e - Email Login (Correct Credentials)
-**Steps:**
-1. Go to `/login`
-2. Enter valid email/password
-3. Click "Entrar"
-4. **Expected**: Redirected to `/galeria`, authenticated
-
-#### Test 1f - Email Login (Wrong Password)
-**Steps:**
-1. Go to `/login`
-2. Enter valid email + wrong password
-3. **Expected**: Error: "Contraseña incorrecta"
-
-#### Test 1g - Email Login (Non-existent Email)
-**Steps:**
-1. Go to `/login`
-2. Enter non-existent email
-3. **Expected**: Error: "Este correo no está registrado"
-
-#### Test 1h - Google Auth (First Login - No Username)
-**Steps:**
-1. Go to `/login`
-2. Click "Continuar con Google"
-3. Complete Google sign-in
-4. **Expected**: GoogleSignupModal appears asking for username/password
-5. Enter valid username and password
-6. **Expected**: Redirected to `/galeria` with account created
-
-#### Test 1i - Password Reset (Valid Email)
-**Steps:**
-1. Go to `/login` → Click "¿Olvidaste tu contraseña?"
-2. Enter registered email
-3. Click "Enviar enlace"
-4. **Expected**: Success message: "Revisa tu bandeja de entrada"
-
-#### Test 1j - Password Reset (Non-existent Email)
-**Steps:**
-1. Go to reset password page
-2. Enter non-existent email
-3. **Expected**: Graceful handling (no error shown for security)
+### Cuentas de Prueba
+Crea estas cuentas de prueba antes de empezar:
+- **Cuenta 1**: email@test.com / TestPass123
+- **Cuenta 2**: second@test.com / SecondPass123  
+- **Cuenta Google**: Cualquier cuenta Google válida
 
 ---
 
-### SECTION 2: Profile Management
+## ✅ Suite de Pruebas
 
-#### Test 2a - Edit Profile (Display Name)
-**Steps:**
-1. Login and go to `/u/yourname`
-2. Click "Editar perfil"
-3. Change display name
-4. Click "Guardar"
-5. **Expected**: Profile updated, message appears
+### SECCIÓN 1: Autenticación y Flujos de Auth
 
-#### Test 2b - Edit Profile (Add Bio)
-**Steps:**
-1. In edit mode, add bio text
-2. Save
-3. **Expected**: Bio visible on profile
+#### Prueba 1a - Registro por Email (Válido)
+**Pasos:**
+1. Ve a `/registro`
+2. Ingresa: Nombre: "Usuario Prueba", Usuario: "usuario_prueba.123", Email: "valido@test.com", Contraseña: "TestPass123", Confirmar: "TestPass123"
+3. Haz clic en "Crear cuenta"
+4. **Esperado**: Se envía email de confirmación, aparece página de éxito
 
-#### Test 2c - Edit Profile (Add Website)
-**Steps:**
-1. In edit mode, add "https://example.com"
-2. Save
-3. **Expected**: Website link appears with icon, clickable
+#### Prueba 1b - Registro por Email (Email Duplicado - Validación en Tiempo Real)
+**Pasos:**
+1. Ve a `/registro`
+2. Ingresa email existente (ej: existente@test.com)
+3. **Esperado**: Aparece error naranja: "Este correo ya tiene una cuenta registrada"
+4. El botón enviar debe estar deshabilitado
 
-#### Test 2d - Edit Profile (Website without https)
-**Steps:**
-1. Enter "example.com" (no https)
-2. Save and view profile
-3. **Expected**: Link opens to https://example.com (auto prefix)
+#### Prueba 1c - Registro por Email (Formato de Usuario Inválido)
+**Pasos:**
+1. Ve a `/registro`
+2. Usuario: ".invalido" (comienza con punto)
+3. **Esperado**: Error: "El nombre de usuario solo puede contener letras, números, puntos y guion bajo"
 
-#### Test 2e - Edit Profile (Add Instagram)
-**Steps:**
-1. In edit mode, add Instagram URL
-2. Save
-3. **Expected**: Instagram link appears with emoji icon
+#### Prueba 1d - Registro por Email (Usuario Muy Corto)
+**Pasos:**
+1. Ve a `/registro`
+2. Usuario: "ab"
+3. **Esperado**: Se muestra error durante validación
 
-#### Test 2f - Edit Profile (Add TikTok)
-**Steps:**
-1. In edit mode, add TikTok URL
-2. Save
-3. **Expected**: TikTok link appears with emoji icon
+#### Prueba 1e - Login por Email (Credenciales Correctas)
+**Pasos:**
+1. Ve a `/login`
+2. Ingresa email/contraseña válidos
+3. Haz clic en "Entrar"
+4. **Esperado**: Redirige a `/galeria`, autenticado
 
-#### Test 2g - Social Media Banner (New User)
-**Steps:**
-1. Create new account
-2. Go to own profile
-3. **Expected**: Blue banner: "🎵 Agrega tus redes sociales"
-4. Click banner link
-5. **Expected**: Opens edit mode
+#### Prueba 1f - Login por Email (Contraseña Incorrecta)
+**Pasos:**
+1. Ve a `/login`
+2. Ingresa email válido + contraseña incorrecta
+3. **Esperado**: Error: "Contraseña incorrecta"
 
-#### Test 2h - Upload Avatar
-**Steps:**
-1. Click camera icon on avatar
-2. Select image file
-3. **Expected**: Avatar uploads and displays
+#### Prueba 1g - Login por Email (Email No Existe)
+**Pasos:**
+1. Ve a `/login`
+2. Ingresa email inexistente
+3. **Esperado**: Error: "Este correo no está registrado"
 
-#### Test 2i - Follow User
-**Steps:**
-1. Go to another user's profile
-2. Click "Seguir"
-3. **Expected**: Button changes to "Siguiendo", follower count increases
+#### Prueba 1h - Google Auth (Primer Login - Sin Usuario)
+**Pasos:**
+1. Ve a `/login`
+2. Haz clic en "Continuar con Google"
+3. Completa el sign-in con Google
+4. **Esperado**: Aparece GoogleSignupModal pidiendo usuario/contraseña
+5. Ingresa usuario válido y contraseña
+6. **Esperado**: Redirige a `/galeria` con cuenta creada
 
-#### Test 2j - Unfollow User
-**Steps:**
-1. Click "Siguiendo" on followed user
-2. **Expected**: Button changes back to "Seguir", count decreases
+#### Prueba 1i - Restablecer Contraseña (Email Válido)
+**Pasos:**
+1. Ve a `/login` → Haz clic en "¿Olvidaste tu contraseña?"
+2. Ingresa email registrado
+3. Haz clic en "Enviar enlace"
+4. **Esperado**: Mensaje de éxito: "Revisa tu bandeja de entrada"
 
----
-
-### SECTION 3: Works Upload & Management
-
-#### Test 3a - Upload Painting
-**Steps:**
-1. Go to `/subir-obra`
-2. Select "Pintura" as type
-3. Fill: Title, Description, upload image
-4. Click "Publicar obra"
-5. **Expected**: Work published, redirects to work detail
-
-#### Test 3b - Upload Song with Lyrics
-**Steps:**
-1. Go to `/subir-obra`
-2. Select "Canción"
-3. Upload audio file
-4. Add lyrics
-5. Publish
-6. **Expected**: Song appears in gallery with play button
-
-#### Test 3c - Upload Poem with Cover
-**Steps:**
-1. Select "Poema"
-2. Add cover image (optional checkbox)
-3. Publish
-4. **Expected**: Poem displays with cover in gallery
-
-#### Test 3d - Edit Work
-**Steps:**
-1. View own work
-2. Click pencil icon
-3. Change title/description
-4. Click "Guardar cambios"
-5. **Expected**: Changes saved, displayed immediately
-
-#### Test 3e - Delete Work
-**Steps:**
-1. Click trash icon on own work
-2. Confirm deletion
-3. **Expected**: Work removed from profile/gallery
+#### Prueba 1j - Restablecer Contraseña (Email No Existe)
+**Pasos:**
+1. Ve a página de restablecer contraseña
+2. Ingresa email inexistente
+3. **Esperado**: Manejo elegante (sin error mostrado por seguridad)
 
 ---
 
-### SECTION 4: Gallery & Browsing
+### SECCIÓN 2: Gestión de Perfil
 
-#### Test 4a - Gallery Loads
-**Steps:**
-1. Go to `/galeria`
-2. Wait for content to load
-3. **Expected**: Works display in masonry grid
+#### Prueba 2a - Editar Perfil (Nombre Mostrado)
+**Pasos:**
+1. Inicia sesión y ve a `/u/tunombre`
+2. Haz clic en "Editar perfil"
+3. Cambia el nombre mostrado
+4. Haz clic en "Guardar"
+5. **Esperado**: Perfil actualizado, aparece mensaje
 
-#### Test 4b - Filter by Work Type
-**Steps:**
-1. Click filter icon
-2. Select "Canción"
-3. **Expected**: Grid shows only songs
+#### Prueba 2b - Editar Perfil (Agregar Biografía)
+**Pasos:**
+1. En modo edición, agrega texto de biografía
+2. Guarda
+3. **Esperado**: Biografía visible en el perfil
 
-#### Test 4c - Sort by Recent
-**Steps:**
-1. Click "Más recientes"
-2. **Expected**: Works sorted by creation date (newest first)
+#### Prueba 2c - Editar Perfil (Agregar Sitio Web)
+**Pasos:**
+1. En modo edición, agrega "https://ejemplo.com"
+2. Guarda
+3. **Esperado**: Link del sitio web aparece con ícono, es clickeable
 
-#### Test 4d - Sort by Oldest
-**Steps:**
-1. Click "Más antiguos"
-2. **Expected**: Works sorted by oldest first
+#### Prueba 2d - Editar Perfil (Sitio Web sin https)
+**Pasos:**
+1. Ingresa "ejemplo.com" (sin https)
+2. Guarda y ve el perfil
+3. **Esperado**: Link abre a https://ejemplo.com (prefijo automático)
 
-#### Test 4e - Back Button from Gallery
-**Steps:**
-1. Go to `/galeria`
-2. Click back arrow
-3. **Expected**: Navigates to `/` (home), not 404
+#### Prueba 2e - Editar Perfil (Agregar Instagram)
+**Pasos:**
+1. En modo edición, agrega URL de Instagram
+2. Guarda
+3. **Esperado**: Link de Instagram aparece con ícono emoji
 
-#### Test 4f - Search Works
-**Steps:**
-1. Type search term in header
-2. **Expected**: Results filter in real-time
+#### Prueba 2f - Editar Perfil (Agregar TikTok)
+**Pasos:**
+1. En modo edición, agrega URL de TikTok
+2. Guarda
+3. **Esperado**: Link de TikTok aparece con ícono emoji
 
-#### Test 4g - Pagination/Infinite Scroll
-**Steps:**
-1. Scroll to bottom of gallery
-2. **Expected**: More works load automatically
+#### Prueba 2g - Banner de Redes Sociales (Usuario Nuevo)
+**Pasos:**
+1. Crea cuenta nueva
+2. Ve a tu perfil
+3. **Esperado**: Banner azul: "🎵 Agrega tus redes sociales"
+4. Haz clic en link del banner
+5. **Esperado**: Abre modo edición
 
----
+#### Prueba 2h - Subir Avatar
+**Pasos:**
+1. Haz clic en ícono de cámara en avatar
+2. Selecciona archivo de imagen
+3. **Esperado**: Avatar se sube y se muestra
 
-### SECTION 5: Modals & Interactions
+#### Prueba 2i - Seguir Usuario
+**Pasos:**
+1. Ve a perfil de otro usuario
+2. Haz clic en "Seguir"
+3. **Esperado**: Botón cambia a "Siguiendo", contador de seguidores aumenta
 
-#### Test 5a - Like Work (Authenticated)
-**Steps:**
-1. Login and view work
-2. Click heart icon
-3. **Expected**: Heart fills, like count increases (animation)
-
-#### Test 5b - Save Work
-**Steps:**
-1. Click bookmark icon
-2. **Expected**: Bookmark fills, visual feedback
-
-#### Test 5c - Report Work (Modal)
-**Steps:**
-1. Click flag icon on work
-2. Select reason (e.g., "Contenido inapropiado")
-3. Click "Enviar reporte"
-4. **Expected**: Modal shows success message
-
-#### Test 5d - Auth Modal (Like Without Login)
-**Steps:**
-1. Logout
-2. Try to like work
-3. **Expected**: Modal appears asking to sign in
-
-#### Test 5e - Modal Close (Click Backdrop)
-**Steps:**
-1. Open any modal
-2. Click outside modal (on dark backdrop)
-3. **Expected**: Modal closes
-
-#### Test 5f - Modal Close (ESC Key)
-**Steps:**
-1. Open modal
-2. Press ESC
-3. **Expected**: Modal closes
+#### Prueba 2j - Dejar de Seguir Usuario
+**Pasos:**
+1. Haz clic en "Siguiendo" en usuario seguido
+2. **Esperado**: Botón cambia de vuelta a "Seguir", contador disminuye
 
 ---
 
-### SECTION 6: Saved Works & Favorites
+### SECCIÓN 3: Subida y Gestión de Obras
 
-#### Test 6a - Save Work
-**Steps:**
-1. Click bookmark on work
-2. Go to `/favoritos`
-3. **Expected**: Saved work appears in list
+#### Prueba 3a - Subir Pintura
+**Pasos:**
+1. Ve a `/subir-obra`
+2. Selecciona "Pintura" como tipo
+3. Rellena: Título, Descripción, sube imagen
+4. Haz clic en "Publicar obra"
+5. **Esperado**: Obra publicada, redirige a detalle de obra
 
-#### Test 6b - View Saved Works
-**Steps:**
-1. Go to `/favoritos`
-2. **Expected**: Grid shows all saved works with correct author names
+#### Prueba 3b - Subir Canción con Letras
+**Pasos:**
+1. Ve a `/subir-obra`
+2. Selecciona "Canción"
+3. Sube archivo de audio
+4. Agrega letras
+5. Publica
+6. **Esperado**: Canción aparece en galería con botón de reproducción
 
-#### Test 6c - Remove from Saved
-**Steps:**
-1. Click bookmark again to unsave
-2. **Expected**: Work disappears from `/favoritos`
+#### Prueba 3c - Subir Poema con Portada
+**Pasos:**
+1. Selecciona "Poema"
+2. Agrega imagen de portada (checkbox opcional)
+3. Publica
+4. **Esperado**: Poema se muestra con portada en galería
 
-#### Test 6d - Author Display in Saved
-**Steps:**
-1. Save work from user "artist_name"
-2. Go to saved works
-3. **Expected**: Author shows as "@artist_name", not just "@"
+#### Prueba 3d - Editar Obra
+**Pasos:**
+1. Ve tu obra
+2. Haz clic en ícono de lápiz
+3. Cambia título/descripción
+4. Haz clic en "Guardar cambios"
+5. **Esperado**: Cambios guardados, se muestran inmediatamente
 
----
-
-### SECTION 7: Internationalization
-
-#### Test 7a - Switch to English
-**Steps:**
-1. Login
-2. In header, find language selector
-3. Choose "English"
-4. **Expected**: All UI text changes to English
-5. Refresh page
-6. **Expected**: Language persists
-
-#### Test 7b - Switch to Spanish
-**Steps:**
-1. Language selector
-2. Choose "Español"
-3. **Expected**: All UI translates to Spanish
-
-#### Test 7c - New User Language Preference
-**Steps:**
-1. Create account while in English
-2. Complete signup
-3. **Expected**: Interface stays in English
-
-#### Test 7d - Auth Errors (Localized)
-**Steps:**
-1. Try invalid login in English
-2. **Expected**: Error message in English
-3. Switch to Spanish
-4. **Expected**: Error message in Spanish
+#### Prueba 3e - Eliminar Obra
+**Pasos:**
+1. Haz clic en ícono de papelera en tu obra
+2. Confirma eliminación
+3. **Esperado**: Obra removida del perfil/galería
 
 ---
 
-### SECTION 8: Responsive Design
+### SECCIÓN 4: Galería y Navegación
 
-#### Test 8a - Mobile Layout (Portrait)
-**Steps:**
-1. Open on mobile phone (375px width)
-2. Navigate gallery
-3. **Expected**: Works stack vertically, readable
+#### Prueba 4a - La Galería Carga
+**Pasos:**
+1. Ve a `/galeria`
+2. Espera a que el contenido cargue
+3. **Esperado**: Las obras se muestran en grid de masonería
 
-#### Test 8b - Tablet Layout
-**Steps:**
-1. Open on tablet (768px width)
-2. **Expected**: Layout adapts appropriately
+#### Prueba 4b - Filtrar por Tipo de Obra
+**Pasos:**
+1. Haz clic en ícono de filtro
+2. Selecciona "Canción"
+3. **Esperado**: Grid muestra solo canciones
 
-#### Test 8c - Mobile Profile
-**Steps:**
-1. Go to profile on mobile
-2. **Expected**: Avatar and info centered, accessible
+#### Prueba 4c - Ordenar por Recientes
+**Pasos:**
+1. Haz clic en "Más recientes"
+2. **Esperado**: Obras ordenadas por fecha de creación (más nuevas primero)
 
-#### Test 8d - Mobile Upload
-**Steps:**
-1. Go to `/subir-obra` on mobile
-2. Fill form
-3. **Expected**: Form readable, buttons clickable
+#### Prueba 4d - Ordenar por Antiguas
+**Pasos:**
+1. Haz clic en "Más antiguas"
+2. **Esperado**: Obras ordenadas por más antiguas primero
 
----
+#### Prueba 4e - Botón Atrás desde Galería
+**Pasos:**
+1. Ve a `/galeria`
+2. Haz clic en flecha atrás
+3. **Esperado**: Navega a `/` (inicio), no a 404
 
-### SECTION 9: Error Handling
+#### Prueba 4f - Buscar Obras
+**Pasos:**
+1. Escribe término de búsqueda en header
+2. **Esperado**: Los resultados se filtran en tiempo real
 
-#### Test 9a - Network Error (Works)
-**Steps:**
-1. Turn off network
-2. Try to load gallery
-3. **Expected**: Graceful error or loading state
-4. Turn network back on
-5. **Expected**: Content loads
-
-#### Test 9b - Invalid URL
-**Steps:**
-1. Navigate to `/invalid-route`
-2. **Expected**: 404 page appears with link to home
-
-#### Test 9c - Slow Load (3G)
-**Steps:**
-1. Enable 3G throttling
-2. Load gallery
-3. **Expected**: Content loads progressively, no blank state
-
-#### Test 9d - Large File Upload
-**Steps:**
-1. Try uploading file larger than limit (>50MB)
-2. **Expected**: Validation error before upload
+#### Prueba 4g - Paginación/Scroll Infinito
+**Pasos:**
+1. Desplázate al fondo de la galería
+2. **Esperado**: Más obras cargan automáticamente
 
 ---
 
-### SECTION 10: Performance
+### SECCIÓN 5: Modales e Interacciones
 
-#### Test 10a - Gallery Load Time
-**Steps:**
-1. Open DevTools
-2. Go to `/galeria`
-3. **Expected**: Page fully interactive within 3 seconds
+#### Prueba 5a - Dar Like a Obra (Autenticado)
+**Pasos:**
+1. Inicia sesión y ve una obra
+2. Haz clic en ícono de corazón
+3. **Esperado**: Corazón se rellena, contador de likes aumenta (con animación)
 
-#### Test 10b - Image Lazy Loading
-**Steps:**
-1. Open DevTools Network tab
-2. Scroll gallery
-3. **Expected**: Images load only as they come into view
+#### Prueba 5b - Guardar Obra
+**Pasos:**
+1. Haz clic en ícono de marcador
+2. **Esperado**: Marcador se rellena, retroalimentación visual
 
-#### Test 10c - Modal Open Time
-**Steps:**
-1. Click to open modal
-2. **Expected**: Modal appears instantly (< 200ms)
+#### Prueba 5c - Reportar Obra (Modal)
+**Pasos:**
+1. Haz clic en ícono de bandera en obra
+2. Selecciona razón (ej: "Contenido inapropiado")
+3. Haz clic en "Enviar reporte"
+4. **Esperado**: Modal muestra mensaje de éxito
 
-#### Test 10d - Theme Switch Performance
-**Steps:**
-1. Click theme bulb
-2. **Expected**: Theme switches instantly
-3. **Expected**: No layout shift (CLS)
+#### Prueba 5d - Modal de Auth (Like sin Login)
+**Pasos:**
+1. Cierra sesión
+2. Intenta dar like a una obra
+3. **Esperado**: Modal aparece pidiendo iniciar sesión
+
+#### Prueba 5e - Cerrar Modal (Click en Fondo)
+**Pasos:**
+1. Abre cualquier modal
+2. Haz clic fuera del modal (en fondo oscuro)
+3. **Esperado**: Modal se cierra
+
+#### Prueba 5f - Cerrar Modal (Tecla ESC)
+**Pasos:**
+1. Abre modal
+2. Presiona ESC
+3. **Esperado**: Modal se cierra
 
 ---
 
-## 📋 Testing Checklist Summary
+### SECCIÓN 6: Obras Guardadas y Favoritos
 
-| Category | Tests | Status |
-|----------|-------|--------|
-| Authentication | 10 | ☐ |
-| Profile Management | 10 | ☐ |
-| Works Management | 5 | ☐ |
-| Gallery & Browse | 7 | ☐ |
-| Modals & Interactions | 6 | ☐ |
-| Saved Works | 4 | ☐ |
+#### Prueba 6a - Guardar Obra
+**Pasos:**
+1. Haz clic en marcador de obra
+2. Ve a `/favoritos`
+3. **Esperado**: Obra guardada aparece en lista
+
+#### Prueba 6b - Ver Obras Guardadas
+**Pasos:**
+1. Ve a `/favoritos`
+2. **Esperado**: Grid muestra todas las obras guardadas con nombres de autores correctos
+
+#### Prueba 6c - Remover de Guardadas
+**Pasos:**
+1. Haz clic en marcador de nuevo para desguardar
+2. **Esperado**: Obra desaparece de `/favoritos`
+
+#### Prueba 6d - Mostrar Autor en Guardadas
+**Pasos:**
+1. Guarda obra de usuario "nombre_artista"
+2. Ve a obras guardadas
+3. **Esperado**: Autor muestra como "@nombre_artista", no solo "@"
+
+---
+
+### SECCIÓN 7: Internacionalización
+
+#### Prueba 7a - Cambiar a Inglés
+**Pasos:**
+1. Inicia sesión
+2. En header, encuentra selector de idioma
+3. Elige "English"
+4. **Esperado**: Todo el texto de UI cambia a inglés
+5. Recarga página
+6. **Esperado**: Idioma persiste
+
+#### Prueba 7b - Cambiar a Español
+**Pasos:**
+1. Selector de idioma
+2. Elige "Español"
+3. **Esperado**: Todo se traduce al español
+
+#### Prueba 7c - Preferencia de Idioma de Usuario Nuevo
+**Pasos:**
+1. Crea cuenta mientras está en inglés
+2. Completa registro
+3. **Esperado**: Interfaz se mantiene en inglés
+
+#### Prueba 7d - Errores de Auth (Localizados)
+**Pasos:**
+1. Intenta login inválido en inglés
+2. **Esperado**: Mensaje de error en inglés
+3. Cambia a español
+4. **Esperado**: Mensaje de error en español
+
+---
+
+### SECCIÓN 8: Diseño Responsivo
+
+#### Prueba 8a - Layout Móvil (Retrato)
+**Pasos:**
+1. Abre en teléfono móvil (375px ancho)
+2. Navega galería
+3. **Esperado**: Obras se apilan verticalmente, legible
+
+#### Prueba 8b - Layout Tablet
+**Pasos:**
+1. Abre en tablet (768px ancho)
+2. **Esperado**: Layout se adapta apropiadamente
+
+#### Prueba 8c - Perfil Móvil
+**Pasos:**
+1. Ve a perfil en móvil
+2. **Esperado**: Avatar e info centrados, accesibles
+
+#### Prueba 8d - Subida Móvil
+**Pasos:**
+1. Ve a `/subir-obra` en móvil
+2. Rellena formulario
+3. **Esperado**: Formulario legible, botones clickeables
+
+---
+
+### SECCIÓN 9: Manejo de Errores
+
+#### Prueba 9a - Error de Red (Obras)
+**Pasos:**
+1. Apaga la red
+2. Intenta cargar galería
+3. **Esperado**: Error elegante o estado de carga
+4. Enciende la red
+5. **Esperado**: Contenido carga
+
+#### Prueba 9b - URL Inválida
+**Pasos:**
+1. Navega a `/ruta-invalida`
+2. **Esperado**: Página 404 aparece con link a inicio
+
+#### Prueba 9c - Carga Lenta (3G)
+**Pasos:**
+1. Habilita throttling de 3G
+2. Carga galería
+3. **Esperado**: Contenido carga progresivamente, sin estado en blanco
+
+#### Prueba 9d - Archivo Grande Cargado
+**Pasos:**
+1. Intenta subir archivo mayor al límite (>50MB)
+2. **Esperado**: Error de validación antes de subir
+
+---
+
+### SECCIÓN 10: Rendimiento
+
+#### Prueba 10a - Tiempo de Carga de Galería
+**Pasos:**
+1. Abre DevTools
+2. Ve a `/galeria`
+3. **Esperado**: Página totalmente interactiva en 3 segundos
+
+#### Prueba 10b - Carga Perezosa de Imágenes
+**Pasos:**
+1. Abre pestaña de Red de DevTools
+2. Desplázate por galería
+3. **Esperado**: Imágenes cargan solo al entrar en vista
+
+#### Prueba 10c - Tiempo de Apertura de Modal
+**Pasos:**
+1. Haz clic para abrir modal
+2. **Esperado**: Modal aparece al instante (< 200ms)
+
+#### Prueba 10d - Rendimiento de Cambio de Tema
+**Pasos:**
+1. Haz clic en bombilla de tema
+2. **Esperado**: Tema cambia al instante
+3. **Esperado**: Sin cambio de layout (CLS)
+
+---
+
+## 📋 Resumen del Checklist de Testing
+
+| Categoría | Tests | Estado |
+|-----------|-------|--------|
+| Autenticación | 10 | ☐ |
+| Gestión de Perfil | 10 | ☐ |
+| Gestión de Obras | 5 | ☐ |
+| Galería y Navegación | 7 | ☐ |
+| Modales e Interacciones | 6 | ☐ |
+| Obras Guardadas | 4 | ☐ |
 | i18n | 4 | ☐ |
-| Responsive | 4 | ☐ |
-| Error Handling | 4 | ☐ |
-| Performance | 4 | ☐ |
+| Diseño Responsivo | 4 | ☐ |
+| Manejo de Errores | 4 | ☐ |
+| Rendimiento | 4 | ☐ |
 | **TOTAL** | **58** | ☐ |
 
-## 🐛 Bug Report Template
+## 🐛 Template para Reportar Bugs
 
-When finding bugs, document them as:
+Cuando encuentres bugs, documéntalos así:
 
 ```markdown
-### Bug: [Short Title]
-- **Steps to Reproduce**: 
-  1. Step 1
-  2. Step 2
-- **Expected**: 
+### Bug: [Título Corto]
+- **Pasos para Reproducir**: 
+  1. Paso 1
+  2. Paso 2
+- **Esperado**: 
 - **Actual**: 
-- **Device**: 
-- **Browser**: 
+- **Dispositivo**: 
+- **Navegador**: 
 - **Screenshot**: 
 ```
 
-## ✅ Sign-Off
+## ✅ Firma de Aprobación
 
-**Tester**: ________________
-**Date**: ________________
-**Status**: ☐ All Passed ☐ With Issues
-**Issues Found**: ________
+**Probador**: ________________
+**Fecha**: ________________
+**Estado**: ☐ Todos Aprobados ☐ Con Problemas
+**Problemas Encontrados**: ________
 
 ---
 
-## 🚀 Deployment Readiness
+## 🚀 Preparación para Deploy a Producción
 
-Before deploying to production, ensure:
-- [ ] All 58 tests passed
-- [ ] No critical bugs remaining
-- [ ] Performance metrics acceptable
-- [ ] Staging environment fully tested
-- [ ] Database migrations applied
-- [ ] Environment variables configured
-- [ ] Backup created
-- [ ] Rollback plan documented
+Antes de desplegar a producción, asegúrate de:
+- [ ] Todos los 58 tests aprobados
+- [ ] Sin bugs críticos restantes
+- [ ] Métricas de rendimiento aceptables
+- [ ] Entorno staging completamente testeado
+- [ ] Migraciones de base de datos aplicadas
+- [ ] Variables de entorno configuradas
+- [ ] Backup creado
+- [ ] Plan de rollback documentado
