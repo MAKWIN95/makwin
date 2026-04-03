@@ -156,10 +156,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 console.log('[AuthContext] Loaded profile from listener:', data.username);
                 setProfile(data as Profile);
                 
-                // Force Google OAuth users to complete setup with username/password
-                // Check if this is a Google user (by provider)
-                if (session?.user?.user_metadata?.provider === 'google' && !data.needs_setup_completed) {
-                  console.log('[AuthContext] Detected Google user - requesting setup');
+                // Force Google OAuth users through setup if they haven't completed it
+                if (session?.user?.user_metadata?.provider === 'google' && data.google_setup_completed === false) {
+                  console.log('[AuthContext] Google user needs setup - showing modal');
                   setNeedsUsernameSetup(true);
                 }
               } else if (error && isMounted) {
@@ -324,6 +323,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .update({
           username: username.toLowerCase(),
           display_name: displayName,
+          google_setup_completed: true,
           updated_at: new Date().toISOString(),
         })
         .eq('id', user.id);

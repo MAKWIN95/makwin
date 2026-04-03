@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { supabase } from '@/lib/supabase';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { Button } from '@/components/ui/button';
@@ -210,6 +211,39 @@ export default function SubmitWork() {
         throw new Error(data.error || 'Error al enviar la obra');
       }
 
+      // También guardar en Supabase directamente para que aparezca en la galería
+      try {
+        const workId = `${new Date().getFullYear()}-obra-${Math.floor(Math.random() * 10000)}`;
+        
+        const { error: insertError } = await supabase
+          .from('works')
+          .insert({
+            id: workId,
+            title: formData.title,
+            description: formData.description,
+            type: formData.workType,
+            artist_name: formData.artistName,
+            artist_email: formData.email,
+            file_url: fileUrl || null,
+            cover_url: coverImageUrl || null,
+            lyrics: formData.lyrics || null,
+            hashtags: tagsArray,
+            language: language,
+            status: 'published',
+            is_for_sale: !!formData.isForSale,
+            price: formData.isForSale && formData.price ? Number(formData.price) : null,
+            created_at: new Date().toISOString(),
+          });
+
+        if (insertError) {
+          console.error('[SubmitWork] Error saving to Supabase:', insertError);
+          // Don't fail - the /api/submit-work already succeeded
+        }
+      } catch (err) {
+        console.error('[SubmitWork] Supabase insert failed:', err);
+        // Non-critical - user still got their submission confirmed
+      }
+
       // Éxito: limpiar formulario y redirigir
       setFormData({
         artistName: '',
@@ -219,17 +253,17 @@ export default function SubmitWork() {
         description: '',
         lyrics: '',
         file: null,
-        addCover: false,
+        addCove: false,
         coverImage: null,
         hashtags: '',
         isForSale: false,
         price: '',
       });
       setError('');
-      // Redirect to gallery instead of work detail to avoid timing issues with newly created works
+      // Redirect to gallery without delay - works should be available now
       setTimeout(() => {
         navigate('/galeria?newWork=true');
-      }, 1000);
+      }, 500);
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Error desconocido al enviar la obra';
       setError(errorMsg);
