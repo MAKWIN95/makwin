@@ -26,9 +26,13 @@ export interface Profile {
   bio: string | null;
   avatar_url: string | null;
   website: string | null;
+  instagram_url: string | null;
+  tiktok_url: string | null;
   is_verified: boolean;
   is_banned: boolean;
   language_preference: 'es' | 'en';
+  last_name_change: string | null;
+  last_username_change: string | null;
   created_at: string;
 }
 

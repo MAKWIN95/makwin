@@ -15,6 +15,7 @@ interface Props {
   onSaveToggle?: (workId: string, saved: boolean) => void;
   isOwnProfile?: boolean;
   onWorkChange?: () => void;
+  onWorkDeleted?: () => Promise<void>;
 }
 
 const WORK_TYPE_ICONS: Record<string, string> = {
@@ -25,7 +26,7 @@ const WORK_TYPE_ICONS: Record<string, string> = {
   video: '🎬',
 };
 
-export default function WorkCard({ work, onLikeToggle, onSaveToggle, isOwnProfile, onWorkChange }: Props) {
+export default function WorkCard({ work, onLikeToggle, onSaveToggle, isOwnProfile, onWorkChange, onWorkDeleted }: Props) {
   const { user } = useAuth();
   const { language: currentLang } = useI18n();
   const navigate = useNavigate();

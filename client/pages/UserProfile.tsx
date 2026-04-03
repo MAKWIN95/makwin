@@ -22,7 +22,7 @@ export default function UserProfile() {
   const [followerCount, setFollowerCount] = useState(0);
   const [followingCount, setFollowingCount] = useState(0);
   const [editing, setEditing] = useState(false);
-  const [editForm, setEditForm] = useState({ display_name: '', bio: '', website: '', instagram_url: '', tiktok_url: '' });
+  const [editForm, setEditForm] = useState({ username: '', display_name: '', bio: '', website: '', instagram_url: '', tiktok_url: '' });
   const [editError, setEditError] = useState('');
   const [saving, setSaving] = useState(false);
   const [avatarUploading, setAvatarUploading] = useState(false);
@@ -53,6 +53,7 @@ export default function UserProfile() {
     if (!profileData) { setLoading(false); return; }
     setProfile(profileData as Profile);
     setEditForm({ 
+      username: profileData.username ?? '', 
       display_name: profileData.display_name ?? '', 
       bio: profileData.bio ?? '', 
       website: profileData.website ?? '',

@@ -21,6 +21,9 @@ export default function Register() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const [usernameError, setUsernameError] = useState('');
+  const [emailError, setEmailError] = useState('');
+  const [checkingUsername, setCheckingUsername] = useState(false);
+  const [checkingEmail, setCheckingEmail] = useState(false);
   const [passwordStrength, setPasswordStrength] = useState<'weak' | 'fair' | 'good' | 'strong' | ''>('');
   const [passwordFeedback, setPasswordFeedback] = useState('');
 
@@ -219,6 +222,7 @@ export default function Register() {
     } finally {
       setLoading(false);
     }
+  };
 
   const inputClass = "w-full px-4 py-3 rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--input))] text-sm text-[hsl(var(--foreground))] placeholder:text-[hsl(var(--muted-foreground))] focus:outline-none focus:ring-2 focus:ring-[hsl(var(--ring))] transition-all";
 

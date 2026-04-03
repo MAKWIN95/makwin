@@ -7,7 +7,7 @@ const supabaseAdmin = createClient(
 
 export async function checkEmailExists(event: any) {
   try {
-    const { email } = JSON.parse(event.body);
+    const { email } = JSON.parse(event.body) as { email: string };
 
     if (!email) {
       return {
@@ -25,7 +25,7 @@ export async function checkEmailExists(event: any) {
       };
     }
 
-    const emailExists = data?.users.some((user) => user.email === email.toLowerCase());
+    const emailExists = data?.users?.some((user: any) => user.email === email.toLowerCase());
 
     return {
       statusCode: 200,

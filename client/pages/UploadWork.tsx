@@ -142,16 +142,17 @@ export default function UploadWork() {
         console.log('[UploadWork] ✅ File uploaded:', fileUrl);
       }
 
-      if (form.addCover && coverFile) {        // Validate cover image - block GIFs
+      if (form.addCover && coverFile) {
+        // Validate cover image - block GIFs
         const coverFileName = coverFile.name.toLowerCase();
         if (coverFileName.endsWith('.gif')) {
           const errorMsg = es ? 'Los GIFs no están permitidos en la portada.' : 'GIFs are not allowed for cover images.';
           console.log('[UploadWork] ❌ Cover GIF blocked:', errorMsg);
           setError(errorMsg);
-          setLoading(false);
           setProgress('error');
           return;
-        }        console.log('[UploadWork] 🖼️ Uploading cover image...');
+        }
+        console.log('[UploadWork] 🖼️ Uploading cover image...');
         setProgress('uploading_cover');
         const ext = coverFile.name.split('.').pop();
         const path = `${user.id}/covers/${Date.now()}.${ext}`;

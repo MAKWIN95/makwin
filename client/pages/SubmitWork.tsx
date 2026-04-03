@@ -296,7 +296,7 @@ export default function SubmitWork() {
         description: '',
         lyrics: '',
         file: null,
-        addCove: false,
+        addCover: false,
         coverImage: null,
         hashtags: '',
         isForSale: false,
