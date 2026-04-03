@@ -140,7 +140,7 @@ export default function UploadWork() {
 
       const tags = form.hashtags.split(/[,\s]+/).map(s => s.replace(/^#/, '').trim()).filter(Boolean);
 
-      const { data, error: dbError } = await supabase.from('works').insert({
+      const newWorkData = {
         user_id: user.id,
         title: form.title.trim(),
         description: form.description.trim(),
@@ -153,7 +153,9 @@ export default function UploadWork() {
         price: form.isForSale && form.price ? Number(form.price) : null,
         language,
         status: 'published',
-      }).select('id').single();
+      };
+
+      const { data, error: dbError } = await supabase.from('works').insert(newWorkData).select('*, profiles(id, username, display_name, avatar_url, bio, is_verified)').single();
 
       if (dbError) {
         console.log('[UploadWork] ❌ Database error:', dbError);
@@ -163,7 +165,7 @@ export default function UploadWork() {
       console.log('[UploadWork] ✅ Saved to database! Work ID:', data?.id);
       setProgress('done');
       console.log('[UploadWork] 🎉 Upload complete, navigating to work page...');
-      setTimeout(() => navigate(`/work/${data.id}`), 1500);
+      setTimeout(() => navigate(`/work/${data.id}`, { state: { work: data } }), 1500);
 
     } catch (err: any) {
       console.error('[UploadWork] ❌ ERROR:', err);
