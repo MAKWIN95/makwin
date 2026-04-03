@@ -77,14 +77,30 @@ export default function SubmitWork() {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    console.log('[SubmitWork] handleSubmit called');
+    console.log('[SubmitWork] handleSubmit called with formData:', formData);
     setLoading(true);
     setError('');
 
     try {
       // Validación básica
+      console.log('[SubmitWork] Checking validation:', {
+        artistName: !!formData.artistName,
+        email: !!formData.email,
+        workType: !!formData.workType,
+        title: !!formData.title,
+        description: !!formData.description
+      });
+
       if (!formData.artistName || !formData.email || !formData.workType || !formData.title || !formData.description) {
-        setError('Por favor completa todos los campos');
+        const missing = [];
+        if (!formData.artistName) missing.push('artistName');
+        if (!formData.email) missing.push('email');
+        if (!formData.workType) missing.push('workType');
+        if (!formData.title) missing.push('title');
+        if (!formData.description) missing.push('description');
+        const errorMsg = `Por favor completa todos los campos (faltan: ${missing.join(', ')})`;
+        console.error('[SubmitWork] Validation failed:', errorMsg);
+        setError(errorMsg);
         setLoading(false);
         return;
       }
