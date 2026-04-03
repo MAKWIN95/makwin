@@ -21,7 +21,7 @@ const workTypes = [
 const typesWithoutImage = ['poema', 'cancion', 'texto'];
 
 export default function SubmitWork() {
-  console.log('[SubmitWork] ✅ Component loaded - v1.0.12+ [timestamp:', new Date().toISOString(), ']');
+  console.log('[SubmitWork] ✅ Component loaded - v1.0.13 [timestamp:', new Date().toISOString(), ']');
   const { t, language } = useI18n();
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -328,7 +328,7 @@ export default function SubmitWork() {
                   Enviar obra
                 </h1>
                 <span className="inline-block px-2 py-1 text-xs font-mono bg-green-500/10 border border-green-500/30 text-green-600 rounded">
-                  v1.0.12 ✓
+                  v1.0.13 ✓
                 </span>
               </div>
               <p className="text-sm text-[hsl(var(--muted-foreground))]">
