@@ -67,18 +67,22 @@ function AudioPlayer({ src }: { src: string }) {
 
 export default function WorkDetail() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
   const { language: currentLang, t } = useI18n();
   
-  const [work, setWork] = useState<Work | null>(null);
-  const [author, setAuthor] = useState<Profile | null>(null);
-  const [loading, setLoading] = useState(true);
+  // Check if work data was passed via navigation state (from UploadWork)
+  const initialWorkData = (location.state as any)?.work || null;
+  
+  const [work, setWork] = useState<Work | null>(initialWorkData as Work | null);
+  const [author, setAuthor] = useState<Profile | null>(initialWorkData?.profiles as Profile | null);
+  const [loading, setLoading] = useState(!initialWorkData);
   const [error, setError] = useState('');
   const [retrying, setRetrying] = useState(0);
   const [liked, setLiked] = useState(false);
   const [saved, setSaved] = useState(false);
-  const [likeCount, setLikeCount] = useState(0);
+  const [likeCount, setLikeCount] = useState(initialWorkData?.like_count || 0);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
 
@@ -87,6 +91,12 @@ export default function WorkDetail() {
       if (!id) {
         setError('No work ID provided');
         setLoading(false);
+        return;
+      }
+
+      // If we already have work data from state, skip initial fetch but still sync
+      if (initialWorkData && !loading) {
+        console.log('[WorkDetail] Using work data from navigation state, work ID:', initialWorkData.id);
         return;
       }
 
