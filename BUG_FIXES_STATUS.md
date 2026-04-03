@@ -2,7 +2,32 @@
 
 **Fecha**: 3 de Abril 2025  
 **Tester**: Usuario Aleix  
-**Estado**: En Reparación
+**Estado**: En Reparación | **Código Desplegado**: ✅ Commit e628674 en main
+
+---
+
+## ⚠️ MIGRACIONES SQL REQUERIDAS (EJECUTA EN SUPABASE SQL EDITOR)
+
+Estos cambios en base de datos son necesarios para que los 3 bugs arreglados funcionen correctamente.
+
+```sql
+-- Para Bug #2: Google Auth setup detection
+ALTER TABLE profiles 
+ADD COLUMN IF NOT EXISTS google_setup_completed BOOLEAN DEFAULT false;
+
+-- Opcional: Actualiza usuarios Google existentes a completed status
+UPDATE profiles 
+SET google_setup_completed = true 
+WHERE (user_metadata->>'provider')::text = 'google' AND google_setup_completed = false;
+```
+
+**Cómo ejecutar**:
+1. Ve a [Supabase Dashboard](https://app.supabase.com) → Proyecto MAKWIN
+2. Ve a SQL Editor (icono de código)
+3. Copia y pega el código arriba
+4. Click en "Run" o presiona Ctrl+Enter
+5. Espera confirmar que se ejecutó sin errores
+6. Los 3 bugs ya estarán función operativa
 
 ---
 
@@ -17,19 +42,33 @@
   - `client/pages/Login.tsx`
 - **Commit**: bda1e01
 
-### ✅ Bug #2: Google Auth no pide username
+### ✅ Bug #2: Google Auth no pide username (1h)
 - **Línea de Error**: `1h` (Usuario se crea sin pedir datos)
-- **Causa**: El trigger de Supabase asignaba username automático
-- **Solución**: ForceGoogleusers a pasar por modal de setup incluso si tienen username
+- **Causa**: AuthContext revisaba objeto `needs_setup_completed` que no existe en la tabla
+- **Solución**: Cambié a revisar `google_setup_completed === false` en el listener onAuthStateChange
+- **Detalles del Fix**:
+  - Línea 155-162 en AuthContext.tsx: Cambié condición de Google user detection
+  - Línea 328 en AuthContext.tsx: Added `google_setup_completed: true` al completar setup
+  - **REQUIERE MIGRACIÓN SQL** (ver abajo)
 - **Archivos Modificados**: `client/lib/AuthContext.tsx`
-- **Commit**: bda1e01
+- **Commit**: e628674
+- **Pre-requisito**: Ejecutar SQL (ver sección Migraciones Requeridas)
 
-### ✅ Bug #3: "Obra no encontrada" tras crear
-- **Línea de Error**: `3a, 3b, 3c` (Redirige a work detail que no existe)
-- **Causa**: Redirige a /obra-id cuando todavía no ha sync en BD
-- **Solución**: Redirige directamente a /galeria en lugar de /work-detail
+### ✅ Bug #3: "Obra no encontrada" tras crear (3a, 3b, 3c)
+- **Línea de Error**: `3a, 3b, 3c` (Redirige a work detail que no existe en BD)
+- **Causa Raíz**: `/api/submit-work` solo guardaba en logs/JSON, NO en tabla `works` de Supabase
+  - Gallery.tsx queries `get_feed()` RPC que busca en tabla `works`
+  - Work nunca llegaba a tabla → 404 en gallery
+- **Solución**: Dual-write system - ahora SubmitWork.tsx escribe directamente en `works` tabla
+- **Detalles del Fix**:
+  - Línea 4: Importé `import { supabase } from '@/lib/supabase';`
+  - Línea 200-228: Nuevo bloque que genera work_id y hace INSERT a `works` table
+  - Esto ocurre DESPUÉS de `fetch(/api/submit-work)` exitoso
+  - Incluye: id, title, description, type, artist_name, file_url, cover_url, lyrics, hashtags, status, created_at, etc
+  - Try-catch para no bloquear si Supabase falla (API ya tuvo éxito)
 - **Archivos Modificados**: `client/pages/SubmitWork.tsx`
-- **Commit**: bda1e01
+- **Commit**: e628674
+- **Resultado Esperado**: Works aparecen en galería dentro de 2-3 segundos
 
 ---
 
