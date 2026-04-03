@@ -157,8 +157,15 @@ export default function UserProfile() {
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !user) return;
+    
+    // Block GIFs
+    const ext = file.name.split('.').pop()?.toLowerCase();
+    if (ext === 'gif') {
+      alert(es ? 'Los GIFs no están permitidos en el avatar. Solo PNG, JPG o WebP.' : 'GIFs are not allowed. Only PNG, JPG, or WebP.');
+      return;
+    }
+    
     setAvatarUploading(true);
-    const ext = file.name.split('.').pop();
     const path = `${user.id}/avatar.${ext}`;
     const { error: uploadError } = await supabase.storage.from('avatars').upload(path, file, { upsert: true });
     if (!uploadError) {
@@ -207,7 +214,7 @@ export default function UserProfile() {
             {isOwnProfile && (
               <label className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-[hsl(var(--foreground))] text-[hsl(var(--background))] flex items-center justify-center cursor-pointer hover:opacity-80 transition-opacity">
                 {avatarUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Camera className="w-4 h-4" />}
-                <input type="file" accept="image/*" onChange={handleAvatarChange} className="hidden" />
+                <input type="file" accept=".jpg,.jpeg,.png,.webp" onChange={handleAvatarChange} className="hidden" />
               </label>
             )}
           </div>

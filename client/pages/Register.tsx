@@ -21,9 +21,64 @@ export default function Register() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const [usernameError, setUsernameError] = useState('');
-  const [emailError, setEmailError] = useState('');
-  const [checkingUsername, setCheckingUsername] = useState(false);
-  const [checkingEmail, setCheckingEmail] = useState(false);
+  const [passwordStrength, setPasswordStrength] = useState<'weak' | 'fair' | 'good' | 'strong' | ''>('');
+  const [passwordFeedback, setPasswordFeedback] = useState('');
+
+  const calculatePasswordStrength = (pwd: string) => {
+    if (!pwd) {
+      setPasswordStrength('');
+      setPasswordFeedback('');
+      return;
+    }
+    
+    let strength: 'weak' | 'fair' | 'good' | 'strong' = 'weak';
+    let feedback = '';
+    
+    // Length check
+    if (pwd.length >= 8) strength = 'fair';
+    if (pwd.length >= 12) strength = 'good';
+    
+    // Complexity check
+    const hasUppercase = /[A-Z]/.test(pwd);
+    const hasLowercase = /[a-z]/.test(pwd);
+    const hasNumbers = /\d/.test(pwd);
+    const hasSpecial = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(pwd);
+    
+    const complexityScore = [hasUppercase, hasLowercase, hasNumbers, hasSpecial].filter(Boolean).length;
+    
+    if (pwd.length >= 12 && complexityScore >= 3) strength = 'strong';
+    else if (pwd.length >= 10 && complexityScore >= 2) strength = 'good';
+    
+    // Feedback
+    if (pwd.length < 8) feedback = es ? 'Muy corta' : 'Too short';
+    else if (strength === 'weak') feedback = es ? 'Débil' : 'Weak';
+    else if (strength === 'fair') feedback = es ? 'Aceptable' : 'Fair';
+    else if (strength === 'good') feedback = es ? 'Buena' : 'Good';
+    else feedback = es ? 'Muy fuerte' : 'Strong';
+    
+    setPasswordStrength(strength);
+    setPasswordFeedback(feedback);
+  };
+
+  const getStrengthColor = () => {
+    switch(passwordStrength) {
+      case 'weak': return 'bg-red-500';
+      case 'fair': return 'bg-orange-500';
+      case 'good': return 'bg-yellow-500';
+      case 'strong': return 'bg-green-500';
+      default: return 'bg-[hsl(var(--border))]';
+    }
+  };
+
+  const getStrengthBarWidth = () => {
+    switch(passwordStrength) {
+      case 'weak': return 'w-1/4';
+      case 'fair': return 'w-1/2';
+      case 'good': return 'w-3/4';
+      case 'strong': return 'w-full';
+      default: return 'w-0';
+    }
+  };
   const usernameTimeoutRef = useRef<NodeJS.Timeout>();
   const emailTimeoutRef = useRef<NodeJS.Timeout>();
 
@@ -258,7 +313,26 @@ export default function Register() {
             )}
 
             <input type="password" name="password" placeholder={es ? 'Contraseña (mín. 8 caracteres)' : 'Password (min. 8 chars)'}
-              value={form.password} onChange={handleChange} required className={inputClass} />
+              value={form.password} onChange={(e) => {
+                handleChange(e);
+                calculatePasswordStrength(e.target.value);
+              }} required className={inputClass} />
+
+            {form.password && (
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 h-2 bg-[hsl(var(--border))] rounded-full overflow-hidden">
+                    <div className={`h-full ${getStrengthColor()} ${getStrengthBarWidth()} transition-all duration-300`} />
+                  </div>
+                  <span className={`text-xs font-medium ${passwordStrength === 'weak' ? 'text-red-500' : passwordStrength === 'fair' ? 'text-orange-500' : passwordStrength === 'good' ? 'text-yellow-500' : 'text-green-500'}`}>
+                    {passwordFeedback}
+                  </span>
+                </div>
+                <p className="text-xs text-[hsl(var(--muted-foreground))]">
+                  {es ? 'Incluye mayúsculas, minúsculas, números y símbolos para más seguridad.' : 'Include uppercase, lowercase, numbers, and symbols for better security.'}
+                </p>
+              </div>
+            )}
 
             <input type="password" name="confirmPassword" placeholder={es ? 'Repetir contraseña' : 'Confirm password'}
               value={form.confirmPassword} onChange={handleChange} required className={inputClass} />
