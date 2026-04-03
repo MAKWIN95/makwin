@@ -21,6 +21,7 @@ const workTypes = [
 const typesWithoutImage = ['poema', 'cancion', 'texto'];
 
 export default function SubmitWork() {
+  console.log('[SubmitWork] ✅ Component loaded - v1.0.9+');
   const { t, language } = useI18n();
   const navigate = useNavigate();
   const { user } = useAuth();
