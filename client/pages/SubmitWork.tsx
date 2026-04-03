@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/lib/AuthContext';
 import { supabase } from '@/lib/supabase';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
@@ -22,6 +23,7 @@ const typesWithoutImage = ['poema', 'cancion', 'texto'];
 export default function SubmitWork() {
   const { t, language } = useI18n();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   
@@ -215,15 +217,18 @@ export default function SubmitWork() {
       try {
         const workId = `${new Date().getFullYear()}-obra-${Math.floor(Math.random() * 10000)}`;
         
+        if (!user) {
+          throw new Error('Usuario no autenticado');
+        }
+
         const { error: insertError } = await supabase
           .from('works')
           .insert({
             id: workId,
+            user_id: user.id,
             title: formData.title,
             description: formData.description,
-            type: formData.workType,
-            artist_name: formData.artistName,
-            artist_email: formData.email,
+            work_type: formData.workType,
             file_url: fileUrl || null,
             cover_url: coverImageUrl || null,
             lyrics: formData.lyrics || null,
@@ -232,12 +237,16 @@ export default function SubmitWork() {
             status: 'published',
             is_for_sale: !!formData.isForSale,
             price: formData.isForSale && formData.price ? Number(formData.price) : null,
+            like_count: 0,
+            view_count: 0,
             created_at: new Date().toISOString(),
           });
 
         if (insertError) {
           console.error('[SubmitWork] Error saving to Supabase:', insertError);
           // Don't fail - the /api/submit-work already succeeded
+        } else {
+          console.log('[SubmitWork] Work saved to Supabase successfully:', workId);
         }
       } catch (err) {
         console.error('[SubmitWork] Supabase insert failed:', err);

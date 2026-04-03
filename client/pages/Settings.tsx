@@ -112,10 +112,7 @@ export default function Settings() {
     setDeleteLoading(true);
 
     try {
-      // Sign out first
-      await signOut();
-      
-      // Then delete account via auth provider
+      // Delete account via auth provider FIRST (while session exists)
       const { error } = await supabase.auth.updateUser({
         data: { deleted: true }
       });
@@ -125,6 +122,9 @@ export default function Settings() {
         setDeleteLoading(false);
         return;
       }
+
+      // Then sign out
+      await signOut();
 
       // Navigate away
       navigate('/');
