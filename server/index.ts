@@ -3,7 +3,6 @@ import express from "express";
 import cors from "cors";
 import { handleDemo } from "./routes/demo";
 import { handleSubmitWork } from "./routes/submit-work";
-import { handleDeleteAccount } from "./routes/delete-account";
 import { checkEmailExists } from "../api/check-email-exists";
 
 export function createServer() {
@@ -24,9 +23,6 @@ export function createServer() {
 
   // New submission endpoint
   app.post("/api/submit-work", handleSubmitWork);
-
-  // Delete account endpoint
-  app.post("/api/delete-account", handleDeleteAccount);
 
   // Check if email exists
   app.post("/api/check-email-exists", async (req, res) => {
