@@ -21,7 +21,7 @@ const workTypes = [
 const typesWithoutImage = ['poema', 'cancion', 'texto'];
 
 export default function SubmitWork() {
-  console.log('[SubmitWork] ✅ Component loaded - v1.0.9+');
+  console.log('[SubmitWork] ✅ Component loaded - v1.0.12+ [timestamp:', new Date().toISOString(), ']');
   const { t, language } = useI18n();
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -342,7 +342,10 @@ export default function SubmitWork() {
               </div>
             )}
 
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form onSubmit={(e) => {
+              console.log('[SubmitWork] FORM SUBMIT EVENT FIRED! [timestamp:', new Date().toISOString(), ']');
+              handleSubmit(e);
+            }} className="space-y-6">
               {/* Artist Name */}
               <div className="space-y-2">
                 <label className="text-sm font-medium text-[hsl(var(--foreground))]">
@@ -534,6 +537,7 @@ export default function SubmitWork() {
                 <Button
                   type="submit"
                   disabled={loading}
+                  onClick={() => console.log('[SubmitWork] Button clicked! User:', user?.id, 'Loading:', loading)}
                   className="w-full bg-black text-white hover:bg-black/90 transition-colors duration-200 active:scale-95"
                 >
                   {loading ? 'Enviando...' : 'Enviar obra'}
