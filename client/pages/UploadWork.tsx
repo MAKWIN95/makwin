@@ -191,7 +191,39 @@ export default function UploadWork() {
       // Fetch full work data separately to avoid relationship issues
       const { data: fullWork } = await supabase
         .from('works')
-        .select('*')
+        .select(`
+          id,
+          user_id,
+          title,
+          description,
+          work_type,
+          file_url,
+          cover_url,
+          lyrics,
+          hashtags,
+          is_for_sale,
+          price,
+          status,
+          like_count,
+          view_count,
+          language,
+          created_at,
+          updated_at,
+          profiles:profiles(
+            id,
+            username,
+            display_name,
+            bio,
+            avatar_url,
+            website,
+            instagram_url,
+            tiktok_url,
+            is_verified,
+            is_banned,
+            language_preference,
+            created_at
+          )
+        `)
         .eq('id', data.id)
         .single();
 

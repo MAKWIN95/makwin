@@ -5,10 +5,26 @@ export function useTheme() {
 
   useEffect(() => {
     try {
+      // Get theme from localStorage, or default to dark
       const stored = localStorage.getItem('theme');
-      setIsDark(stored === 'dark' || (!stored && window.matchMedia('(prefers-color-scheme: dark)').matches));
+      const isDarkTheme = stored === 'dark' || (!stored && window.matchMedia('(prefers-color-scheme: dark)').matches) || !stored;
+      
+      setIsDark(isDarkTheme);
+      
+      // Apply theme to document if not already applied
+      const root = document.documentElement;
+      if (isDarkTheme) {
+        if (!root.classList.contains('dark')) {
+          root.classList.add('dark');
+        }
+        try { localStorage.setItem('theme', 'dark'); } catch(e) {}
+      } else {
+        root.classList.remove('dark');
+        try { localStorage.setItem('theme', 'light'); } catch(e) {}
+      }
     } catch (e) {
       setIsDark(true); // default to dark
+      document.documentElement.classList.add('dark');
     }
   }, []);
 

@@ -163,23 +163,23 @@ export default function Header({ showSearch = true, showSearchCentered = false, 
                     <div className="py-1">
                       <Link to={`/u/${profile?.username}`} onClick={() => setShowUserMenu(false)}
                         className="flex items-center gap-3 px-4 py-2.5 text-sm text-[hsl(var(--foreground))] hover:bg-[hsl(var(--muted))] transition-colors">
-                        <User className="w-4 h-4" /> Mi perfil
+                        <User className="w-4 h-4" /> {es ? 'Mi perfil' : 'My profile'}
                       </Link>
                       <Link to="/favoritos" onClick={() => setShowUserMenu(false)}
                         className="flex items-center gap-3 px-4 py-2.5 text-sm text-[hsl(var(--foreground))] hover:bg-[hsl(var(--muted))] transition-colors">
-                        <Bookmark className="w-4 h-4" /> Guardados
+                        <Bookmark className="w-4 h-4" /> {es ? 'Guardados' : 'Saved works'}
                       </Link>
                       <Link to="/siguiendo" onClick={() => setShowUserMenu(false)}
                         className="flex items-center gap-3 px-4 py-2.5 text-sm text-[hsl(var(--foreground))] hover:bg-[hsl(var(--muted))] transition-colors">
-                        <Heart className="w-4 h-4" /> Siguiendo
+                        <Heart className="w-4 h-4" /> {es ? 'Siguiendo' : 'Following'}
                       </Link>
                       <Link to="/subir-obra" onClick={() => setShowUserMenu(false)}
                         className="flex items-center gap-3 px-4 py-2.5 text-sm text-[hsl(var(--foreground))] hover:bg-[hsl(var(--muted))] transition-colors">
-                        <Upload className="w-4 h-4" /> Subir obra
+                        <Upload className="w-4 h-4" /> {es ? 'Subir obra' : 'Upload work'}
                       </Link>
                       <Link to="/configuracion" onClick={() => setShowUserMenu(false)}
                         className="flex items-center gap-3 px-4 py-2.5 text-sm text-[hsl(var(--foreground))] hover:bg-[hsl(var(--muted))] transition-colors">
-                        <Settings className="w-4 h-4" /> Configuración
+                        <Settings className="w-4 h-4" /> {es ? 'Configuración' : 'Settings'}
                       </Link>
                       <button onClick={() => { toggleTheme(); }}
                         className="flex items-center gap-3 px-4 py-2.5 text-sm text-[hsl(var(--foreground))] hover:bg-[hsl(var(--muted))] transition-colors w-full text-left">
@@ -193,10 +193,13 @@ export default function Header({ showSearch = true, showSearchCentered = false, 
                           document.documentElement.style.opacity = '0';
                           document.documentElement.style.transition = 'opacity 0.3s ease-out';
                           await new Promise(r => setTimeout(r, 300));
-                          await signOut(); 
+                          await signOut();
+                          // Reset opacity for next page
+                          document.documentElement.style.opacity = '1';
+                          document.documentElement.style.transition = 'none';
                           const publicRoutes = ['/', '/galeria', '/marketplace', '/merch'];
                           const shouldStayOnRoute = publicRoutes.some(r => location.pathname.startsWith(r));
-                          navigate(shouldStayOnRoute ? location.pathname : '/galeria');
+                          navigate(shouldStayOnRoute ? location.pathname : '/galeria', { replace: true });
                         }}
                           disabled={isLoggingOut}
                           className="flex items-center gap-3 px-4 py-2.5 text-sm text-[hsl(var(--foreground))] hover:bg-[hsl(var(--muted))] transition-colors w-full text-left disabled:opacity-50">
@@ -210,7 +213,7 @@ export default function Header({ showSearch = true, showSearchCentered = false, 
             ) : (
               <Link to="/login"
                 className="text-xs font-medium text-[hsl(var(--foreground))] border border-[hsl(var(--border))] px-3 py-1.5 rounded-lg hover:bg-[hsl(var(--muted))] transition-colors whitespace-nowrap">
-                Entrar
+                {es ? 'Entrar' : 'Sign in'}
               </Link>
             )}
           </div>

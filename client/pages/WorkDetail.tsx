@@ -262,11 +262,20 @@ export default function WorkDetail() {
 
       <main className="w-full max-w-4xl mx-auto px-4 py-8">
         <button
-          onClick={() => navigate(-1)}
+          onClick={() => {
+            // If we have a referrer from gallery, go back safely
+            // Otherwise go to gallery
+            const isFromGallery = location.state?.from === 'gallery' || document.referrer?.includes('/galeria');
+            if (isFromGallery) {
+              navigate(-1);
+            } else {
+              navigate('/galeria');
+            }
+          }}
           className="flex items-center gap-2 text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] mb-6"
         >
           <ArrowLeft className="w-4 h-4" />
-          Atrás
+          {currentLang === 'es' ? 'Atrás' : 'Back'}
         </button>
 
         {work.cover_url && (

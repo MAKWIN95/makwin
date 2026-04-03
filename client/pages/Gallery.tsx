@@ -44,7 +44,46 @@ export default function Gallery() {
 
       if (error) throw error;
 
-      const fetched = (data ?? []) as Work[];
+      // Transform RPC data to expected Work type with profiles object
+      const fetched = (data ?? []).map((item: any) => ({
+        id: item.id,
+        user_id: item.user_id,
+        title: item.title,
+        description: item.description,
+        work_type: item.work_type,
+        file_url: item.file_url,
+        cover_url: item.cover_url,
+        lyrics: item.lyrics,
+        hashtags: item.hashtags || [],
+        is_for_sale: item.is_for_sale,
+        price: item.price,
+        status: item.status,
+        like_count: item.like_count,
+        view_count: item.view_count,
+        language: item.language,
+        created_at: item.created_at,
+        updated_at: item.updated_at,
+        policy_flags: item.policy_flags || [],
+        profiles: {
+          id: item.user_id,
+          username: item.username,
+          display_name: item.display_name,
+          bio: null,
+          avatar_url: item.avatar_url,
+          website: null,
+          instagram_url: null,
+          tiktok_url: null,
+          is_verified: false,
+          is_banned: false,
+          language_preference: 'es' as const,
+          created_at: '',
+          last_name_change: null,
+          last_username_change: null,
+        },
+        liked_by_me: item.liked_by_me || false,
+        saved_by_me: item.saved_by_me || false,
+      })) as Work[];
+
       setWorks(prev => replace ? fetched : [...prev, ...fetched]);
       setHasMore(fetched.length === PAGE_SIZE);
       setPage(pageNum);
