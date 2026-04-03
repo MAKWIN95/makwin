@@ -298,9 +298,14 @@ export default function SubmitWork() {
         <div className="px-4 sm:px-8 py-8 sm:py-12">
           <div className="max-w-2xl mx-auto">
             <div className="mb-8">
-              <h1 className="text-3xl sm:text-4xl font-light tracking-tight text-[hsl(var(--foreground))] mb-2">
-                Enviar obra
-              </h1>
+              <div className="flex items-center gap-3 mb-4">
+                <h1 className="text-3xl sm:text-4xl font-light tracking-tight text-[hsl(var(--foreground))]">
+                  Enviar obra
+                </h1>
+                <span className="inline-block px-2 py-1 text-xs font-mono bg-green-500/10 border border-green-500/30 text-green-600 rounded">
+                  v1.0.10 ✓
+                </span>
+              </div>
               <p className="text-sm text-[hsl(var(--muted-foreground))]">
                 Comparte tu obra con nuestra comunidad de artistas emergentes
               </p>
