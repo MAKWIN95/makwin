@@ -127,6 +127,15 @@ export default function SubmitWork() {
       }
 
       // Validaciones por tipo de archivo
+      const isImageWork = ['pintura', 'fotografia'].includes(formData.workType);
+      if (isImageWork && !formData.file) {
+        const errorMsg = 'Para pinturas y fotografías es obligatorio subir un archivo';
+        console.error('[SubmitWork] File validation failed:', errorMsg);
+        setError(errorMsg);
+        setLoading(false);
+        return;
+      }
+
       if (formData.file) {
         const ft = formData.file.type || '';
         const name = formData.file.name.toLowerCase();
@@ -319,7 +328,7 @@ export default function SubmitWork() {
                   Enviar obra
                 </h1>
                 <span className="inline-block px-2 py-1 text-xs font-mono bg-green-500/10 border border-green-500/30 text-green-600 rounded">
-                  v1.0.10 ✓
+                  v1.0.12 ✓
                 </span>
               </div>
               <p className="text-sm text-[hsl(var(--muted-foreground))]">
