@@ -17,7 +17,8 @@ export default function AuthModal({
   description = 'Necesitas una cuenta para hacer esto'
 }: AuthModalProps) {
   const navigate = useNavigate();
-  const { t } = useI18n();
+  const { language: currentLang } = useI18n();
+  const es = currentLang === 'es';
 
   if (!isOpen) return null;
 
@@ -57,7 +58,7 @@ export default function AuthModal({
             className="w-full flex items-center justify-center gap-2 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
           >
             <LogIn className="w-4 h-4" />
-            Iniciar Sesión
+            {es ? 'Iniciar sesión' : 'Sign in'}
           </Button>
           <Button
             onClick={handleRegister}
@@ -65,7 +66,7 @@ export default function AuthModal({
             className="w-full flex items-center justify-center gap-2 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
           >
             <UserPlus className="w-4 h-4" />
-            Crear Cuenta
+            {es ? 'Crear cuenta' : 'Create account'}
           </Button>
         </div>
       </div>
