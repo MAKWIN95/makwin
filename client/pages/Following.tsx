@@ -51,7 +51,26 @@ export default function Following() {
       // Fetch works from followed users
       const { data, error } = await supabase
         .from('works')
-        .select('*, profiles(username, display_name, avatar_url), likes(id), saves(id)')
+        .select(`
+          id,
+          user_id,
+          title,
+          description,
+          work_type,
+          file_url,
+          cover_url,
+          lyrics,
+          hashtags,
+          is_for_sale,
+          price,
+          status,
+          like_count,
+          view_count,
+          language,
+          created_at,
+          updated_at,
+          profiles(id, username, display_name, bio, avatar_url, website, instagram_url, tiktok_url, is_verified, is_banned)
+        `)
         .in('user_id', followingIds)
         .eq('status', 'published')
         .order('created_at', { ascending: false })
@@ -59,7 +78,32 @@ export default function Following() {
 
       if (error) throw error;
 
-      const fetched = (data ?? []) as Work[];
+      // Get likes for current user
+      const workIds = (data ?? []).map((w: any) => w.id);
+      const { data: userLikesData } = await supabase
+        .from('likes')
+        .select('work_id')
+        .eq('user_id', user.id)
+        .in('work_id', workIds);
+
+      const likedWorkIds = new Set(userLikesData?.map(l => l.work_id) || []);
+
+      // Get saves for current user
+      const { data: userSavesData } = await supabase
+        .from('saves')
+        .select('work_id')
+        .eq('user_id', user.id)
+        .in('work_id', workIds);
+
+      const savedWorkIds = new Set(userSavesData?.map(s => s.work_id) || []);
+
+      // Transform data
+      const fetched = (data ?? []).map((work: any) => ({
+        ...work,
+        profiles: work.profiles?.[0] || work.profiles,
+        liked_by_me: likedWorkIds.has(work.id),
+        saved_by_me: savedWorkIds.has(work.id),
+      })) as Work[];
       setWorks(prev => replace ? fetched : [...prev, ...fetched]);
       setHasMore(fetched.length === PAGE_SIZE);
       setPage(pageNum);

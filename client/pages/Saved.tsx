@@ -41,8 +41,24 @@ export default function Saved() {
         const { data: worksData } = await supabase
           .from('works')
           .select(`
-            *,
-            profiles(id, username, display_name, avatar_url, verified)
+            id,
+            user_id,
+            title,
+            description,
+            work_type,
+            file_url,
+            cover_url,
+            lyrics,
+            hashtags,
+            is_for_sale,
+            price,
+            status,
+            like_count,
+            view_count,
+            language,
+            created_at,
+            updated_at,
+            profiles(id, username, display_name, avatar_url, bio, website, instagram_url, tiktok_url, is_verified, is_banned)
           `)
           .in('id', workIds)
           .order('created_at', { ascending: false });
@@ -53,30 +69,38 @@ export default function Saved() {
           return;
         }
 
-        // Get likes count and liked_by_me for each work
-        const worksWithCounts = await Promise.all(
-          worksData.map(async (work: any) => {
-            const { count: likeCount } = await supabase
-              .from('likes')
-              .select('*', { count: 'exact', head: true })
-              .eq('work_id', work.id);
+        // Get likes info for current user in one query
+        const { data: userLikesData } = await supabase
+          .from('likes')
+          .select('work_id')
+          .eq('user_id', user.id)
+          .in('work_id', workIds);
 
-            const { data: likedData } = await supabase
-              .from('likes')
-              .select('user_id')
-              .eq('work_id', work.id)
-              .eq('user_id', user.id)
-              .maybeSingle();
+        const likedWorkIds = new Set(userLikesData?.map(l => l.work_id) || []);
 
-            return {
-              ...work,
-              profiles: work.profiles,
-              like_count: likeCount ?? 0,
-              liked_by_me: !!likedData,
-              saved_by_me: true,
-            };
-          })
-        );
+        // Transform data to proper structure
+        const worksWithCounts = worksData.map((work: any) => ({
+          id: work.id,
+          user_id: work.user_id,
+          title: work.title,
+          description: work.description,
+          work_type: work.work_type,
+          file_url: work.file_url,
+          cover_url: work.cover_url,
+          lyrics: work.lyrics,
+          hashtags: work.hashtags || [],
+          is_for_sale: work.is_for_sale,
+          price: work.price,
+          status: work.status,
+          like_count: work.like_count,
+          view_count: work.view_count,
+          language: work.language,
+          created_at: work.created_at,
+          updated_at: work.updated_at,
+          profiles: work.profiles?.[0] || work.profiles,
+          liked_by_me: likedWorkIds.has(work.id),
+          saved_by_me: true,
+        }));
 
         setWorks(worksWithCounts as Work[]);
       } catch (err) {
