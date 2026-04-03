@@ -103,18 +103,22 @@ export default function WorkDetail() {
           .single();
 
         if (workError || !workData) {
-          // If work not found in first attempt, retry once with delay (for newly uploaded works)
-          if (retrying < 1) {
+          // If work not found, retry up to 3 times with progressive delays (for newly uploaded works)
+          if (retrying < 3) {
+            const delays = [1500, 2500, 3500]; // Progressive delays
             setRetrying(retrying + 1);
+            console.log(`[WorkDetail] Work not found, retrying (attempt ${retrying + 1}/3) with delay ${delays[retrying]}ms...`);
             setLoading(true);
-            setTimeout(() => fetchWork(), 2000);
+            setTimeout(() => fetchWork(), delays[retrying]);
             return;
           }
+          console.error('[WorkDetail] Work not found after 3 retries');
           setError('Obra no encontrada');
           setLoading(false);
           return;
         }
 
+        console.log('[WorkDetail] Work loaded successfully:', workData.id);
         setWork(workData as Work);
         setAuthor(workData.profiles as Profile);
         setLikeCount(workData.like_count || 0);

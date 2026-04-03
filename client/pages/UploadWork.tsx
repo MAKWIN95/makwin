@@ -163,7 +163,7 @@ export default function UploadWork() {
       console.log('[UploadWork] ✅ Saved to database! Work ID:', data?.id);
       setProgress('done');
       console.log('[UploadWork] 🎉 Upload complete, navigating to work page...');
-      setTimeout(() => navigate(`/work/${data.id}`), 600);
+      setTimeout(() => navigate(`/work/${data.id}`), 1500);
 
     } catch (err: any) {
       console.error('[UploadWork] ❌ ERROR:', err);
