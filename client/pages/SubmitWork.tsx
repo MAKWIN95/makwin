@@ -213,45 +213,44 @@ export default function SubmitWork() {
         throw new Error(data.error || 'Error al enviar la obra');
       }
 
-      // También guardar en Supabase directamente para que aparezca en la galería
-      try {
-        const workId = `${new Date().getFullYear()}-obra-${Math.floor(Math.random() * 10000)}`;
-        
-        if (!user) {
-          throw new Error('Usuario no autenticado');
-        }
-
-        const { error: insertError } = await supabase
-          .from('works')
-          .insert({
-            id: workId,
-            user_id: user.id,
-            title: formData.title,
-            description: formData.description,
-            work_type: formData.workType,
-            file_url: fileUrl || null,
-            cover_url: coverImageUrl || null,
-            lyrics: formData.lyrics || null,
-            hashtags: tagsArray,
-            language: language,
-            status: 'published',
-            is_for_sale: !!formData.isForSale,
-            price: formData.isForSale && formData.price ? Number(formData.price) : null,
-            like_count: 0,
-            view_count: 0,
-            created_at: new Date().toISOString(),
-          });
-
-        if (insertError) {
-          console.error('[SubmitWork] Error saving to Supabase:', insertError);
-          // Don't fail - the /api/submit-work already succeeded
-        } else {
-          console.log('[SubmitWork] Work saved to Supabase successfully:', workId);
-        }
-      } catch (err) {
-        console.error('[SubmitWork] Supabase insert failed:', err);
-        // Non-critical - user still got their submission confirmed
+      // IMPORTANTE: Guardar en Supabase PRIMERO (de forma síncrona) para que aparezca en la galería
+      const workId = `${new Date().getFullYear()}-obra-${Math.floor(Math.random() * 10000)}`;
+      
+      if (!user) {
+        throw new Error('Usuario no autenticado');
       }
+
+      console.log('[SubmitWork] Inserting work:', { workId, userId: user.id, title: formData.title });
+
+      const { error: insertError } = await supabase
+        .from('works')
+        .insert({
+          id: workId,
+          user_id: user.id,
+          title: formData.title,
+          description: formData.description,
+          work_type: formData.workType,
+          file_url: fileUrl || null,
+          cover_url: coverImageUrl || null,
+          lyrics: formData.lyrics || null,
+          hashtags: tagsArray,
+          language: language,
+          status: 'published',
+          is_for_sale: !!formData.isForSale,
+          price: formData.isForSale && formData.price ? Number(formData.price) : null,
+          like_count: 0,
+          view_count: 0,
+          created_at: new Date().toISOString(),
+        });
+
+      if (insertError) {
+        console.error('[SubmitWork] Error saving to Supabase:', insertError);
+        setError(`Error guardando en galería: ${insertError.message}`);
+        setLoading(false);
+        return;
+      }
+
+      console.log('[SubmitWork] Work saved to Supabase successfully:', workId);
 
       // Éxito: limpiar formulario y redirigir
       setFormData({
