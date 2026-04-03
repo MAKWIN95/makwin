@@ -76,6 +76,7 @@ export default function SubmitWork() {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    console.log('[SubmitWork] handleSubmit called');
     setLoading(true);
     setError('');
 
@@ -86,6 +87,12 @@ export default function SubmitWork() {
         setLoading(false);
         return;
       }
+
+      console.log('[SubmitWork] Validation passed, form data:', { 
+        title: formData.title, 
+        workType: formData.workType, 
+        hasFile: !!formData.file 
+      });
 
       // If song, ensure lyrics provided
       if (formData.workType === 'cancion' && !formData.lyrics) {
@@ -198,6 +205,8 @@ export default function SubmitWork() {
         isForSale: !!formData.isForSale,
         price: formData.isForSale && formData.price ? Number(formData.price) : null,
       };
+
+      console.log('[SubmitWork] Sending to /api/submit-work:', payload);
 
       const response = await fetch('/api/submit-work', {
         method: 'POST',

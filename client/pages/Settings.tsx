@@ -112,16 +112,32 @@ export default function Settings() {
     setDeleteLoading(true);
 
     try {
-      // Delete account via auth provider FIRST (while session exists)
-      const { error } = await supabase.auth.updateUser({
-        data: { deleted: true }
-      });
-
-      if (error) {
-        alert('Error: ' + error.message);
+      // Get current session with access token
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError || !session?.access_token) {
+        alert('Error: No hay sesión activa. Intenta iniciar sesión de nuevo.');
         setDeleteLoading(false);
         return;
       }
+
+      // Call backend to delete all account data
+      const deleteResponse = await fetch('/api/delete-account', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+      });
+
+      if (!deleteResponse.ok) {
+        const errorData = await deleteResponse.json();
+        alert('Error: ' + (errorData.error || 'No se pudo eliminar la cuenta'));
+        setDeleteLoading(false);
+        return;
+      }
+
+      console.log('[Settings] Account deleted successfully');
 
       // Then sign out
       await signOut();
@@ -129,6 +145,7 @@ export default function Settings() {
       // Navigate away
       navigate('/');
     } catch (err: any) {
+      console.error('[Settings] Error deleting account:', err);
       alert(err?.message || 'Error al eliminar cuenta. Intenta más tarde.');
       setDeleteLoading(false);
     }
