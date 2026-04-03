@@ -190,27 +190,35 @@ export default function Register() {
     if (validationError) { setError(validationError); return; }
     setError('');
     setLoading(true);
-    const { error } = await signUpWithEmail(form.email, form.password, form.username, form.displayName);
-    setLoading(false);
-    if (error) {
-      // Parse and show user-friendly error messages
-      if (error.includes('already registered') || error.includes('already exists')) {
-        setError(es
-          ? `${form.email} ya está registrado. ¿Te gustaría iniciar sesión?`
-          : `${form.email} is already registered. Would you like to sign in?`);
-      } else if (error.includes('password') || error.includes('weak password')) {
-        setError(es
-          ? 'La contraseña no es lo suficientemente segura.'
-          : 'The password is not secure enough.');
-      } else if (error.includes('username') || error.includes('Usuario')) {
-        setError(error); // Custom error from our check
+    console.log('[Register] Starting signup for:', form.email);
+    try {
+      const { error } = await signUpWithEmail(form.email, form.password, form.username, form.displayName);
+      console.log('[Register] Signup response received - error:', error);
+      if (error) {
+        // Parse and show user-friendly error messages
+        if (error.includes('already registered') || error.includes('already exists')) {
+          setError(es
+            ? `${form.email} ya está registrado. ¿Te gustaría iniciar sesión?`
+            : `${form.email} is already registered. Would you like to sign in?`);
+        } else if (error.includes('password') || error.includes('weak password')) {
+          setError(es
+            ? 'La contraseña no es lo suficientemente segura.'
+            : 'The password is not secure enough.');
+        } else if (error.includes('username') || error.includes('Usuario')) {
+          setError(error); // Custom error from our check
+        } else {
+          setError(error);
+        }
       } else {
-        setError(error);
+        console.log('[Register] Signup successful');
+        setSuccess(true);
       }
-    } else {
-      setSuccess(true);
+    } catch (err: any) {
+      console.error('[Register] Signup exception:', err);
+      setError(es ? 'Error inesperado durante el registro.' : 'Unexpected error during signup.');
+    } finally {
+      setLoading(false);
     }
-  };
 
   const inputClass = "w-full px-4 py-3 rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--input))] text-sm text-[hsl(var(--foreground))] placeholder:text-[hsl(var(--muted-foreground))] focus:outline-none focus:ring-2 focus:ring-[hsl(var(--ring))] transition-all";
 

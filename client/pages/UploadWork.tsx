@@ -67,7 +67,14 @@ export default function UploadWork() {
   };
 
   const validateFile = (f: File, type: string): string | null => {
+    const fileName = f.name.toLowerCase();
     const mb = f.size / 1024 / 1024;
+    
+    // Block GIFs for all file types
+    if (fileName.endsWith('.gif')) {
+      return es ? 'Los GIFs no están permitidos. Por favor, sube PNG, JPG o WebP.' : 'GIFs are not allowed. Please upload PNG, JPG, or WebP.';
+    }
+    
     if (type === 'cancion') {
       if (!f.type.startsWith('audio/')) return es ? 'Solo se permiten archivos de audio.' : 'Only audio files allowed.';
       if (mb > MAX_AUDIO_MB) return es ? `El audio no puede superar ${MAX_AUDIO_MB}MB.` : `Audio cannot exceed ${MAX_AUDIO_MB}MB.`;
@@ -103,10 +110,19 @@ export default function UploadWork() {
 
     if (file) {
       const fileError = validateFile(file, form.workType);
-      if (fileError) { 
+      if (fileError) {
         console.log('[UploadWork] ❌ File validation failed:', fileError);
-        setError(fileError); 
-        return; 
+        setError(fileError);
+        return;
+      }
+      
+      // Block GIFs for all types
+      const fileName = file.name.toLowerCase();
+      if (fileName.endsWith('.gif')) {
+        const errorMsg = es ? 'Los GIFs no están permitidos. Por favor, sube PNG, JPG o WebP.' : 'GIFs are not allowed. Please upload PNG, JPG, or WebP.';
+        console.log('[UploadWork] ❌ GIF blocked:', errorMsg);
+        setError(errorMsg);
+        return;
       }
     }
 
@@ -126,8 +142,16 @@ export default function UploadWork() {
         console.log('[UploadWork] ✅ File uploaded:', fileUrl);
       }
 
-      if (form.addCover && coverFile) {
-        console.log('[UploadWork] 🖼️ Uploading cover image...');
+      if (form.addCover && coverFile) {        // Validate cover image - block GIFs
+        const coverFileName = coverFile.name.toLowerCase();
+        if (coverFileName.endsWith('.gif')) {
+          const errorMsg = es ? 'Los GIFs no están permitidos en la portada.' : 'GIFs are not allowed for cover images.';
+          console.log('[UploadWork] ❌ Cover GIF blocked:', errorMsg);
+          setError(errorMsg);
+          setLoading(false);
+          setProgress('error');
+          return;
+        }        console.log('[UploadWork] 🖼️ Uploading cover image...');
         setProgress('uploading_cover');
         const ext = coverFile.name.split('.').pop();
         const path = `${user.id}/covers/${Date.now()}.${ext}`;
@@ -155,22 +179,38 @@ export default function UploadWork() {
         status: 'published',
       };
 
-      const { data, error: dbError } = await supabase.from('works').insert(newWorkData).select('*, profiles(id, username, display_name, avatar_url, bio, is_verified)').single();
+      const { data, error: dbError } = await supabase.from('works').insert(newWorkData).select('id').single();
 
       if (dbError) {
         console.log('[UploadWork] ❌ Database error:', dbError);
-        throw new Error(dbError.message);
+        const errorMsg = dbError.message || (es ? 'Error al guardar la obra' : 'Error saving work');
+        throw new Error(errorMsg);
       }
+
+      // Fetch full work data separately to avoid relationship issues
+      const { data: fullWork } = await supabase
+        .from('works')
+        .select('*')
+        .eq('id', data.id)
+        .single();
 
       console.log('[UploadWork] ✅ Saved to database! Work ID:', data?.id);
       setProgress('done');
       console.log('[UploadWork] 🎉 Upload complete, navigating to work page...');
-      setTimeout(() => navigate(`/work/${data.id}`, { state: { work: data } }), 1500);
+      setTimeout(() => navigate(`/work/${data.id}`, { state: { work: fullWork } }), 1500);
 
     } catch (err: any) {
       console.error('[UploadWork] ❌ ERROR:', err);
       setProgress('error');
-      setError(err.message ?? (es ? 'Error desconocido.' : 'Unknown error.'));
+      let errorMessage = err.message ?? (es ? 'Error desconocido.' : 'Unknown error.');
+      // Translate common errors
+      if (errorMessage.includes('Could not embed')) {
+        errorMessage = es ? 'Error al cargar los datos de la obra. Por favor, intenta de nuevo.' : 'Error loading work data. Please try again.';
+      }
+      if (errorMessage.includes('storage')) {
+        errorMessage = es ? 'Error al subir el archivo. Verifica el tamaño y formato.' : 'Error uploading file. Check file size and format.';
+      }
+      setError(errorMessage);
     }
   };
 
@@ -231,7 +271,7 @@ export default function UploadWork() {
                   </div>
                   {form.addCover && (
                     <div className="mt-4 pt-4 border-t border-[hsl(var(--border))]">
-                      <input type="file" accept="image/*" onChange={e => setCoverFile(e.target.files?.[0] ?? null)}
+                      <input type="file" accept=".jpg,.jpeg,.png,.webp" onChange={e => setCoverFile(e.target.files?.[0] ?? null)}
                         className="w-full text-sm text-[hsl(var(--muted-foreground))] file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:bg-[hsl(var(--foreground))] file:text-[hsl(var(--background))] cursor-pointer" />
                     </div>
                   )}

@@ -26,7 +26,6 @@ import Following from "./pages/Following";
 import NotFound from "./pages/NotFound";
 
 // Global UI
-import ThemeBulb from "@/components/ThemeBulb";
 import { I18nProvider } from "@/lib/i18n";
 import LanguagePrompt from '@/components/LanguagePrompt';
 import Onboarding from '@/components/Onboarding';
@@ -95,7 +94,6 @@ const App = () => (
         <AuthProvider>
           <Toaster />
           <Sonner />
-          <ThemeBulb />
           <LanguagePrompt />
           <Onboarding />
           <GoogleSignupModal />

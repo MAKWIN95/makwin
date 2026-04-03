@@ -19,6 +19,7 @@ export default function Header({ showSearch = true, showSearchCentered = false, 
   const [searchTerm, setSearchTerm] = useState("");
   const [isSearching, setIsSearching] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const searchRef = useRef<HTMLDivElement | null>(null);
   const userMenuRef = useRef<HTMLDivElement | null>(null);
   const { t } = useI18n();
@@ -187,15 +188,19 @@ export default function Header({ showSearch = true, showSearchCentered = false, 
                       </button>
                       <div className="border-t border-[hsl(var(--border))] mt-1 pt-1">
                         <button onClick={async () => { 
+                          setIsLoggingOut(true);
+                          // Fade out effect
+                          document.documentElement.style.opacity = '0';
+                          document.documentElement.style.transition = 'opacity 0.3s ease-out';
+                          await new Promise(r => setTimeout(r, 300));
                           await signOut(); 
-                          setShowUserMenu(false);
-                          // Redirect to public page if on one, otherwise go to gallery
                           const publicRoutes = ['/', '/galeria', '/marketplace', '/merch'];
                           const shouldStayOnRoute = publicRoutes.some(r => location.pathname.startsWith(r));
                           navigate(shouldStayOnRoute ? location.pathname : '/galeria');
                         }}
-                          className="flex items-center gap-3 px-4 py-2.5 text-sm text-[hsl(var(--foreground))] hover:bg-[hsl(var(--muted))] transition-colors w-full text-left">
-                          <LogOut className="w-4 h-4" /> Cerrar sesión
+                          disabled={isLoggingOut}
+                          className="flex items-center gap-3 px-4 py-2.5 text-sm text-[hsl(var(--foreground))] hover:bg-[hsl(var(--muted))] transition-colors w-full text-left disabled:opacity-50">
+                          <LogOut className="w-4 h-4" /> {isLoggingOut ? (es ? 'Cerrando...' : 'Signing out...') : (es ? 'Cerrar sesión' : 'Sign out')}
                         </button>
                       </div>
                     </div>
