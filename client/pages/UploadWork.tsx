@@ -29,13 +29,19 @@ const MAX_AUDIO_MB = 50;
 type UploadProgress = 'idle' | 'uploading_file' | 'uploading_cover' | 'saving' | 'done' | 'error';
 
 export default function UploadWork() {
+  console.log('[UploadWork] 🚀 Component loaded at:', new Date().toISOString());
   const { user, profile } = useAuth();
   const { language } = useI18n();
   const navigate = useNavigate();
   const es = language === 'es';
 
+  console.log('[UploadWork] User:', user?.id, 'Language:', language);
+
   // Redirect to login if not authenticated
-  if (!user) return <Navigate to="/login" replace />;
+  if (!user) {
+    console.log('[UploadWork] ⛔ Redirecting to login - no user');
+    return <Navigate to="/login" replace />;
+  }
 
   const workTypes = es ? WORK_TYPES_ES : WORK_TYPES_EN;
   const typesWithoutImage = ['poema', 'cancion'];
@@ -80,41 +86,56 @@ export default function UploadWork() {
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
+    console.log('[UploadWork] 📤 handleSubmit triggered at:', new Date().toISOString());
     e.preventDefault();
     setError('');
 
     if (!form.title.trim() || !form.workType || !form.description.trim()) {
+      console.log('[UploadWork] ❌ Validation failed - missing fields');
       setError(es ? 'Rellena título, tipo y descripción.' : 'Fill in title, type and description.');
       return;
     }
     if (form.workType === 'cancion' && !form.lyrics.trim()) {
+      console.log('[UploadWork] ❌ Validation failed - missing lyrics');
       setError(es ? 'Incluye la letra de la canción.' : 'Include the song lyrics.');
       return;
     }
 
     if (file) {
       const fileError = validateFile(file, form.workType);
-      if (fileError) { setError(fileError); return; }
+      if (fileError) { 
+        console.log('[UploadWork] ❌ File validation failed:', fileError);
+        setError(fileError); 
+        return; 
+      }
     }
 
+    console.log('[UploadWork] ✅ All validations passed, starting upload...');
     setProgress('uploading_file');
     let fileUrl: string | null = null;
     let coverUrl: string | null = null;
 
     try {
+      console.log('[UploadWork] 📁 Starting upload process with file:', file?.name, 'Work type:', form.workType);
+      
       if (file) {
+        console.log('[UploadWork] 📤 Uploading main file...');
         const ext = file.name.split('.').pop();
         const path = `${user.id}/${Date.now()}.${ext}`;
         fileUrl = await uploadToStorage(file, 'works', path);
+        console.log('[UploadWork] ✅ File uploaded:', fileUrl);
       }
 
       if (form.addCover && coverFile) {
+        console.log('[UploadWork] 🖼️ Uploading cover image...');
         setProgress('uploading_cover');
         const ext = coverFile.name.split('.').pop();
         const path = `${user.id}/covers/${Date.now()}.${ext}`;
         coverUrl = await uploadToStorage(coverFile, 'works', path);
+        console.log('[UploadWork] ✅ Cover uploaded:', coverUrl);
       }
 
+      console.log('[UploadWork] 💾 Saving to database...');
       setProgress('saving');
 
       const tags = form.hashtags.split(/[,\s]+/).map(s => s.replace(/^#/, '').trim()).filter(Boolean);
@@ -134,12 +155,18 @@ export default function UploadWork() {
         status: 'published',
       }).select('id').single();
 
-      if (dbError) throw new Error(dbError.message);
+      if (dbError) {
+        console.log('[UploadWork] ❌ Database error:', dbError);
+        throw new Error(dbError.message);
+      }
 
+      console.log('[UploadWork] ✅ Saved to database! Work ID:', data?.id);
       setProgress('done');
+      console.log('[UploadWork] 🎉 Upload complete, navigating to work page...');
       setTimeout(() => navigate(`/work/${data.id}`), 600);
 
     } catch (err: any) {
+      console.error('[UploadWork] ❌ ERROR:', err);
       setProgress('error');
       setError(err.message ?? (es ? 'Error desconocido.' : 'Unknown error.'));
     }
@@ -282,6 +309,7 @@ export default function UploadWork() {
 
               {/* Submit */}
               <button type="submit" disabled={isLoading}
+                onClick={() => console.log('[UploadWork] 💾 Submit button clicked!')}
                 className="w-full py-3 rounded-xl bg-[hsl(var(--foreground))] text-[hsl(var(--background))] text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center justify-center gap-2">
                 {isLoading
                   ? <><Loader2 className="w-4 h-4 animate-spin" />{progressLabel}</>
