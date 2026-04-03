@@ -3,9 +3,10 @@ import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/custom-dialog";
 import LanguageSelector from "./LanguageSelector";
 import { songs } from "@/lib/songs";
-import { Filter, ArrowLeft, Home, Upload, Bookmark, User, LogOut, Settings, Heart } from 'lucide-react';
+import { Filter, ArrowLeft, Home, Upload, Bookmark, User, LogOut, Settings, Heart, Moon, Sun } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
 import { useAuth } from '@/lib/AuthContext';
+import { useTheme } from "@/hooks/use-theme";
 
 interface HeaderProps {
   showSearch?: boolean;
@@ -21,9 +22,12 @@ export default function Header({ showSearch = true, showSearchCentered = false, 
   const searchRef = useRef<HTMLDivElement | null>(null);
   const userMenuRef = useRef<HTMLDivElement | null>(null);
   const { t } = useI18n();
+  const { language } = useI18n();
+  const es = language === 'es';
   const { user, profile, signOut } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const { isDark, toggleTheme } = useTheme();
 
   const handleMakwinClick = () => document.dispatchEvent(new CustomEvent('reloadGallery'));
   const handleGoHome = () => navigate('/');
@@ -176,6 +180,11 @@ export default function Header({ showSearch = true, showSearchCentered = false, 
                         className="flex items-center gap-3 px-4 py-2.5 text-sm text-[hsl(var(--foreground))] hover:bg-[hsl(var(--muted))] transition-colors">
                         <Settings className="w-4 h-4" /> Configuración
                       </Link>
+                      <button onClick={() => { toggleTheme(); }}
+                        className="flex items-center gap-3 px-4 py-2.5 text-sm text-[hsl(var(--foreground))] hover:bg-[hsl(var(--muted))] transition-colors w-full text-left">
+                        {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+                        {isDark ? (es ? 'Modo claro' : 'Light mode') : (es ? 'Modo oscuro' : 'Dark mode')}
+                      </button>
                       <div className="border-t border-[hsl(var(--border))] mt-1 pt-1">
                         <button onClick={async () => { 
                           await signOut(); 
