@@ -26,8 +26,16 @@ export default function Login() {
     const { error } = await signInWithEmail(email, password);
     setLoading(false);
     if (error) {
-      // Parse Supabase errors and show user-friendly messages
-      if (error.includes('Invalid login credentials') || error.includes('invalid')) {
+      // Parse error codes and show user-friendly messages
+      if (error === 'USER_NOT_FOUND') {
+        setError(es
+          ? 'Este correo no está registrado. ¿Quieres crear una cuenta?'
+          : 'This email is not registered. Would you like to create an account?');
+      } else if (error === 'INVALID_PASSWORD') {
+        setError(es
+          ? 'Contraseña incorrecta.'
+          : 'Incorrect password.');
+      } else if (error === 'INVALID_CREDENTIALS') {
         setError(es
           ? 'Email o contraseña incorrectos.'
           : 'Incorrect email or password.');
@@ -35,10 +43,6 @@ export default function Login() {
         setError(es
           ? 'Verifica tu correo electrónico. No hemos confirmado tu cuenta aún.'
           : 'Please verify your email. We haven\'t confirmed your account yet.');
-      } else if (error.includes('User not found') || error.includes('not found')) {
-        setError(es
-          ? 'Este correo no está registrado. ¿Quieres crear una cuenta?'
-          : 'This email is not registered. Would you like to create an account?');
       } else {
         setError(error);
       }

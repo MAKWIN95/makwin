@@ -226,9 +226,10 @@ export default function SubmitWork() {
         price: '',
       });
       setError('');
+      // Redirect to gallery instead of work detail to avoid timing issues with newly created works
       setTimeout(() => {
-        navigate(`/obras-enviadas?success=true&id=${data.submissionId}`);
-      }, 800);
+        navigate('/galeria?newWork=true');
+      }, 1000);
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Error desconocido al enviar la obra';
       setError(errorMsg);

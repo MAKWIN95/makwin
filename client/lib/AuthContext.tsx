@@ -156,10 +156,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 console.log('[AuthContext] Loaded profile from listener:', data.username);
                 setProfile(data as Profile);
                 
-                // Detectar si es un usuario nuevo que necesita configurar username
-                // (Típicamente después de Google OAuth sin username asignado)
-                if (!data.username && session?.user?.user_metadata?.provider === 'google') {
-                  console.log('[AuthContext] Detected new Google user without username');
+                // Force Google OAuth users to complete setup with username/password
+                // Check if this is a Google user (by provider)
+                if (session?.user?.user_metadata?.provider === 'google' && !data.needs_setup_completed) {
+                  console.log('[AuthContext] Detected Google user - requesting setup');
                   setNeedsUsernameSetup(true);
                 }
               } else if (error && isMounted) {
@@ -218,23 +218,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             
             if (!exists) {
               return { 
-                error: es 
-                  ? 'Este correo no está registrado' 
-                  : 'This email is not registered' 
+                error: 'USER_NOT_FOUND'
               };
             }
             
             return { 
-              error: es 
-                ? 'Contraseña incorrecta' 
-                : 'Incorrect password' 
+              error: 'INVALID_PASSWORD'
             };
           } catch (err) {
             // Si falla la verificación, devolvemos un mensaje genérico
             return { 
-              error: es 
-                ? 'Email o contraseña incorrectos' 
-                : 'Incorrect email or password' 
+              error: 'INVALID_CREDENTIALS'
             };
           }
         }
