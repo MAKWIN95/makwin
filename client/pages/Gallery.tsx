@@ -25,6 +25,7 @@ export default function Gallery() {
   const [filters, setFilters] = useState({ workType: '', sort: 'score' });
   const [showFilterPopup, setShowFilterPopup] = useState(false);
   const [showItems, setShowItems] = useState(false);
+  const [filterBtnPos, setFilterBtnPos] = useState({ top: 0, left: 0 });
   const filterRef = useRef<HTMLDivElement>(null);
   const loaderRef = useRef<HTMLDivElement>(null);
 
@@ -134,15 +135,28 @@ export default function Gallery() {
     const onToggle = () => {
       const btn = document.getElementById('filter-btn');
       if (!btn) return;
+      
+      // Calculate button position
+      const rect = btn.getBoundingClientRect();
+      setFilterBtnPos({
+        top: rect.bottom + window.scrollY + 8,    // 8px below the button
+        left: rect.right - 220 + window.scrollX,  // Align to right (popup width 220px)
+      });
+      
       setShowFilterPopup(p => !p);
     };
     const onClickOutside = (e: MouseEvent) => {
-      if (filterRef.current && !filterRef.current.contains(e.target as Node)) setShowFilterPopup(false);
+      if (filterRef.current && !filterRef.current.contains(e.target as Node)) {
+        const btn = document.getElementById('filter-btn');
+        if (btn && !btn.contains(e.target as Node)) {
+          setShowFilterPopup(false);
+        }
+      }
     };
-    document.addEventListener('toggleFilterPopup', onToggle);
+    document.addEventListener('toggleFilterPopup', onToggle as EventListener);
     if (showFilterPopup) document.addEventListener('mousedown', onClickOutside);
     return () => {
-      document.removeEventListener('toggleFilterPopup', onToggle);
+      document.removeEventListener('toggleFilterPopup', onToggle as EventListener);
       document.removeEventListener('mousedown', onClickOutside);
     };
   }, [showFilterPopup]);
@@ -220,7 +234,7 @@ export default function Gallery() {
             {/* Filter popup */}
             {showFilterPopup && (
               <div ref={filterRef} className="fixed z-50 bg-[hsl(var(--popover))] border border-[hsl(var(--border))] rounded-xl shadow-lg p-3 flex flex-col gap-2 animate-in fade-in slide-in-from-top-2 duration-200"
-                style={{ top: '80px', right: '80px', width: '220px' }}>
+                style={{ top: `${filterBtnPos.top}px`, left: `${Math.max(10, filterBtnPos.left)}px`, width: '200px' }}>
                 <select value={filters.workType} onChange={e => setFilters(f => ({ ...f, workType: e.target.value }))}
                   className="w-full px-2 py-2 border border-[hsl(var(--border))] rounded bg-[hsl(var(--input))] text-sm">
                   <option value="">{t('filter.allTypes')}</option>
