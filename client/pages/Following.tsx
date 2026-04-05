@@ -69,7 +69,7 @@ export default function Following() {
           language,
           created_at,
           updated_at,
-          profiles(id, username, display_name, bio, avatar_url, website, instagram_url, tiktok_url, is_verified, is_banned)
+          profiles!user_id(id, username, display_name, bio, avatar_url, website, instagram_url, tiktok_url, is_verified, is_banned, language_preference)
         `)
         .in('user_id', followingIds)
         .eq('status', 'published')
@@ -100,7 +100,7 @@ export default function Following() {
       // Transform data
       const fetched = (data ?? []).map((work: any) => ({
         ...work,
-        profiles: work.profiles?.[0] || work.profiles,
+        profiles: work.profiles,
         liked_by_me: likedWorkIds.has(work.id),
         saved_by_me: savedWorkIds.has(work.id),
       })) as Work[];

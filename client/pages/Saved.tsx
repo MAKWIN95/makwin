@@ -58,12 +58,12 @@ export default function Saved() {
             language,
             created_at,
             updated_at,
-            profiles(id, username, display_name, avatar_url, bio, website, instagram_url, tiktok_url, is_verified, is_banned)
+            profiles!user_id(id, username, display_name, avatar_url, bio, website, instagram_url, tiktok_url, is_verified, is_banned, language_preference)
           `)
           .in('id', workIds)
           .order('created_at', { ascending: false });
 
-        if (!worksData) {
+        if (!worksData || worksData.length === 0) {
           setWorks([]);
           setLoading(false);
           return;
@@ -97,7 +97,7 @@ export default function Saved() {
           language: work.language,
           created_at: work.created_at,
           updated_at: work.updated_at,
-          profiles: work.profiles?.[0] || work.profiles,
+          profiles: work.profiles,
           liked_by_me: likedWorkIds.has(work.id),
           saved_by_me: true,
         }));

@@ -104,10 +104,29 @@ export default function WorkDetail() {
         setLoading(true);
         setError('');
         
-        // Fetch work from Supabase
+        // Fetch work from Supabase with explicit all fields
         const { data: workData, error: workError } = await supabase
           .from('works')
-          .select('*, profiles(id, username, display_name, avatar_url, bio, is_verified)')
+          .select(`
+            id,
+            user_id,
+            title,
+            description,
+            work_type,
+            file_url,
+            cover_url,
+            lyrics,
+            hashtags,
+            is_for_sale,
+            price,
+            status,
+            like_count,
+            view_count,
+            language,
+            created_at,
+            updated_at,
+            profiles!user_id(id, username, display_name, avatar_url, bio, website, instagram_url, tiktok_url, is_verified, is_banned, language_preference)
+          `)
           .eq('id', id)
           .eq('status', 'published')
           .single();
@@ -129,28 +148,29 @@ export default function WorkDetail() {
         }
 
         console.log('[WorkDetail] Work loaded successfully:', workData.id);
-        setWork(workData as Work);
-        setAuthor(workData.profiles as Profile);
+        setWork(workData as unknown as Work);
+        const profileData = Array.isArray(workData.profiles) ? workData.profiles[0] : workData.profiles;
+        setAuthor(profileData as Profile);
         setLikeCount(workData.like_count || 0);
 
         // Check if user liked/saved this work
         if (user) {
-          const { data: likes } = await supabase
+          const { data: likeData } = await supabase
             .from('likes')
             .select('id')
             .eq('user_id', user.id)
             .eq('work_id', id)
-            .single();
+            .maybeSingle();
 
-          const { data: saves } = await supabase
+          const { data: saveData } = await supabase
             .from('saves')
             .select('id')
             .eq('user_id', user.id)
             .eq('work_id', id)
-            .single();
+            .maybeSingle();
 
-          setLiked(!!likes);
-          setSaved(!!saves);
+          setLiked(!!likeData);
+          setSaved(!!saveData);
         }
       } catch (err: any) {
         console.error('[WorkDetail] Error:', err);
