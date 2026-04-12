@@ -5,6 +5,7 @@ import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AlertCircle, CheckCircle2, Loader2, Trash2, Archive, RotateCcw } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
+import AdminHelpMessages from '@/components/AdminHelpMessages';
 
 interface Submission {
   submissionId: string;
@@ -258,6 +259,9 @@ export default function Admin() {
                   <TabsTrigger value="archived">
                     Archivadas ({archivedWorks.length})
                   </TabsTrigger>
+                  <TabsTrigger value="help-messages">
+                    {language === 'es' ? 'Mensajes de Ayuda' : 'Help Messages'}
+                  </TabsTrigger>
                 </TabsList>
 
                 {/* Por Revisar */}
@@ -399,6 +403,11 @@ export default function Admin() {
                       ))}
                     </div>
                   )}
+                </TabsContent>
+
+                {/* Help Messages */}
+                <TabsContent value="help-messages">
+                  <AdminHelpMessages />
                 </TabsContent>
               </Tabs>
             )}
