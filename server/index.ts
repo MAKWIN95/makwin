@@ -5,6 +5,7 @@ import { handleDemo } from "./routes/demo";
 import { handleSubmitWork } from "./routes/submit-work";
 import { checkEmailExists } from "../api/check-email-exists";
 import { handleSendHelpEmail } from "../api/send-help-email";
+import { handleSaveHelpMessage } from "../api/save-help-message";
 
 export function createServer() {
   const app = express();
@@ -35,6 +36,9 @@ export function createServer() {
 
   // Send help email
   app.post("/api/send-help-email", handleSendHelpEmail);
+
+  // Save help message to database
+  app.post("/api/save-help-message", handleSaveHelpMessage);
 
   return app;
 }

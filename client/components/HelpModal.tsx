@@ -3,12 +3,11 @@ import { X, HelpCircle, Loader } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
+import { useAuth } from '@/lib/AuthContext';
 
 interface HelpModalProps {
   isOpen: boolean;
   onClose: () => void;
-  userEmail?: string;
-  userName?: string;
 }
 
 const HELP_CATEGORIES = [
@@ -21,25 +20,19 @@ const HELP_CATEGORIES = [
 
 export default function HelpModal({ 
   isOpen, 
-  onClose,
-  userEmail = '',
-  userName = ''
+  onClose
 }: HelpModalProps) {
   const { language: currentLang } = useI18n();
+  const { user } = useAuth();
   const [category, setCategory] = useState<string>('');
-  const [email, setEmail] = useState(userEmail);
-  const [name, setName] = useState(userName);
+  const [email, setEmail] = useState(user?.email || '');
+  const [name, setName] = useState(user?.user_metadata?.display_name || '');
   const [subject, setSubject] = useState('');
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
   if (!isOpen) return null;
-
-  const getCategoryLabel = (value: string) => {
-    const cat = HELP_CATEGORIES.find(c => c.value === value);
-    return currentLang === 'es' ? cat?.label : cat?.labelEn;
-  };
 
   const handleSubmit = async () => {
     if (!category || !email || !name || !subject || !message.trim()) {
@@ -49,15 +42,16 @@ export default function HelpModal({
 
     setLoading(true);
     try {
-      const response = await fetch('/api/send-help-email', {
+      const response = await fetch('/api/save-help-message', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          userEmail: email,
-          userName: name,
+          email,
+          name,
           subject,
           message,
-          category: getCategoryLabel(category),
+          category,
+          user_id: user?.id || null,
         }),
       });
 
@@ -84,8 +78,8 @@ export default function HelpModal({
 
   const handleClose = () => {
     setCategory('');
-    setEmail(userEmail);
-    setName(userName);
+    setEmail(user?.email || '');
+    setName(user?.user_metadata?.display_name || '');
     setSubject('');
     setMessage('');
     setSubmitted(false);
@@ -122,8 +116,8 @@ export default function HelpModal({
                 <div className="text-4xl mb-4">✓</div>
                 <p className="text-sm text-[hsl(var(--muted-foreground))]">
                   {currentLang === 'es' 
-                    ? 'Gracias por tu mensaje. Nos pondremos en contacto pronto en makwin.help@gmail.com'
-                    : 'Thank you for your message. We will contact you soon at makwin.help@gmail.com'}
+                    ? 'Gracias por tu mensaje. El equipo de MAKWIN lo revisará pronto'
+                    : 'Thank you for your message. The MAKWIN team will review it soon'}
                 </p>
               </div>
             ) : (
