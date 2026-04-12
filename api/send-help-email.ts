@@ -1,4 +1,5 @@
 import { VercelRequest, VercelResponse } from "@vercel/node";
+import sgMail from "@sendgrid/mail";
 
 async function sendHelpEmailWithSendGrid(
   userEmail: string,
@@ -17,7 +18,6 @@ async function sendHelpEmailWithSendGrid(
       return false;
     }
 
-    const sgMail = require("@sendgrid/mail");
     sgMail.setApiKey(sendgridApiKey);
 
     // Email al usuario confirmando que se recibió
