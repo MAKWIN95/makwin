@@ -14,6 +14,12 @@ async function sendHelpEmailWithSendGrid(
     const sendgridFromEmail = process.env.SENDGRID_FROM_EMAIL;
     const helpEmail = process.env.HELP_EMAIL || "makwin.help@gmail.com";
 
+    console.log("[SendGrid Debug] Starting email send process");
+    console.log("[SendGrid Debug] Has API Key:", !!sendgridApiKey);
+    console.log("[SendGrid Debug] From Email:", sendgridFromEmail);
+    console.log("[SendGrid Debug] Help Email:", helpEmail);
+    console.log("[SendGrid Debug] User Email:", userEmail);
+
     if (!sendgridApiKey || !sendgridFromEmail) {
       console.error("[SendGrid] API Key o From Email no configurados");
       return false;
@@ -84,21 +90,35 @@ async function sendHelpEmailWithSendGrid(
 </html>`;
 
     // Enviar email al usuario
-    await sgMail.send({
-      to: userEmail,
-      from: sendgridFromEmail,
-      subject: "✓ Tu mensaje ha sido recibido - MAKWIN",
-      html: userEmailHTML,
-    });
+    console.log("[SendGrid Debug] Enviando email al usuario:", userEmail);
+    try {
+      await sgMail.send({
+        to: userEmail,
+        from: sendgridFromEmail,
+        subject: "✓ Tu mensaje ha sido recibido - MAKWIN",
+        html: userEmailHTML,
+      });
+      console.log("[SendGrid] ✓ Email al usuario enviado exitosamente");
+    } catch (emailError) {
+      console.error("[SendGrid] Error enviando email al usuario:", emailError);
+      throw emailError;
+    }
 
     // Enviar email al equipo de ayuda
-    await sgMail.send({
-      to: helpEmail,
-      from: sendgridFromEmail,
-      subject: `📨 [${category.toUpperCase()}] ${subject}`,
-      html: adminEmailHTML,
-      replyTo: userEmail,
-    });
+    console.log("[SendGrid Debug] Enviando email al equipo:", helpEmail);
+    try {
+      await sgMail.send({
+        to: helpEmail,
+        from: sendgridFromEmail,
+        subject: `📨 [${category.toUpperCase()}] ${subject}`,
+        html: adminEmailHTML,
+        replyTo: userEmail,
+      });
+      console.log("[SendGrid] ✓ Email al equipo enviado exitosamente");
+    } catch (adminEmailError) {
+      console.error("[SendGrid] Error enviando email al equipo:", adminEmailError);
+      throw adminEmailError;
+    }
 
     return true;
   } catch (error) {
