@@ -104,14 +104,9 @@ export default async function handler(
     }
     console.log(`[DELETE-ACCOUNT] ✅ Deleted profile for user: ${userId}`);
 
-    // Delete auth user
-    const { error: deleteUserError } = await supabaseAdmin.auth.admin.deleteUser(userId);
-
-    if (deleteUserError) {
-      console.error("[DELETE-ACCOUNT] Error deleting auth user:", deleteUserError);
-      return res.status(500).json({ error: "Failed to delete auth user" });
-    }
-    console.log(`[DELETE-ACCOUNT] ✅ Deleted auth user: ${userId}`);
+    // Note: Auth user deletion is handled by Supabase's cascade delete
+    // via the foreign key constraint (profiles.id -> auth.users.id)
+    // No need to explicitly delete from auth
 
     return res.status(200).json({
       success: true,

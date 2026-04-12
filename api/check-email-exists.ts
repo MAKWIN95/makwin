@@ -16,16 +16,22 @@ export async function checkEmailExists(event: any) {
       };
     }
 
-    const { data, error } = await supabaseAdmin.auth.admin.listUsers();
+    // Check if email exists in profiles table
+    const { data: profiles, error } = await supabaseAdmin
+      .from('profiles')
+      .select('id')
+      .eq('email', email.toLowerCase())
+      .limit(1);
 
-    if (error) {
+    if (error && error.code !== 'PGRST116') {
+      console.error('[CHECK-EMAIL] Error:', error);
       return {
         statusCode: 500,
         body: JSON.stringify({ error: 'Failed to check email' }),
       };
     }
 
-    const emailExists = data?.users?.some((user: any) => user.email === email.toLowerCase());
+    const emailExists = profiles && profiles.length > 0;
 
     return {
       statusCode: 200,
