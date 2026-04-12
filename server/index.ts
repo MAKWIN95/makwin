@@ -4,8 +4,7 @@ import cors from "cors";
 import { handleDemo } from "./routes/demo";
 import { handleSubmitWork } from "./routes/submit-work";
 import { checkEmailExists } from "../api/check-email-exists";
-import { handleSendHelpEmail } from "../api/send-help-email";
-import { handleSaveHelpMessage } from "../api/save-help-message";
+import { saveHelpMessage } from "../api/save-help-message";
 
 export function createServer() {
   const app = express();
@@ -34,11 +33,31 @@ export function createServer() {
     res.status(statusCode).json(body);
   });
 
-  // Send help email
-  app.post("/api/send-help-email", handleSendHelpEmail);
-
   // Save help message to database
-  app.post("/api/save-help-message", handleSaveHelpMessage);
+  app.post("/api/save-help-message", async (req, res) => {
+    try {
+      const { email, name, category, subject, message, user_id } = req.body;
+
+      if (!email || !name || !category || !subject || !message) {
+        return res.status(400).json({ error: "Faltan campos requeridos" });
+      }
+
+      const result = await saveHelpMessage(email, name, category, subject, message, user_id);
+
+      if ("error" in result) {
+        return res.status(result.status).json({ error: result.error });
+      }
+
+      return res.status(200).json({
+        success: true,
+        message: "Mensaje guardado exitosamente",
+        id: result.id,
+      });
+    } catch (error) {
+      console.error("[API Error]", error);
+      return res.status(500).json({ error: "Error interno del servidor" });
+    }
+  });
 
   return app;
 }
