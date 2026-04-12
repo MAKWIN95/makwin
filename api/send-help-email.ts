@@ -1,5 +1,6 @@
-import { VercelRequest, VercelResponse } from "@vercel/node";
 import sgMail from "@sendgrid/mail";
+import { RequestHandler } from "express";
+import type { VercelRequest, VercelResponse } from "@vercel/node";
 
 async function sendHelpEmailWithSendGrid(
   userEmail: string,
@@ -106,7 +107,7 @@ async function sendHelpEmailWithSendGrid(
   }
 }
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+export const handleSendHelpEmail: RequestHandler = async (req, res, _next) => {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
   }
@@ -158,4 +159,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       error: "Error interno del servidor" 
     });
   }
+};
+
+// Vercel serverless function export
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+  return handleSendHelpEmail(req as any, res as any, () => {});
 }

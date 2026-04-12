@@ -4,6 +4,7 @@ import cors from "cors";
 import { handleDemo } from "./routes/demo";
 import { handleSubmitWork } from "./routes/submit-work";
 import { checkEmailExists } from "../api/check-email-exists";
+import { handleSendHelpEmail } from "../api/send-help-email";
 
 export function createServer() {
   const app = express();
@@ -31,6 +32,9 @@ export function createServer() {
     const body = JSON.parse(result.body);
     res.status(statusCode).json(body);
   });
+
+  // Send help email
+  app.post("/api/send-help-email", handleSendHelpEmail);
 
   return app;
 }
