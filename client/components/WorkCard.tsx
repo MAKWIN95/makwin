@@ -68,21 +68,32 @@ export default function WorkCard({ work, onLikeToggle, onSaveToggle, isOwnProfil
 
     try {
       if (liked) {
-        // Unlike: Delete from likes and decrement like_count in works table
+        // Unlike: Delete from likes table
         await supabase.from('likes').delete().eq('user_id', user.id).eq('work_id', work.id);
-        const newCount = Math.max(0, likeCount - 1);
-        await supabase.from('works').update({ like_count: newCount }).eq('id', work.id);
-        setLiked(false);
-        setLikeCount(newCount);
       } else {
-        // Like: Insert into likes and increment like_count in works table
+        // Like: Insert into likes table
         await supabase.from('likes').insert({ user_id: user.id, work_id: work.id });
-        const newCount = likeCount + 1;
-        await supabase.from('works').update({ like_count: newCount }).eq('id', work.id);
-        setLiked(true);
-        setLikeCount(newCount);
       }
+
+      // ISSUE 2 FIX: After like/unlike, RE-FETCH the actual like_count from DB
+      const { data: updatedWork, error: refetchError } = await supabase
+        .from('works')
+        .select('like_count')
+        .eq('id', work.id)
+        .single();
+
+      if (refetchError) {
+        console.error('[WorkCard] Error refetching like_count:', refetchError);
+        return;
+      }
+
+      // Update state with the ACTUAL DB value
+      const actualCount = updatedWork?.like_count || 0;
+      setLikeCount(actualCount);
+      setLiked(!liked);
+      
       onLikeToggle?.(work.id, !liked);
+      console.log('[WorkCard] Like synced. New count from DB:', actualCount);
     } catch (err) {
       console.error('[WorkCard] Error toggling like:', err);
     }

@@ -104,8 +104,7 @@ export default function WorkDetail() {
         setLoading(true);
         setError('');
         
-        // Fetch work from Supabase with explicit all fields
-        // Note: Don't filter by status here - let any work be viewable
+        // ISSUE 1 FIX: Fetch work WITHOUT profiles join (causes 400 error)
         const { data: workData, error: workError } = await supabase
           .from('works')
           .select(`
@@ -125,33 +124,45 @@ export default function WorkDetail() {
             view_count,
             language,
             created_at,
-            updated_at,
-            profiles!user_id(id, username, display_name, avatar_url, bio, website, instagram_url, tiktok_url, is_verified, is_banned, language_preference)
+            updated_at
           `)
           .eq('id', id)
           .single();
 
         if (workError || !workData) {
-          // If work not found, retry up to 3 times with progressive delays (for newly uploaded works)
-          if (retrying < 3) {
-            const delays = [1500, 2500, 3500]; // Progressive delays
+          console.error('[WorkDetail] Work fetch error:', workError);
+          
+          // Retry only on real network errors, not bad queries
+          if (retrying < 3 && workError?.code !== 'PGRST116') {
+            const delays = [1500, 2500, 3500];
             setRetrying(retrying + 1);
-            console.log(`[WorkDetail] Work not found, retrying (attempt ${retrying + 1}/3) with delay ${delays[retrying]}ms...`);
-            setLoading(true);
+            console.log(`[WorkDetail] Retrying (attempt ${retrying + 1}/3) with delay ${delays[retrying]}ms...`);
             setTimeout(() => fetchWork(), delays[retrying]);
             return;
           }
-          console.error('[WorkDetail] Work not found after 3 retries');
+          
           setError('Obra no encontrada');
           setLoading(false);
           return;
         }
 
-        console.log('[WorkDetail] Work loaded successfully:', workData.id);
+        console.log('[WorkDetail] Work loaded:', workData.id);
         setWork(workData as unknown as Work);
-        const profileData = Array.isArray(workData.profiles) ? workData.profiles[0] : workData.profiles;
-        setAuthor(profileData as Profile);
         setLikeCount(workData.like_count || 0);
+
+        // ISSUE 1 FIX: Fetch profile SEPARATELY in a second query
+        const { data: profileData, error: profileError } = await supabase
+          .from('profiles')
+          .select('id, username, display_name, avatar_url, bio, website, instagram_url, tiktok_url, is_verified, is_banned, language_preference')
+          .eq('id', workData.user_id)
+          .single();
+
+        if (!profileError && profileData) {
+          setAuthor(profileData as Profile);
+          console.log('[WorkDetail] Profile loaded:', profileData.id);
+        } else {
+          console.warn('[WorkDetail] Profile fetch failed:', profileError);
+        }
 
         // Check if user liked/saved this work
         if (user) {
@@ -192,43 +203,40 @@ export default function WorkDetail() {
 
     try {
       if (liked) {
-        // Unlike: Delete from likes table and decrement like_count
+        // Unlike: Delete from likes table
         await supabase
           .from('likes')
           .delete()
           .eq('user_id', user.id)
           .eq('work_id', work.id);
-        
-        // Update works table to decrement like_count
-        const newCount = Math.max(0, likeCount - 1);
-        await supabase
-          .from('works')
-          .update({ like_count: newCount })
-          .eq('id', work.id);
-        
-        setLiked(false);
-        setLikeCount(newCount);
       } else {
-        // Like: Insert into likes table and increment like_count
+        // Like: Insert into likes table
         await supabase
           .from('likes')
           .insert({ user_id: user.id, work_id: work.id });
-        
-        // Update works table to increment like_count
-        const newCount = likeCount + 1;
-        await supabase
-          .from('works')
-          .update({ like_count: newCount })
-          .eq('id', work.id);
-        
-        setLiked(true);
-        setLikeCount(newCount);
       }
+      
+      // ISSUE 2 FIX: After like/unlike, RE-FETCH the actual like_count from DB
+      // Don't rely on local state calculation
+      const { data: updatedWork, error: refetchError } = await supabase
+        .from('works')
+        .select('like_count')
+        .eq('id', work.id)
+        .single();
+
+      if (refetchError) {
+        console.error('[WorkDetail] Error refetching like_count:', refetchError);
+        return;
+      }
+
+      // Update state with the ACTUAL DB value
+      const actualCount = updatedWork?.like_count || 0;
+      setLikeCount(actualCount);
+      setLiked(!liked);
+      
+      console.log('[WorkDetail] Like synced. New count from DB:', actualCount);
     } catch (err) {
       console.error('[WorkDetail] Error toggling like:', err);
-      // Show error or revert state
-      setLiked(!liked);
-      setLikeCount(liked ? likeCount + 1 : Math.max(0, likeCount - 1));
     }
   };
 

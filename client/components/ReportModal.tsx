@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { X, AlertCircle } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
 import { Button } from '@/components/ui/button';
@@ -70,7 +71,9 @@ export default function ReportModal({
   const isOtherSelected = reason === 'other';
   const isFormValid = reason && (isOtherSelected ? customReason.trim() : true);
 
-  return (
+  // ISSUE 3 FIX: Use createPortal to render modal at document.body
+  // This ensures it's truly fixed and not constrained by parent grid
+  const modalContent = (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={onClose}>
       <div className="bg-[hsl(var(--card))] border border-[hsl(var(--border))] rounded-lg max-w-md w-full p-6 animate-in fade-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
         {/* Close button */}
@@ -171,4 +174,6 @@ export default function ReportModal({
       </div>
     </div>
   );
+
+  return isOpen ? createPortal(modalContent, document.body) : null;
 }
