@@ -105,6 +105,7 @@ export default function WorkDetail() {
         setError('');
         
         // Fetch work from Supabase with explicit all fields
+        // Note: Don't filter by status here - let any work be viewable
         const { data: workData, error: workError } = await supabase
           .from('works')
           .select(`
@@ -128,7 +129,6 @@ export default function WorkDetail() {
             profiles!user_id(id, username, display_name, avatar_url, bio, website, instagram_url, tiktok_url, is_verified, is_banned, language_preference)
           `)
           .eq('id', id)
-          .eq('status', 'published')
           .single();
 
         if (workError || !workData) {
@@ -192,24 +192,43 @@ export default function WorkDetail() {
 
     try {
       if (liked) {
-        // Unlike
+        // Unlike: Delete from likes table and decrement like_count
         await supabase
           .from('likes')
           .delete()
           .eq('user_id', user.id)
           .eq('work_id', work.id);
+        
+        // Update works table to decrement like_count
+        const newCount = Math.max(0, likeCount - 1);
+        await supabase
+          .from('works')
+          .update({ like_count: newCount })
+          .eq('id', work.id);
+        
         setLiked(false);
-        setLikeCount(Math.max(0, likeCount - 1));
+        setLikeCount(newCount);
       } else {
-        // Like
+        // Like: Insert into likes table and increment like_count
         await supabase
           .from('likes')
           .insert({ user_id: user.id, work_id: work.id });
+        
+        // Update works table to increment like_count
+        const newCount = likeCount + 1;
+        await supabase
+          .from('works')
+          .update({ like_count: newCount })
+          .eq('id', work.id);
+        
         setLiked(true);
-        setLikeCount(likeCount + 1);
+        setLikeCount(newCount);
       }
     } catch (err) {
       console.error('[WorkDetail] Error toggling like:', err);
+      // Show error or revert state
+      setLiked(!liked);
+      setLikeCount(liked ? likeCount + 1 : Math.max(0, likeCount - 1));
     }
   };
 

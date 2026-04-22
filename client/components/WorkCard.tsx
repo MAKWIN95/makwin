@@ -66,16 +66,26 @@ export default function WorkCard({ work, onLikeToggle, onSaveToggle, isOwnProfil
     setLikeAnimating(true);
     setTimeout(() => setLikeAnimating(false), 400);
 
-    if (liked) {
-      setLiked(false);
-      setLikeCount(c => Math.max(c - 1, 0));
-      await supabase.from('likes').delete().eq('user_id', user.id).eq('work_id', work.id);
-    } else {
-      setLiked(true);
-      setLikeCount(c => c + 1);
-      await supabase.from('likes').insert({ user_id: user.id, work_id: work.id });
+    try {
+      if (liked) {
+        // Unlike: Delete from likes and decrement like_count in works table
+        await supabase.from('likes').delete().eq('user_id', user.id).eq('work_id', work.id);
+        const newCount = Math.max(0, likeCount - 1);
+        await supabase.from('works').update({ like_count: newCount }).eq('id', work.id);
+        setLiked(false);
+        setLikeCount(newCount);
+      } else {
+        // Like: Insert into likes and increment like_count in works table
+        await supabase.from('likes').insert({ user_id: user.id, work_id: work.id });
+        const newCount = likeCount + 1;
+        await supabase.from('works').update({ like_count: newCount }).eq('id', work.id);
+        setLiked(true);
+        setLikeCount(newCount);
+      }
+      onLikeToggle?.(work.id, !liked);
+    } catch (err) {
+      console.error('[WorkCard] Error toggling like:', err);
     }
-    onLikeToggle?.(work.id, !liked);
   };
 
   const handleSave = async (e: React.MouseEvent) => {
@@ -208,12 +218,12 @@ export default function WorkCard({ work, onLikeToggle, onSaveToggle, isOwnProfil
               {likeCount > 0 && <span>{likeCount}</span>}
             </button>
 
-            {/* Report button */}
+            {/* Report button — opens modal, doesn't render dropdown */}
             <button
               onClick={handleReport}
               className="text-xs text-[hsl(var(--muted-foreground))] hover:text-red-500 transition-colors"
-              aria-label="Reportar"
-              title="Reportar obra"
+              aria-label={currentLang === 'es' ? 'Reportar' : 'Report'}
+              title={currentLang === 'es' ? 'Reportar obra' : 'Report work'}
             >
               <Flag className="w-3.5 h-3.5" />
             </button>
