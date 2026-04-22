@@ -104,32 +104,6 @@
   color: white;
 }
 
-/* small theme tip shown on landing for first-time users */
-.theme-tip {
-  position: fixed;
-  top: 82px;
-  right: 24px;
-  z-index: 60;
-  background: rgba(0,0,0,0.56);
-  color: #fff;
-  padding: 0.5rem 0.75rem;
-  border-radius: 999px;
-  display: inline-flex;
-  gap: 0.5rem;
-  align-items: center;
-  font-size: 0.86rem;
-  backdrop-filter: blur(6px);
-  border: 1px solid rgba(255,255,255,0.06);
-}
-.theme-tip .theme-tip-close {
-  background: transparent;
-  border: none;
-  color: #fff;
-  margin-left: 6px;
-  cursor: pointer;
-  font-weight: 600;
-}
-
 .hero-title {
   font-size: clamp(4rem, 12vw, 10rem);
   font-weight: 900;

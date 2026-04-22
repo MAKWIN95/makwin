@@ -14,7 +14,6 @@ export default function Landing() {
   const [canPrev, setCanPrev] = useState(false);
   const [canNext, setCanNext] = useState(true);
   const landingRef = useRef<HTMLDivElement | null>(null);
-  const [showThemeTip, setShowThemeTip] = useState(false);
 
   const updateCarouselArrows = () => {
     const el = carouselRef.current;
@@ -43,11 +42,6 @@ export default function Landing() {
   };
 
   useEffect(() => {
-    try {
-      const dismissed = localStorage.getItem('themeTipDismissed') === '1';
-      const onboardingDone = localStorage.getItem('onboardingCompleted') === '1';
-      if (!dismissed && !onboardingDone) setShowThemeTip(true);
-    } catch (e) {}
 
     // Hero animations
     if (heroRef.current) {
@@ -642,12 +636,7 @@ export default function Landing() {
           <div>Tip: La bombilla cambia entre modo claro/oscuro.</div>
           <button className="theme-tip-close" onClick={() => { try { localStorage.setItem('themeTipDismissed','1'); } catch(e){} setShowThemeTip(false); }} aria-label="Cerrar">✕</button>
         </div>
-      )}
-
-      <button aria-hidden className={`carousel-arrow carousel-prev ${canPrev ? 'visible' : ''}`} onClick={() => scrollCarousel('prev')}>
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15 18l-6-6 6-6"/></svg>
-      </button>
-      <button aria-hidden className={`carousel-arrow carousel-next ${canNext ? 'visible' : ''}`} onClick={() => scrollCarousel('next')}>
+utton aria-hidden className={`carousel-arrow carousel-next ${canNext ? 'visible' : ''}`} onClick={() => scrollCarousel('next')}>
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 6l6 6-6 6"/></svg>
       </button>
 
