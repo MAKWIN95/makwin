@@ -184,19 +184,17 @@ export default function WorkDetail() {
     fetchWork();
   }, [id, user]);
 
+  const isPendingLike = id ? worksContext.isPendingLike(id) : false;
+  const isPendingSave = id ? worksContext.isPendingSave(id) : false;
+
   const handleLike = async () => {
     if (!user) {
       setShowAuthModal(true);
       return;
     }
-    if (!work) return;
+    if (!work || isPendingLike) return;
 
-    try {
-      await worksContext.toggleLike(work.id, user.id);
-      console.log('[WorkDetail] Like toggled via context');
-    } catch (err) {
-      console.error('[WorkDetail] Error toggling like:', err);
-    }
+    await worksContext.toggleLike(work.id, user.id);
   };
 
   const handleSave = async () => {
@@ -204,14 +202,9 @@ export default function WorkDetail() {
       setShowAuthModal(true);
       return;
     }
-    if (!work) return;
+    if (!work || isPendingSave) return;
 
-    try {
-      await worksContext.toggleSave(work.id, user.id);
-      console.log('[WorkDetail] Save toggled via context');
-    } catch (err) {
-      console.error('[WorkDetail] Error toggling save:', err);
-    }
+    await worksContext.toggleSave(work.id, user.id);
   };
 
   const handleReport = () => {
@@ -335,7 +328,7 @@ export default function WorkDetail() {
         <div className="flex gap-3">
           <Button
             onClick={handleLike}
-            disabled={!user}
+            disabled={!user || isPendingLike}
             variant={liked ? 'default' : 'outline'}
             className="flex-1"
           >
@@ -345,7 +338,7 @@ export default function WorkDetail() {
 
           <Button
             onClick={handleSave}
-            disabled={!user}
+            disabled={!user || isPendingSave}
             variant={saved ? 'default' : 'outline'}
           >
             <Bookmark className={`w-4 h-4 ${saved ? 'fill-current' : ''}`} />

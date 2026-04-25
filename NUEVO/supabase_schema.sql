@@ -78,14 +78,35 @@ create table if not exists likes (
 );
 
 -- Trigger: actualizar like_count en works automáticamente
+-- Incluye logging y error handling
 create or replace function update_like_count()
 returns trigger language plpgsql as $$
+declare
+  v_work_id uuid;
+  v_affected_rows integer;
 begin
   if TG_OP = 'INSERT' then
-    update works set like_count = like_count + 1 where id = NEW.work_id;
+    v_work_id := NEW.work_id;
+    update works set like_count = like_count + 1 where id = v_work_id;
+    GET DIAGNOSTICS v_affected_rows = ROW_COUNT;
+    
+    if v_affected_rows = 0 then
+      raise warning '[update_like_count:INSERT] No work found with id: %', v_work_id;
+    end if;
+    
   elsif TG_OP = 'DELETE' then
-    update works set like_count = greatest(like_count - 1, 0) where id = OLD.work_id;
+    v_work_id := OLD.work_id;
+    update works set like_count = greatest(like_count - 1, 0) where id = v_work_id;
+    GET DIAGNOSTICS v_affected_rows = ROW_COUNT;
+    
+    if v_affected_rows = 0 then
+      raise warning '[update_like_count:DELETE] No work found with id: %', v_work_id;
+    end if;
   end if;
+  
+  return null;
+exception when others then
+  raise warning '[update_like_count] Error: % - %', SQLSTATE, SQLERRM;
   return null;
 end;
 $$;

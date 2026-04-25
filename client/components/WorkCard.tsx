@@ -59,6 +59,8 @@ export default function WorkCard({ work, onLikeToggle, onSaveToggle, isOwnProfil
     return currentLang === 'es' ? `${dd}/${mm}/${yy}` : `${mm}/${dd}/${yy}`;
   };
 
+  const isPendingLike = worksContext.isPendingLike(work.id);
+
   const handleLike = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -67,16 +69,16 @@ export default function WorkCard({ work, onLikeToggle, onSaveToggle, isOwnProfil
       return;
     }
 
+    if (isPendingLike) {
+      console.debug('[WorkCard] Like request already pending');
+      return;
+    }
+
     setLikeAnimating(true);
     setTimeout(() => setLikeAnimating(false), 400);
 
-    try {
-      const newCount = await worksContext.toggleLike(work.id, user.id);
-      onLikeToggle?.(work.id, worksContext.isLiked(work.id));
-      console.log('[WorkCard] Like toggled. New count:', newCount);
-    } catch (err) {
-      console.error('[WorkCard] Error toggling like:', err);
-    }
+    await worksContext.toggleLike(work.id, user.id);
+    onLikeToggle?.(work.id, worksContext.isLiked(work.id));
   };
 
   const handleSave = async (e: React.MouseEvent) => {
@@ -87,13 +89,13 @@ export default function WorkCard({ work, onLikeToggle, onSaveToggle, isOwnProfil
       return;
     }
 
-    try {
-      await worksContext.toggleSave(work.id, user.id);
-      onSaveToggle?.(work.id, worksContext.isSaved(work.id));
-      console.log('[WorkCard] Save toggled');
-    } catch (err) {
-      console.error('[WorkCard] Error toggling save:', err);
+    if (worksContext.isPendingSave(work.id)) {
+      console.debug('[WorkCard] Save request already pending');
+      return;
     }
+
+    await worksContext.toggleSave(work.id, user.id);
+    onSaveToggle?.(work.id, worksContext.isSaved(work.id));
   };
 
   const handleReport = (e: React.MouseEvent) => {
@@ -198,7 +200,8 @@ export default function WorkCard({ work, onLikeToggle, onSaveToggle, isOwnProfil
             {/* Like button — subtle, premium */}
             <button
               onClick={handleLike}
-              className="flex items-center gap-1 text-xs text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] transition-colors"
+              disabled={isPendingLike}
+              className={`flex items-center gap-1 text-xs text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] transition-colors ${isPendingLike ? 'opacity-50 cursor-not-allowed' : ''}`}
               aria-label="Me gusta"
             >
               <Heart
