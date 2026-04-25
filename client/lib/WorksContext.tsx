@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback, ReactNode, useRef } from 'react';
+import { createContext, useContext, useState, useCallback, ReactNode, useRef, useMemo } from 'react';
 import { supabase } from '@/lib/supabase';
 
 interface LikeSaveState {
@@ -245,7 +245,7 @@ export const WorksProvider = ({ children }: { children: ReactNode }) => {
     }));
   }, []);
 
-  const value: WorksContextType = {
+  const value: WorksContextType = useMemo(() => ({
     likedWorks: state.likedWorks,
     savedWorks: state.savedWorks,
     likeCounts: state.likeCounts,
@@ -260,7 +260,17 @@ export const WorksProvider = ({ children }: { children: ReactNode }) => {
     getLikeCount: (workId: string) => state.likeCounts[workId] || 0,
     isPendingLike: (workId: string) => state.pendingLikes.has(workId),
     isPendingSave: (workId: string) => state.pendingSaves.has(workId),
-  };
+  }), [
+    state.likedWorks,
+    state.savedWorks,
+    state.likeCounts,
+    state.pendingLikes,
+    state.pendingSaves,
+    toggleLike,
+    toggleSave,
+    loadUserInteractions,
+    updateLikeCount,
+  ]);
 
   return (
     <WorksContext.Provider value={value}>

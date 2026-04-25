@@ -110,7 +110,7 @@ export default function Gallery() {
       setLoadingMore(false);
       setTimeout(() => setShowItems(true), 100);
     }
-  }, [user?.id, worksContext]);
+  }, [user?.id]);
 
   useEffect(() => { fetchWorks(0, true); }, [fetchWorks]);
 
