@@ -14,11 +14,11 @@ interface ReportModalProps {
 }
 
 const REPORT_REASONS = [
-  { value: 'copyright', label: 'Derechos de autor', labelEn: 'Copyright infringement' },
-  { value: 'adult', label: 'Contenido +18', labelEn: 'Adult content' },
-  { value: 'offensive', label: 'Contenido ofensivo', labelEn: 'Offensive content' },
+  { value: 'porno', label: 'Contenido +18', labelEn: 'Adult content' },
+  { value: 'gore', label: 'Violencia gráfica', labelEn: 'Graphic violence' },
   { value: 'spam', label: 'Spam', labelEn: 'Spam' },
-  { value: 'other', label: 'Otro', labelEn: 'Other' },
+  { value: 'acoso', label: 'Acoso/Abuso', labelEn: 'Harassment' },
+  { value: 'otro', label: 'Otro', labelEn: 'Other' },
 ];
 
 export default function ReportModal({ 
@@ -37,17 +37,17 @@ export default function ReportModal({
   if (!isOpen) return null;
 
   const handleSubmit = async () => {
-    if (!reason || (reason === 'other' && !customReason.trim())) {
+    if (!reason || (reason === 'otro' && !customReason.trim())) {
       return;
     }
 
     setLoading(true);
     try {
-      const { error } = await supabase.from('reports').insert({
+      const { error } = await supabase.from('policy_reports').insert({
         work_id: workId,
-        user_id: userId,
+        reporter_id: userId,
         reason,
-        custom_reason: reason === 'other' ? customReason : null,
+        details: reason === 'otro' ? customReason : null,
       });
 
       if (error) throw error;
@@ -111,7 +111,7 @@ export default function ReportModal({
                     onChange={(e) => { e.stopPropagation(); setReason(e.target.value); }}
                     onClick={(e) => e.stopPropagation()}
                     disabled={loading}
-                    className="w-4 h-4"
+                    className="w-4 h-4 accent-orange-500"
                   />
                   <span className="text-sm text-[hsl(var(--foreground))]">
                     {currentLang === 'es' ? opt.label : opt.labelEn}
@@ -121,7 +121,7 @@ export default function ReportModal({
             </div>
 
             {/* Custom reason textarea */}
-            {isOtherSelected && (
+            {reason === 'otro' && (
               <textarea
                 value={customReason}
                 onChange={(e) => setCustomReason(e.target.value)}

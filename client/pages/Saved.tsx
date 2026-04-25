@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Navigate, Link } from 'react-router-dom';
 import { supabase, Work } from '@/lib/supabase';
 import { useAuth } from '@/lib/AuthContext';
+import { useWorks } from '@/lib/WorksContext';
 import { useI18n } from '@/lib/i18n';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
@@ -10,6 +11,7 @@ import { Loader2, Bookmark } from 'lucide-react';
 
 export default function Saved() {
   const { user } = useAuth();
+  const worksContext = useWorks();
   const { language } = useI18n();
   const es = language === 'es';
 
@@ -69,17 +71,8 @@ export default function Saved() {
           return;
         }
 
-        // Get likes info for current user in one query
-        const { data: userLikesData } = await supabase
-          .from('likes')
-          .select('work_id')
-          .eq('user_id', user.id)
-          .in('work_id', workIds);
-
-        const likedWorkIds = new Set(userLikesData?.map(l => l.work_id) || []);
-
-        // Transform data to proper structure
-        const worksWithCounts = worksData.map((work: any) => ({
+        // Transform data and load interactions into context
+        const transformed = worksData.map((work: any) => ({
           id: work.id,
           user_id: work.user_id,
           title: work.title,
@@ -98,19 +91,26 @@ export default function Saved() {
           created_at: work.created_at,
           updated_at: work.updated_at,
           profiles: work.profiles,
-          liked_by_me: likedWorkIds.has(work.id),
+          liked_by_me: false,
           saved_by_me: true,
-        }));
+        })) as Work[];
 
-        setWorks(worksWithCounts as Work[]);
+        setWorks(transformed);
+
+        // Load interactions into context
+        if (transformed.length > 0) {
+          await worksContext.loadUserInteractions(transformed.map(w => w.id), user.id);
+        }
       } catch (err) {
-        console.error('[Saved] Error loading works:', err);
+        console.error('[Saved] Error loading saved works:', err);
         setWorks([]);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
+
     load();
-  }, [user.id]);
+  }, [user.id, worksContext]);
 
   const handleSaveToggle = (workId: string, saved: boolean) => {
     if (!saved) setWorks(prev => prev.filter(w => w.id !== workId));

@@ -31,6 +31,7 @@ import LanguagePrompt from '@/components/LanguagePrompt';
 import Onboarding from '@/components/Onboarding';
 import GoogleSignupModal from '@/components/GoogleSignupModal';
 import { AuthProvider, useAuth } from "@/lib/AuthContext";
+import { WorksProvider } from "@/lib/WorksContext";
 
 const queryClient = new QueryClient();
 
@@ -92,14 +93,16 @@ const App = () => (
     <TooltipProvider>
       <I18nProvider>
         <AuthProvider>
-          <Toaster />
-          <Sonner />
-          <LanguagePrompt />
-          <Onboarding />
-          <GoogleSignupModal />
-          <BrowserRouter>
-            <RoutesWrapper />
-          </BrowserRouter>
+          <WorksProvider>
+            <Toaster />
+            <Sonner />
+            <LanguagePrompt />
+            <Onboarding />
+            <GoogleSignupModal />
+            <BrowserRouter>
+              <RoutesWrapper />
+            </BrowserRouter>
+          </WorksProvider>
         </AuthProvider>
       </I18nProvider>
     </TooltipProvider>

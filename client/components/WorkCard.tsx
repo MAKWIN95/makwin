@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Heart, Bookmark, Flag, Pencil, Trash2 } from 'lucide-react';
 import { supabase, Work } from '@/lib/supabase';
 import { useAuth } from '@/lib/AuthContext';
+import { useWorks } from '@/lib/WorksContext';
 import { useI18n } from '@/lib/i18n';
 import AuthModal from '@/components/AuthModal';
 import ReportModal from '@/components/ReportModal';
@@ -30,14 +31,17 @@ export default function WorkCard({ work, onLikeToggle, onSaveToggle, isOwnProfil
   const { user } = useAuth();
   const { language: currentLang } = useI18n();
   const navigate = useNavigate();
-  const [liked, setLiked] = useState(work.liked_by_me ?? false);
-  const [saved, setSaved] = useState(work.saved_by_me ?? false);
-  const [likeCount, setLikeCount] = useState(work.like_count ?? 0);
+  const worksContext = useWorks();
   const [likeAnimating, setLikeAnimating] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+
+  // Use context as source of truth
+  const liked = worksContext.isLiked(work.id);
+  const saved = worksContext.isSaved(work.id);
+  const likeCount = worksContext.getLikeCount(work.id);
 
   const isSong = work.work_type === 'cancion';
   const isPoem = work.work_type === 'poema';
@@ -67,33 +71,9 @@ export default function WorkCard({ work, onLikeToggle, onSaveToggle, isOwnProfil
     setTimeout(() => setLikeAnimating(false), 400);
 
     try {
-      if (liked) {
-        // Unlike: Delete from likes table
-        await supabase.from('likes').delete().eq('user_id', user.id).eq('work_id', work.id);
-      } else {
-        // Like: Insert into likes table
-        await supabase.from('likes').insert({ user_id: user.id, work_id: work.id });
-      }
-
-      // ISSUE 2 FIX: After like/unlike, RE-FETCH the actual like_count from DB
-      const { data: updatedWork, error: refetchError } = await supabase
-        .from('works')
-        .select('like_count')
-        .eq('id', work.id)
-        .single();
-
-      if (refetchError) {
-        console.error('[WorkCard] Error refetching like_count:', refetchError);
-        return;
-      }
-
-      // Update state with the ACTUAL DB value
-      const actualCount = updatedWork?.like_count || 0;
-      setLikeCount(actualCount);
-      setLiked(!liked);
-      
-      onLikeToggle?.(work.id, !liked);
-      console.log('[WorkCard] Like synced. New count from DB:', actualCount);
+      const newCount = await worksContext.toggleLike(work.id, user.id);
+      onLikeToggle?.(work.id, worksContext.isLiked(work.id));
+      console.log('[WorkCard] Like toggled. New count:', newCount);
     } catch (err) {
       console.error('[WorkCard] Error toggling like:', err);
     }
@@ -107,14 +87,13 @@ export default function WorkCard({ work, onLikeToggle, onSaveToggle, isOwnProfil
       return;
     }
 
-    if (saved) {
-      setSaved(false);
-      await supabase.from('saves').delete().eq('user_id', user.id).eq('work_id', work.id);
-    } else {
-      setSaved(true);
-      await supabase.from('saves').insert({ user_id: user.id, work_id: work.id });
+    try {
+      await worksContext.toggleSave(work.id, user.id);
+      onSaveToggle?.(work.id, worksContext.isSaved(work.id));
+      console.log('[WorkCard] Save toggled');
+    } catch (err) {
+      console.error('[WorkCard] Error toggling save:', err);
     }
-    onSaveToggle?.(work.id, !saved);
   };
 
   const handleReport = (e: React.MouseEvent) => {

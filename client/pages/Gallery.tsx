@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase, Work } from '@/lib/supabase';
 import { useAuth } from '@/lib/AuthContext';
+import { useWorks } from '@/lib/WorksContext';
 import { songs } from '@/lib/songs';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
@@ -14,6 +15,7 @@ const PAGE_SIZE = 40;
 
 export default function Gallery() {
   const { user } = useAuth();
+  const worksContext = useWorks();
   const { language: currentLang, t } = useI18n();
   const [works, setWorks] = useState<Work[]>([]);
   const [page, setPage] = useState(0);
@@ -88,6 +90,19 @@ export default function Gallery() {
       setWorks(prev => replace ? fetched : [...prev, ...fetched]);
       setHasMore(fetched.length === PAGE_SIZE);
       setPage(pageNum);
+
+      // Load user interactions into context (likes/saves from RPC)
+      if (user && fetched.length > 0) {
+        const workIds = fetched.map(w => w.id);
+        // Update context with like/save counts from RPC data
+        fetched.forEach(work => {
+          if (work.like_count > 0) {
+            worksContext.updateLikeCount(work.id, work.like_count);
+          }
+        });
+        // Load full user interactions
+        await worksContext.loadUserInteractions(workIds, user.id);
+      }
     } catch (err) {
       console.error('[Gallery] fetch error:', err);
     } finally {
@@ -95,7 +110,7 @@ export default function Gallery() {
       setLoadingMore(false);
       setTimeout(() => setShowItems(true), 100);
     }
-  }, [user?.id]);
+  }, [user?.id, worksContext]);
 
   useEffect(() => { fetchWorks(0, true); }, [fetchWorks]);
 

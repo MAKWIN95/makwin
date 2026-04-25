@@ -2,6 +2,7 @@ import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { supabase, Work, Profile } from '@/lib/supabase';
 import { useAuth } from '@/lib/AuthContext';
+import { useWorks } from '@/lib/WorksContext';
 import Header from '@/components/Header';
 import AuthModal from '@/components/AuthModal';
 import ReportModal from '@/components/ReportModal';
@@ -71,6 +72,7 @@ export default function WorkDetail() {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
   const { language: currentLang, t } = useI18n();
+  const worksContext = useWorks();
   
   // Check if work data was passed via navigation state (from UploadWork)
   const initialWorkData = (location.state as any)?.work || null;
@@ -80,11 +82,13 @@ export default function WorkDetail() {
   const [loading, setLoading] = useState(!initialWorkData);
   const [error, setError] = useState('');
   const [retrying, setRetrying] = useState(0);
-  const [liked, setLiked] = useState(false);
-  const [saved, setSaved] = useState(false);
-  const [likeCount, setLikeCount] = useState(initialWorkData?.like_count || 0);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
+
+  // Use context as source of truth
+  const liked = id ? worksContext.isLiked(id) : false;
+  const saved = id ? worksContext.isSaved(id) : false;
+  const likeCount = id ? worksContext.getLikeCount(id) : 0;
 
   useEffect(() => {
     const fetchWork = async () => {
@@ -148,7 +152,8 @@ export default function WorkDetail() {
 
         console.log('[WorkDetail] Work loaded:', workData.id);
         setWork(workData as unknown as Work);
-        setLikeCount(workData.like_count || 0);
+        // Update context with like count
+        worksContext.updateLikeCount(workData.id, workData.like_count || 0);
 
         // ISSUE 1 FIX: Fetch profile SEPARATELY in a second query
         const { data: profileData, error: profileError } = await supabase
@@ -164,24 +169,9 @@ export default function WorkDetail() {
           console.warn('[WorkDetail] Profile fetch failed:', profileError);
         }
 
-        // Check if user liked/saved this work
-        if (user) {
-          const { data: likeData } = await supabase
-            .from('likes')
-            .select('id')
-            .eq('user_id', user.id)
-            .eq('work_id', id)
-            .maybeSingle();
-
-          const { data: saveData } = await supabase
-            .from('saves')
-            .select('id')
-            .eq('user_id', user.id)
-            .eq('work_id', id)
-            .maybeSingle();
-
-          setLiked(!!likeData);
-          setSaved(!!saveData);
+        // Check if user liked/saved this work (load into context)
+        if (user && workData.id) {
+          await worksContext.loadUserInteractions([workData.id], user.id);
         }
       } catch (err: any) {
         console.error('[WorkDetail] Error:', err);
@@ -202,39 +192,8 @@ export default function WorkDetail() {
     if (!work) return;
 
     try {
-      if (liked) {
-        // Unlike: Delete from likes table
-        await supabase
-          .from('likes')
-          .delete()
-          .eq('user_id', user.id)
-          .eq('work_id', work.id);
-      } else {
-        // Like: Insert into likes table
-        await supabase
-          .from('likes')
-          .insert({ user_id: user.id, work_id: work.id });
-      }
-      
-      // ISSUE 2 FIX: After like/unlike, RE-FETCH the actual like_count from DB
-      // Don't rely on local state calculation
-      const { data: updatedWork, error: refetchError } = await supabase
-        .from('works')
-        .select('like_count')
-        .eq('id', work.id)
-        .single();
-
-      if (refetchError) {
-        console.error('[WorkDetail] Error refetching like_count:', refetchError);
-        return;
-      }
-
-      // Update state with the ACTUAL DB value
-      const actualCount = updatedWork?.like_count || 0;
-      setLikeCount(actualCount);
-      setLiked(!liked);
-      
-      console.log('[WorkDetail] Like synced. New count from DB:', actualCount);
+      await worksContext.toggleLike(work.id, user.id);
+      console.log('[WorkDetail] Like toggled via context');
     } catch (err) {
       console.error('[WorkDetail] Error toggling like:', err);
     }
@@ -248,21 +207,8 @@ export default function WorkDetail() {
     if (!work) return;
 
     try {
-      if (saved) {
-        // Unsave
-        await supabase
-          .from('saves')
-          .delete()
-          .eq('user_id', user.id)
-          .eq('work_id', work.id);
-        setSaved(false);
-      } else {
-        // Save
-        await supabase
-          .from('saves')
-          .insert({ user_id: user.id, work_id: work.id });
-        setSaved(true);
-      }
+      await worksContext.toggleSave(work.id, user.id);
+      console.log('[WorkDetail] Save toggled via context');
     } catch (err) {
       console.error('[WorkDetail] Error toggling save:', err);
     }
