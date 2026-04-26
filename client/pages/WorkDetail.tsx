@@ -304,19 +304,25 @@ export default function WorkDetail() {
           )}
 
           {/* Media */}
-          {work.work_type === 'música' && work.file_url && (
+          {(work.work_type === 'cancion' || work.work_type === 'poema') && work.file_url && (
             <div className="mb-8">
               <AudioPlayer src={work.file_url} />
             </div>
           )}
 
-          {work.work_type === 'visual' && work.file_url && (
+          {(work.work_type === 'video') && work.file_url && (
+            <div className="mb-8 rounded-lg overflow-hidden">
+              <video src={work.file_url} controls className="w-full max-h-96 object-cover" />
+            </div>
+          )}
+
+          {(work.work_type === 'pintura' || work.work_type === 'fotografia') && work.file_url && (
             <div className="mb-8 rounded-lg overflow-hidden">
               <img src={work.file_url} alt={work.title} className="w-full max-h-96 object-cover" />
             </div>
           )}
 
-          {work.lyrics && work.work_type === 'música' && (
+          {work.lyrics && work.work_type === 'cancion' && (
             <div className="bg-[hsl(var(--card))] border border-[hsl(var(--border))] rounded-lg p-6 mb-8">
               <h2 className="text-xl font-semibold text-[hsl(var(--foreground))] mb-4">Letras</h2>
               <p className="text-[hsl(var(--muted-foreground))] whitespace-pre-wrap">{work.lyrics}</p>

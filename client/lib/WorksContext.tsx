@@ -128,18 +128,15 @@ export const WorksProvider = ({ children }: { children: ReactNode }) => {
         }
       }
 
-      // CRITICAL FIX: Add delay before refetch to allow trigger execution
-      // Supabase trigger for updating like_count needs time to execute after insert/delete
-      await new Promise(resolve => setTimeout(resolve, 250));
+      // CRITICAL FIX: Count directly from likes table (source of truth) instead of works.like_count
+      // This avoids relying on trigger execution and timing issues
+      const { count, error: countError } = await supabase
+        .from('likes')
+        .select('*', { count: 'exact', head: true })
+        .eq('work_id', workId);
 
-      const { data, error: fetchError } = await supabase
-        .from('works')
-        .select('like_count')
-        .eq('id', workId)
-        .single();
-
-      if (fetchError || !data) {
-        console.error('[WorksContext:toggleLike] Fetch count error:', fetchError);
+      if (countError || count === null) {
+        console.error('[WorksContext:toggleLike] Count error:', countError);
         setState(prev => ({
           ...prev,
           pendingLikes: new Set([...prev.pendingLikes].filter(id => id !== workId)),
@@ -147,7 +144,7 @@ export const WorksProvider = ({ children }: { children: ReactNode }) => {
         return optimisticCount;
       }
 
-      const actualCount = data.like_count;
+      const actualCount = count;
 
       setState(prev => ({
         ...prev,

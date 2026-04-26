@@ -110,24 +110,11 @@ export default function Saved() {
     };
 
     load();
-  }, [user.id, worksContext]);
+  }, [user.id]);
 
   const handleSaveToggle = (workId: string, saved: boolean) => {
     if (!saved) setWorks(prev => prev.filter(w => w.id !== workId));
   };
-
-  // CRITICAL FIX: Sync when user unsaves from gallery or elsewhere
-  // Check every time context savedWorks changes what's the actual state
-  useEffect(() => {
-    if (works.length === 0) return; // Skip if no works loaded yet
-    
-    // Filter out any works that were unsaved elsewhere
-    const filteredWorks = works.filter(work => worksContext.isSaved(work.id));
-    
-    if (filteredWorks.length !== works.length) {
-      setWorks(filteredWorks);
-    }
-  }, [Array.from(worksContext.savedWorks).sort().join(',')]);  // Use sorted array for stable dependency
 
   return (
     <div className="min-h-screen bg-[hsl(var(--background))]">
