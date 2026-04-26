@@ -113,7 +113,10 @@ export default function Saved() {
   }, [user.id]);
 
   const handleSaveToggle = (workId: string, saved: boolean) => {
-    if (!saved) setWorks(prev => prev.filter(w => w.id !== workId));
+    // Optimistic update: remove from local state when unsaved
+    if (!saved) {
+      setWorks(prev => prev.filter(w => w.id !== workId));
+    }
   };
 
   return (
@@ -143,11 +146,9 @@ export default function Saved() {
             </Link>
           </div>
         ) : (
-          <div className="columns-2 sm:columns-3 lg:columns-4 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4 auto-rows-max">
             {works.map(work => (
-              <div key={work.id} className="inline-block w-full mb-4 break-inside-avoid">
-                <WorkCard work={work} onSaveToggle={handleSaveToggle} />
-              </div>
+              <WorkCard key={work.id} work={work} onSaveToggle={handleSaveToggle} />
             ))}
           </div>
         )}

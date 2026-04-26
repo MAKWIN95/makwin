@@ -57,18 +57,21 @@ export const WorksProvider = ({ children }: { children: ReactNode }) => {
         .eq('user_id', userId)
         .in('work_id', workIds);
 
-      const { data: worksData } = await supabase
-        .from('works')
-        .select('id, like_count')
-        .in('id', workIds);
+      // CRITICAL: Count likes from table, NOT from works.like_count
+      const likeCounts: Record<string, number> = {};
+      for (const workId of workIds) {
+        const { count, error } = await supabase
+          .from('likes')
+          .select('*', { count: 'exact', head: true })
+          .eq('work_id', workId);
+        likeCounts[workId] = (count || 0);
+      }
 
       setState(prev => ({
         ...prev,
         likedWorks: new Set(likesData?.map(l => l.work_id) || []),
         savedWorks: new Set(savesData?.map(s => s.work_id) || []),
-        likeCounts: Object.fromEntries(
-          (worksData || []).map(w => [w.id, w.like_count])
-        ),
+        likeCounts: likeCounts,
       }));
     } catch (err) {
       console.error('[WorksContext:loadUserInteractions] Error:', err);
@@ -128,9 +131,22 @@ export const WorksProvider = ({ children }: { children: ReactNode }) => {
         }
       }
 
-      // CRITICAL FIX: Trust optimistic update - don't refetch COUNT
-      // The count in optimisticCount is deterministic: +1 or -1 based on action
-      // This prevents race conditions and multiple COUNT queries
+      // After successful insert/delete, reconcile in background (500ms)
+      const reconcileTimer = setTimeout(async () => {
+        const { count: realCount } = await supabase
+          .from('likes')
+          .select('*', { count: 'exact', head: true })
+          .eq('work_id', workId);
+        
+        const actualCount = realCount || 0;
+        if (actualCount !== optimisticCount) {
+          setState(prev => ({
+            ...prev,
+            likeCounts: { ...prev.likeCounts, [workId]: actualCount },
+          }));
+        }
+      }, 500);
+
       setState(prev => ({
         ...prev,
         pendingLikes: new Set([...prev.pendingLikes].filter(id => id !== workId)),

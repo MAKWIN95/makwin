@@ -87,13 +87,10 @@ export default function Gallery() {
         saved_by_me: item.saved_by_me || false,
       })) as Work[];
 
-      // Update context with like/save counts from RPC data only
+      // Update context with counts from RPC
       if (user && fetched.length > 0 && pageNum === 0) {
         const workIds = fetched.map(w => w.id);
-        // Just update counts from RPC, don't load interactions (avoids extra COUNT queries)
-        fetched.forEach(work => {
-          worksContext.updateLikeCount(work.id, work.like_count || 0);
-        });
+        await worksContext.loadUserInteractions(workIds, user.id);
       }
 
       // THEN update gallery state after context is ready
@@ -294,26 +291,24 @@ export default function Gallery() {
               </div>
             )}
 
-            {/* Works masonry grid */}
+            {/* Works masonry grid - stable layout */}
             {!loadingInitial && filtered.length > 0 && (
-              <div className="columns-2 sm:columns-3 lg:columns-4 xl:columns-5 2xl:columns-6 gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4 auto-rows-max">
                 {filtered.map((item: any) => {
                   const isSong = item._isSong;
                   const linkPath = isSong ? `/song/${item._songSlug ?? item.id}` : `/work/${item.id}`;
 
                   if (isSong) {
-                    // Render legacy song cards
+                    // Render song cards
                     return (
                       <Link key={`song-${item.id}`}
                         to={linkPath}
-                        className={`group inline-block w-full mb-4 break-inside-avoid transition-all duration-300 ${showItems ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}`}>
-                        <div className="overflow-hidden rounded-2xl glass-effect transition-all duration-300 group-hover:scale-[1.02] group-hover:shadow-lg">
-                          {item.cover_url
-                            ? <img src={item.cover_url} alt={item.title} className="w-full h-auto object-cover block" loading="lazy" />
-                            : <div className="flex items-center justify-center min-h-40 text-4xl">🎵</div>
-                          }
-                        </div>
-                        <div className="mt-2 px-1">
+                        className={`group relative overflow-hidden rounded-2xl glass-effect transition-all duration-300 ${showItems ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}`}>
+                        {item.cover_url
+                          ? <img src={item.cover_url} alt={item.title} className="w-full h-48 object-cover" loading="lazy" />
+                          : <div className="flex items-center justify-center w-full h-48 text-4xl bg-[hsl(var(--muted))]\">🎵</div>
+                        }
+                        <div className="p-2">
                           <p className="text-sm font-medium text-[hsl(var(--foreground))] truncate">{item.title}</p>
                           <p className="text-xs text-[hsl(var(--muted-foreground))]">MAKWIN · {formatDate(item)}</p>
                         </div>
