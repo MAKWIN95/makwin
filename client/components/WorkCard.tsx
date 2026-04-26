@@ -201,7 +201,7 @@ export default function WorkCard({ work, onLikeToggle, onSaveToggle, isOwnProfil
             <button
               onClick={handleLike}
               disabled={isPendingLike}
-              className={`flex items-center gap-1 text-xs text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] transition-colors ${isPendingLike ? 'opacity-50 cursor-not-allowed' : ''}`}
+              className={`flex items-center gap-1 text-xs text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] transition-colors ${isPendingLike ? 'opacity-50' : ''}`}
               aria-label="Me gusta"
             >
               <Heart

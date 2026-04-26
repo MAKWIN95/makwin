@@ -116,6 +116,14 @@ export default function Saved() {
     if (!saved) setWorks(prev => prev.filter(w => w.id !== workId));
   };
 
+  // Sync saved works with context changes
+  useEffect(() => {
+    // When savedWorks changes in context, update local state to match
+    setWorks(prev => 
+      prev.filter(work => worksContext.isSaved(work.id))
+    );
+  }, [worksContext.savedWorks, worksContext]);
+
   return (
     <div className="min-h-screen bg-[hsl(var(--background))]">
       <Header showSearchCentered />

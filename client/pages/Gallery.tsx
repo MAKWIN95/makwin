@@ -87,22 +87,23 @@ export default function Gallery() {
         saved_by_me: item.saved_by_me || false,
       })) as Work[];
 
+      // CRITICAL FIX: Update context FIRST before rendering to ensure consistent state
+      if (user && fetched.length > 0) {
+        const workIds = fetched.map(w => w.id);
+        // Update context with like/save counts and liked/saved status from RPC data
+        fetched.forEach(work => {
+          worksContext.updateLikeCount(work.id, work.like_count || 0);
+        });
+        // Load full interactions only on first page to establish baseline
+        if (pageNum === 0) {
+          await worksContext.loadUserInteractions(workIds, user.id);
+        }
+      }
+
+      // THEN update gallery state after context is ready
       setWorks(prev => replace ? fetched : [...prev, ...fetched]);
       setHasMore(fetched.length === PAGE_SIZE);
       setPage(pageNum);
-
-      // Load user interactions into context (likes/saves from RPC)
-      if (user && fetched.length > 0) {
-        const workIds = fetched.map(w => w.id);
-        // Update context with like/save counts from RPC data
-        fetched.forEach(work => {
-          if (work.like_count > 0) {
-            worksContext.updateLikeCount(work.id, work.like_count);
-          }
-        });
-        // Load full user interactions
-        await worksContext.loadUserInteractions(workIds, user.id);
-      }
     } catch (err) {
       console.error('[Gallery] fetch error:', err);
     } finally {
