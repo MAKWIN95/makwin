@@ -265,8 +265,8 @@ export default function WorkDetail() {
         </button>
 
         {work.cover_url && (
-          <div className="mb-8 rounded-lg overflow-hidden">
-            <img src={work.cover_url} alt={work.title} className="w-full h-96 object-cover" />
+          <div className="mb-8 rounded-lg overflow-hidden bg-[hsl(var(--muted))]">
+            <img src={work.cover_url} alt={work.title} className="w-full h-auto object-contain" />
           </div>
         )}
 
@@ -311,14 +311,14 @@ export default function WorkDetail() {
           )}
 
           {(work.work_type === 'video') && work.file_url && (
-            <div className="mb-8 rounded-lg overflow-hidden">
-              <video src={work.file_url} controls className="w-full max-h-96 object-cover" />
+            <div className="mb-8 rounded-lg overflow-hidden bg-[hsl(var(--muted))]">
+              <video src={work.file_url} controls className="w-full h-auto object-contain" />
             </div>
           )}
 
           {(work.work_type === 'pintura' || work.work_type === 'fotografia') && work.file_url && (
-            <div className="mb-8 rounded-lg overflow-hidden">
-              <img src={work.file_url} alt={work.title} className="w-full max-h-96 object-cover" />
+            <div className="mb-8 rounded-lg overflow-hidden bg-[hsl(var(--muted))]">
+              <img src={work.file_url} alt={work.title} className="w-full h-auto object-contain" />
             </div>
           )}
 

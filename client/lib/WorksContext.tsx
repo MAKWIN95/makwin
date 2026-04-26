@@ -128,32 +128,16 @@ export const WorksProvider = ({ children }: { children: ReactNode }) => {
         }
       }
 
-      // CRITICAL FIX: Count directly from likes table (source of truth) instead of works.like_count
-      // This avoids relying on trigger execution and timing issues
-      const { count, error: countError } = await supabase
-        .from('likes')
-        .select('*', { count: 'exact', head: true })
-        .eq('work_id', workId);
-
-      if (countError || count === null) {
-        console.error('[WorksContext:toggleLike] Count error:', countError);
-        setState(prev => ({
-          ...prev,
-          pendingLikes: new Set([...prev.pendingLikes].filter(id => id !== workId)),
-        }));
-        return optimisticCount;
-      }
-
-      const actualCount = count;
-
+      // CRITICAL FIX: Trust optimistic update - don't refetch COUNT
+      // The count in optimisticCount is deterministic: +1 or -1 based on action
+      // This prevents race conditions and multiple COUNT queries
       setState(prev => ({
         ...prev,
-        likeCounts: { ...prev.likeCounts, [workId]: actualCount },
         pendingLikes: new Set([...prev.pendingLikes].filter(id => id !== workId)),
       }));
 
-      console.debug(`[WorksContext:toggleLike] Work ${workId} (${isLiked ? 'unlike' : 'like'}): count=${actualCount}`);
-      return actualCount;
+      console.debug(`[WorksContext:toggleLike] Work ${workId} (${isLiked ? 'unlike' : 'like'}): count=${optimisticCount}`);
+      return optimisticCount;
     } catch (err) {
       console.error('[WorksContext:toggleLike] Error:', err);
 

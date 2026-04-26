@@ -114,12 +114,7 @@ export default function WorkCard({ work, onLikeToggle, onSaveToggle, isOwnProfil
     <>
     <Link to={linkPath} state={{ from: 'gallery' }} className="group block">
       {/* Image/Media area */}
-      <div className="relative overflow-hidden rounded-2xl glass-effect transition-all duration-300 ease-out transform will-change-transform group-hover:scale-[1.02] group-hover:shadow-xl">
-
-        {/* Work type icon badge — top left */}
-        <div className="absolute top-2 left-2 z-10 w-6 h-6 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center text-xs">
-          {WORK_TYPE_ICONS[work.work_type] ?? '🖼️'}
-        </div>
+      <div className="relative overflow-hidden rounded-2xl glass-effect transition-all duration-300 ease-out transform will-change-transform group-hover:scale-[1.02] group-hover:shadow-xl bg-[hsl(var(--muted))]">
 
         {/* Save button — top right */}
         <button
@@ -137,7 +132,7 @@ export default function WorkCard({ work, onLikeToggle, onSaveToggle, isOwnProfil
           <img
             src={work.cover_url ?? work.file_url ?? ''}
             alt={work.title}
-            className="w-full h-auto object-cover block"
+            className="w-full h-auto object-contain block"
             loading="lazy"
           />
         ) : isPoem ? (

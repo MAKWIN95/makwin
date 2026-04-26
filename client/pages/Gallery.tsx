@@ -87,17 +87,13 @@ export default function Gallery() {
         saved_by_me: item.saved_by_me || false,
       })) as Work[];
 
-      // CRITICAL FIX: Update context FIRST before rendering to ensure consistent state
-      if (user && fetched.length > 0) {
+      // Update context with like/save counts from RPC data only
+      if (user && fetched.length > 0 && pageNum === 0) {
         const workIds = fetched.map(w => w.id);
-        // Update context with like/save counts and liked/saved status from RPC data
+        // Just update counts from RPC, don't load interactions (avoids extra COUNT queries)
         fetched.forEach(work => {
           worksContext.updateLikeCount(work.id, work.like_count || 0);
         });
-        // Load full interactions only on first page to establish baseline
-        if (pageNum === 0) {
-          await worksContext.loadUserInteractions(workIds, user.id);
-        }
       }
 
       // THEN update gallery state after context is ready
