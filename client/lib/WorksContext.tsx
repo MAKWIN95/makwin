@@ -128,6 +128,10 @@ export const WorksProvider = ({ children }: { children: ReactNode }) => {
         }
       }
 
+      // CRITICAL FIX: Add delay before refetch to allow trigger execution
+      // Supabase trigger for updating like_count needs time to execute after insert/delete
+      await new Promise(resolve => setTimeout(resolve, 250));
+
       const { data, error: fetchError } = await supabase
         .from('works')
         .select('like_count')

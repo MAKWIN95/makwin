@@ -60,7 +60,7 @@ export default function Saved() {
             language,
             created_at,
             updated_at,
-            profiles!user_id(id, username, display_name, avatar_url, bio, website, instagram_url, tiktok_url, is_verified, is_banned, language_preference)
+            profiles!user_id(id, username, display_name, avatar_url, bio, website, instagram_url, tiktok_url, is_verified, is_banned)
           `)
           .in('id', workIds)
           .order('created_at', { ascending: false });
@@ -116,13 +116,18 @@ export default function Saved() {
     if (!saved) setWorks(prev => prev.filter(w => w.id !== workId));
   };
 
-  // Sync saved works with context changes
+  // CRITICAL FIX: Sync when user unsaves from gallery or elsewhere
+  // Check every time context savedWorks changes what's the actual state
   useEffect(() => {
-    // When savedWorks changes in context, update local state to match
-    setWorks(prev => 
-      prev.filter(work => worksContext.isSaved(work.id))
-    );
-  }, [worksContext.savedWorks, worksContext]);
+    if (works.length === 0) return; // Skip if no works loaded yet
+    
+    // Filter out any works that were unsaved elsewhere
+    const filteredWorks = works.filter(work => worksContext.isSaved(work.id));
+    
+    if (filteredWorks.length !== works.length) {
+      setWorks(filteredWorks);
+    }
+  }, [Array.from(worksContext.savedWorks).sort().join(',')]);  // Use sorted array for stable dependency
 
   return (
     <div className="min-h-screen bg-[hsl(var(--background))]">

@@ -158,7 +158,7 @@ export default function WorkDetail() {
         // ISSUE 1 FIX: Fetch profile SEPARATELY in a second query
         const { data: profileData, error: profileError } = await supabase
           .from('profiles')
-          .select('id, username, display_name, avatar_url, bio, website, instagram_url, tiktok_url, is_verified, is_banned, language_preference')
+          .select('id, username, display_name, avatar_url, bio, website, instagram_url, tiktok_url, is_verified, is_banned')
           .eq('id', workData.user_id)
           .single();
 

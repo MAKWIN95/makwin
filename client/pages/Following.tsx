@@ -69,7 +69,7 @@ export default function Following() {
           language,
           created_at,
           updated_at,
-          profiles!user_id(id, username, display_name, bio, avatar_url, website, instagram_url, tiktok_url, is_verified, is_banned, language_preference)
+          profiles!user_id(id, username, display_name, bio, avatar_url, website, instagram_url, tiktok_url, is_verified, is_banned)
         `)
         .in('user_id', followingIds)
         .eq('status', 'published')
