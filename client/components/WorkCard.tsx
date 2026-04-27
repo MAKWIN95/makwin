@@ -114,7 +114,7 @@ export default function WorkCard({ work, onLikeToggle, onSaveToggle, isOwnProfil
     <>
     <Link to={linkPath} state={{ from: 'gallery' }} className="group block">
       {/* Image/Media area */}
-      <div className="relative overflow-hidden rounded-2xl glass-effect transition-all duration-300 ease-out transform will-change-transform group-hover:scale-[1.02] group-hover:shadow-xl bg-[hsl(var(--muted))] aspect-square">
+      <div className="relative overflow-hidden rounded-2xl glass-effect transition-all duration-300 ease-out transform will-change-transform group-hover:scale-[1.02] group-hover:shadow-xl bg-[hsl(var(--muted))] aspect-square max-h-96">
 
         {/* Save button — top right */}
         <button

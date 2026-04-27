@@ -6,6 +6,7 @@ import { useI18n } from '@/lib/i18n';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import WorkCard from '@/components/WorkCard';
+import FollowersModal from '@/components/FollowersModal';
 import { Camera, Check, X, ExternalLink, Loader2 } from 'lucide-react';
 
 export default function UserProfile() {
@@ -26,6 +27,7 @@ export default function UserProfile() {
   const [editError, setEditError] = useState('');
   const [saving, setSaving] = useState(false);
   const [avatarUploading, setAvatarUploading] = useState(false);
+  const [showFollowersModal, setShowFollowersModal] = useState<'followers' | 'following' | null>(null);
 
   const isOwnProfile = myProfile?.username === username;
 
@@ -301,8 +303,12 @@ export default function UserProfile() {
                 {/* Stats */}
                 <div className="flex gap-6 justify-center sm:justify-start text-sm mb-4">
                   <span><strong>{works.length}</strong> <span className="text-[hsl(var(--muted-foreground))]">{es ? 'obras' : 'works'}</span></span>
-                  <span><strong>{followerCount}</strong> <span className="text-[hsl(var(--muted-foreground))]">{es ? 'seguidores' : 'followers'}</span></span>
-                  <span><strong>{followingCount}</strong> <span className="text-[hsl(var(--muted-foreground))]">{es ? 'siguiendo' : 'following'}</span></span>
+                  <button onClick={() => setShowFollowersModal('followers')} className="hover:text-[hsl(var(--foreground))] transition-colors cursor-pointer">
+                    <strong>{followerCount}</strong> <span className="text-[hsl(var(--muted-foreground))]">{es ? 'seguidores' : 'followers'}</span>
+                  </button>
+                  <button onClick={() => setShowFollowersModal('following')} className="hover:text-[hsl(var(--foreground))] transition-colors cursor-pointer">
+                    <strong>{followingCount}</strong> <span className="text-[hsl(var(--muted-foreground))]">{es ? 'siguiendo' : 'following'}</span>
+                  </button>
                 </div>
 
                 {/* Actions */}
@@ -374,6 +380,17 @@ export default function UserProfile() {
           </div>
         )}
       </main>
+
+      {profile && showFollowersModal && (
+        <FollowersModal
+          isOpen={!!showFollowersModal}
+          onClose={() => setShowFollowersModal(null)}
+          userId={profile.id}
+          type={showFollowersModal}
+          userName={profile.display_name || profile.username}
+        />
+      )}
+
       <Footer />
     </div>
   );

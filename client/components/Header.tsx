@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/custom-dialog";
 import LanguageSelector from "./LanguageSelector";
+import NavMenu from "./NavMenu";
 import { songs } from "@/lib/songs";
 import { Filter, ArrowLeft, Home, Upload, Bookmark, User, LogOut, Settings, Heart, Moon, Sun } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
@@ -66,7 +67,8 @@ export default function Header({ showSearch = true, showSearchCentered = false, 
         <div className="w-full relative grid grid-cols-3 items-center gap-2 sm:gap-4">
 
           {/* Left: navigation + logo */}
-          <div className="col-span-1 flex items-center gap-1 sm:gap-2 min-w-0">
+          <div className="col-span-1 flex items-center gap-1 sm:gap-2 min-w-0 relative">
+            <NavMenu />
             <button onClick={handleGoHome} className="p-2 rounded-lg hover:bg-[hsl(var(--muted))] transition-colors shrink-0" aria-label="Home">
               <Home className="w-4 h-4 text-[hsl(var(--muted-foreground))]" />
             </button>
