@@ -57,8 +57,9 @@ const RoutesWrapper = () => {
 
   return (
     <Routes>
-      {/* Public */}
-      <Route path="/" element={<Landing />} />
+      {/* Main: Gallery is now home */}
+      <Route path="/" element={<Gallery />} />
+      <Route path="/home" element={<Landing />} />
       <Route path="/galeria" element={<Gallery />} />
       <Route path="/merch" element={<Merch />} />
       <Route path="/marketplace" element={<Marketplace />} />
@@ -79,8 +80,8 @@ const RoutesWrapper = () => {
 
       {/* Legacy redirects */}
       <Route path="/enviar-obra" element={<Navigate to="/subir-obra" replace />} />
-      <Route path="/obras-enviadas" element={<Navigate to="/galeria" replace />} />
-      <Route path="/admin" element={<Navigate to="/galeria" replace />} />
+      <Route path="/obras-enviadas" element={<Navigate to="/" replace />} />
+      <Route path="/admin" element={<Navigate to="/" replace />} />
 
       {/* 404 */}
       <Route path="*" element={<NotFound />} />

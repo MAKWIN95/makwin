@@ -258,22 +258,40 @@ export default function WorkDetail() {
         {/* 2-Column Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12">
           {/* LEFT: Media (60%) */}
-          <div className="lg:col-span-2">
+          <div className="lg:col-span-2 space-y-6">
+            {/* Primary Image/Cover */}
             {work.cover_url && (
-              <div className="rounded-xl overflow-hidden bg-[hsl(var(--muted))] flex items-center justify-center" style={{ maxHeight: '80vh' }}>
-                <img src={work.cover_url} alt={work.title} className="w-full h-full object-contain" />
+              <div className="rounded-xl overflow-hidden bg-[hsl(var(--muted))] flex items-center justify-center" style={{ maxHeight: '80vh', aspectRatio: '4/5' }}>
+                <img src={work.cover_url} alt={work.title} className="w-full h-full object-contain" loading="lazy" />
               </div>
             )}
 
+            {/* Audio - Canción/Poema */}
             {(work.work_type === 'cancion' || work.work_type === 'poema') && work.file_url && (
-              <div className="mt-8">
-                <AudioPlayer src={work.file_url} />
+              <AudioPlayer src={work.file_url} />
+            )}
+
+            {/* Video */}
+            {work.work_type === 'video' && work.file_url && (
+              <div className="rounded-xl overflow-hidden bg-[hsl(var(--muted))] flex items-center justify-center" style={{ maxHeight: '80vh', aspectRatio: '16/9' }}>
+                <video src={work.file_url} controls className="w-full h-full object-contain" />
               </div>
             )}
 
-            {work.work_type === 'video' && work.file_url && (
+            {/* Pintura/Fotografia secondary image */}
+            {(work.work_type === 'pintura' || work.work_type === 'fotografia') && work.file_url && (
               <div className="rounded-xl overflow-hidden bg-[hsl(var(--muted))] flex items-center justify-center" style={{ maxHeight: '80vh' }}>
-                <video src={work.file_url} controls className="w-full h-full object-contain" />
+                <img src={work.file_url} alt={work.title} className="w-full h-full object-contain" loading="lazy" />
+              </div>
+            )}
+
+            {/* Fallback if no media */}
+            {!work.cover_url && !work.file_url && (
+              <div className="rounded-xl overflow-hidden bg-gradient-to-br from-[hsl(var(--muted))] to-[hsl(var(--muted))]  flex items-center justify-center" style={{ height: '500px' }}>
+                <div className="flex flex-col items-center gap-3">
+                  <span className="text-6xl">🎨</span>
+                  <p className="text-[hsl(var(--muted-foreground))] text-sm">{currentLang === 'es' ? 'Sin media' : 'No media'}</p>
+                </div>
               </div>
             )}
           </div>
