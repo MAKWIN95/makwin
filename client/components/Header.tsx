@@ -76,7 +76,7 @@ export default function Header({ showSearch = true, showSearchCentered = false, 
               <ArrowLeft className="w-4 h-4 text-[hsl(var(--muted-foreground))]" />
             </button>
             <div onClick={handleMakwinClick} className="cursor-pointer flex items-center gap-2 ml-1 min-w-0">
-              <span className={`font-black tracking-widest uppercase text-[hsl(var(--foreground))] hover:opacity-80 transition-opacity whitespace-nowrap leading-tight ${hideSearch ? 'text-base sm:text-lg' : 'text-lg sm:text-xl md:text-2xl'}`}>
+              <span className={`font-black tracking-widest uppercase text-[hsl(var(--foreground))] hover:opacity-80 transition-opacity duration-200 whitespace-nowrap leading-tight ${hideSearch ? 'text-base sm:text-lg' : 'text-lg sm:text-xl md:text-2xl'}`}>
                 MAKWIN
               </span>
               {breadcrumb && <>

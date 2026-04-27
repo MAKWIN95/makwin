@@ -3,9 +3,11 @@ import { useState, useEffect } from 'react';
 import { supabase, Work, Profile } from '@/lib/supabase';
 import { useAuth } from '@/lib/AuthContext';
 import { useWorks } from '@/lib/WorksContext';
+import { useStarsBackground } from '@/hooks/use-stars-background';
 import Header from '@/components/Header';
 import AuthModal from '@/components/AuthModal';
 import ReportModal from '@/components/ReportModal';
+import FollowButton from '@/components/FollowButton';
 import { Button } from '@/components/ui/button';
 import { Heart, Bookmark, Share2, Flag, Loader2, ArrowLeft } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
@@ -74,6 +76,9 @@ export default function WorkDetail() {
   const { language: currentLang, t } = useI18n();
   const worksContext = useWorks();
   
+  // Initialize stars background animation
+  useStarsBackground('detail-stars-background');
+  
   // Check if work data was passed via navigation state (from UploadWork)
   const initialWorkData = (location.state as any)?.work || null;
   
@@ -84,6 +89,7 @@ export default function WorkDetail() {
   const [retrying, setRetrying] = useState(0);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
+  const [isFollowingAuthor, setIsFollowingAuthor] = useState(false);
 
   // Use context as source of truth
   const liked = id ? worksContext.isLiked(id) : false;
@@ -184,6 +190,27 @@ export default function WorkDetail() {
     fetchWork();
   }, [id, user]);
 
+  // Check if user is following the author
+  useEffect(() => {
+    if (!user || !author) {
+      setIsFollowingAuthor(false);
+      return;
+    }
+
+    const checkFollowStatus = async () => {
+      const { data } = await supabase
+        .from('follows')
+        .select('id')
+        .eq('follower_id', user.id)
+        .eq('following_id', author.id)
+        .limit(1);
+
+      setIsFollowingAuthor(data && data.length > 0);
+    };
+
+    checkFollowStatus();
+  }, [user, author]);
+
   const isPendingLike = id ? worksContext.isPendingLike(id) : false;
   const isPendingSave = id ? worksContext.isPendingSave(id) : false;
 
@@ -243,7 +270,9 @@ export default function WorkDetail() {
   }
 
   return (
-    <div className="min-h-screen bg-[hsl(var(--background))]">
+    <div className="min-h-screen bg-[hsl(var(--background))] relative">
+      <div id="detail-stars-background" className="stars-background" />
+      <div className="relative z-10">
       <Header hideSearch breadcrumb={work.title} />
 
       <main className="w-full max-w-7xl mx-auto px-4 py-8">
@@ -308,19 +337,29 @@ export default function WorkDetail() {
 
             {author && (
               <div className="border-t border-b border-[hsl(var(--border))] py-4">
-                <Link to={`/u/${author.username}`} className="flex items-center gap-3 hover:opacity-80">
-                  <div className="w-12 h-12 rounded-full overflow-hidden bg-[hsl(var(--muted))]">
-                    {author.avatar_url ? (
-                      <img src={author.avatar_url} alt={author.display_name} className="w-full h-full object-cover" />
-                    ) : (
-                      <span className="text-sm font-medium flex items-center justify-center w-full h-full">{author.display_name?.charAt(0)}</span>
-                    )}
-                  </div>
-                  <div>
-                    <p className="font-semibold text-[hsl(var(--foreground))]">{author.display_name || author.username}</p>
-                    <p className="text-sm text-[hsl(var(--muted-foreground))]">@{author.username}</p>
-                  </div>
-                </Link>
+                <div className="flex items-center justify-between gap-4">
+                  <Link to={`/u/${author.username}`} className="flex items-center gap-3 hover:opacity-70 transition-opacity duration-250 flex-1 min-w-0">
+                    <div className="w-12 h-12 rounded-full overflow-hidden bg-[hsl(var(--muted))] flex-shrink-0">
+                      {author.avatar_url ? (
+                        <img src={author.avatar_url} alt={author.display_name} className="w-full h-full object-cover" />
+                      ) : (
+                        <span className="text-sm font-medium flex items-center justify-center w-full h-full">{author.display_name?.charAt(0)}</span>
+                      )}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="font-semibold text-[hsl(var(--foreground))] truncate">{author.display_name || author.username}</p>
+                      <p className="text-sm text-[hsl(var(--muted-foreground))] truncate">@{author.username}</p>
+                    </div>
+                  </Link>
+                  {user && user.id !== author.id && (
+                    <FollowButton
+                      userId={author.id}
+                      isFollowing={isFollowingAuthor}
+                      onFollowChange={setIsFollowingAuthor}
+                      size="sm"
+                    />
+                  )}
+                </div>
               </div>
             )}
 
@@ -389,6 +428,7 @@ export default function WorkDetail() {
           }}
         />
       </main>
+      </div>
     </div>
   );
 }

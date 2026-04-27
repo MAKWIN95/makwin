@@ -114,7 +114,7 @@ export default function WorkCard({ work, onLikeToggle, onSaveToggle, isOwnProfil
     <>
     <Link to={linkPath} state={{ from: 'gallery' }} className="group block">
       {/* Image/Media area */}
-      <div className="relative overflow-hidden rounded-2xl glass-effect transition-all duration-300 ease-out transform will-change-transform group-hover:scale-[1.02] group-hover:shadow-xl bg-[hsl(var(--muted))] aspect-square max-h-96">
+      <div className="relative overflow-hidden rounded-2xl glass-effect transition-all duration-300 ease-out transform will-change-transform group-hover:scale-[1.02] group-hover:shadow-xl bg-[hsl(var(--muted))]">
 
         {/* Save button — top right */}
         <button
@@ -123,7 +123,7 @@ export default function WorkCard({ work, onLikeToggle, onSaveToggle, isOwnProfil
           aria-label="Guardar"
         >
           <Bookmark
-            className={`w-3.5 h-3.5 transition-all ${saved ? 'fill-white stroke-white' : 'stroke-white'}`}
+            className={`w-3.5 h-3.5 transition-all duration-200 ${saved ? 'fill-white stroke-white' : 'stroke-white'}`}
           />
         </button>
 
@@ -132,7 +132,7 @@ export default function WorkCard({ work, onLikeToggle, onSaveToggle, isOwnProfil
           <img
             src={work.cover_url ?? work.file_url ?? ''}
             alt={work.title}
-            className="w-full h-full object-contain block"
+            className="w-full h-auto object-contain block"
             loading="lazy"
           />
         ) : isPoem ? (
@@ -142,20 +142,20 @@ export default function WorkCard({ work, onLikeToggle, onSaveToggle, isOwnProfil
             </p>
           </div>
         ) : (
-          <div className="flex items-center justify-center min-h-40 text-4xl">
+          <div className="flex items-center justify-center min-h-40 text-4xl bg-gradient-to-br from-[hsl(var(--muted))] to-[hsl(var(--muted))]">
             {WORK_TYPE_ICONS[work.work_type] ?? '🎨'}
           </div>
         )}
       </div>
 
       {/* Metadata */}
-      <div className="mt-2 px-1">
+      <div className="mt-3 px-1">
         <p className="text-sm font-medium text-[hsl(var(--foreground))] truncate leading-tight">{work.title}</p>
-        <div className="flex items-center justify-between gap-2 mt-1">
+        <div className="flex items-center justify-between gap-2 mt-1.5">
           <Link
             to={`/u/${work.profiles?.username ?? ''}`}
             onClick={e => e.stopPropagation()}
-            className="text-xs text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] transition-colors"
+            className="text-xs text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] transition-colors duration-200"
           >
             @{work.profiles?.username ?? work.profiles?.display_name ?? ''}
           </Link>

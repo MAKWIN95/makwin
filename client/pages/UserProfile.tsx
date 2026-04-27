@@ -320,9 +320,9 @@ export default function UserProfile() {
                     </button>
                   ) : (
                     <button onClick={handleFollow}
-                      className={`px-5 py-2 rounded-lg text-sm font-medium transition-colors ${isFollowing
+                      className={`px-5 py-2 rounded-lg text-sm font-medium transition-all duration-200 ease-out ${isFollowing
                         ? 'border border-[hsl(var(--border))] hover:bg-[hsl(var(--muted))]'
-                        : 'bg-[hsl(var(--foreground))] text-[hsl(var(--background))] hover:opacity-90'}`}>
+                        : 'bg-[hsl(var(--foreground))] text-[hsl(var(--background))] hover:opacity-80'}`}>
                       {isFollowing ? (es ? 'Siguiendo' : 'Following') : (es ? 'Seguir' : 'Follow')}
                     </button>
                   )}
