@@ -4,7 +4,7 @@ import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/custom-dia
 import LanguageSelector from "./LanguageSelector";
 import NavMenu from "./NavMenu";
 import { songs } from "@/lib/songs";
-import { Filter, ArrowLeft, Home, Upload, Bookmark, User, LogOut, Settings, Heart, Moon, Sun } from 'lucide-react';
+import { Filter, ArrowLeft, Upload, Bookmark, User, LogOut, Settings, Heart, Moon, Sun } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
 import { useAuth } from '@/lib/AuthContext';
 import { useTheme } from "@/hooks/use-theme";
@@ -31,7 +31,7 @@ export default function Header({ showSearch = true, showSearchCentered = false, 
   const location = useLocation();
   const { isDark, toggleTheme } = useTheme();
 
-  const handleMakwinClick = () => document.dispatchEvent(new CustomEvent('reloadGallery'));
+  const handleMakwinClick = () => navigate('/');
   const handleGoHome = () => navigate('/');
   const handleGoBack = () => {
     // Navigate to home instead of using browser history to avoid 404
@@ -59,6 +59,8 @@ export default function Header({ showSearch = true, showSearchCentered = false, 
 
   const innerContainerClass = showSearchCentered
     ? 'w-full px-4 sm:px-6 py-2 sm:py-3 flex flex-col pointer-events-auto mx-auto max-w-6xl bg-[hsl(var(--popover))/0.95] backdrop-blur-md rounded-full border border-[hsl(var(--border))] shadow-md transition-all duration-500'
+    : breadcrumb
+    ? 'w-full px-4 sm:px-6 py-4 sm:py-5 flex flex-col transition-all duration-500'
     : 'w-full px-4 sm:px-6 py-3 sm:py-4 flex flex-col transition-all duration-500';
 
   return (
@@ -69,9 +71,6 @@ export default function Header({ showSearch = true, showSearchCentered = false, 
           {/* Left: navigation + logo */}
           <div className="col-span-1 flex items-center gap-1 sm:gap-2 min-w-0 relative">
             <NavMenu />
-            <button onClick={handleGoHome} className="p-2 rounded-lg hover:bg-[hsl(var(--muted))] transition-colors shrink-0" aria-label="Home">
-              <Home className="w-4 h-4 text-[hsl(var(--muted-foreground))]" />
-            </button>
             <button onClick={handleGoBack} className="p-2 rounded-lg hover:bg-[hsl(var(--muted))] transition-colors shrink-0" aria-label="Atrás">
               <ArrowLeft className="w-4 h-4 text-[hsl(var(--muted-foreground))]" />
             </button>
@@ -81,7 +80,7 @@ export default function Header({ showSearch = true, showSearchCentered = false, 
               </span>
               {breadcrumb && <>
                 <span className="text-[hsl(var(--muted-foreground))] font-light">/</span>
-                <span className="text-sm text-[hsl(var(--muted-foreground))] font-light truncate">{breadcrumb}</span>
+                <span className="text-base sm:text-lg text-[hsl(var(--muted-foreground))] font-light truncate">{breadcrumb}</span>
               </>}
             </div>
           </div>

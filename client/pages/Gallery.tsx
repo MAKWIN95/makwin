@@ -293,7 +293,7 @@ export default function Gallery() {
 
             {/* Works masonry grid - stable layout */}
             {!loadingInitial && filtered.length > 0 && (
-              <div className="columns-2 sm:columns-3 lg:columns-4 xl:columns-5 2xl:columns-6 gap-4">
+              <div className="columns-2 sm:columns-3 lg:columns-4 xl:columns-5 2xl:columns-6 gap-4" style={{ columnFill: 'balance' }}>
                 {filtered.map((item: any) => {
                   const isSong = item._isSong;
                   const linkPath = isSong ? `/song/${item._songSlug ?? item.id}` : `/work/${item.id}`;

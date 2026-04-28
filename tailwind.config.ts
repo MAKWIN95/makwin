@@ -79,6 +79,9 @@ export default {
         "6xl": ["3.75rem", { lineHeight: "1" }],
         "7xl": ["4.5rem", { lineHeight: "1" }],
       },
+      maxHeight: {
+        "80vh": "80vh",
+      },
       keyframes: {
         "accordion-down": {
           from: {

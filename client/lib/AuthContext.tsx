@@ -13,7 +13,7 @@ interface AuthContextType {
   signUpWithEmail: (email: string, password: string, username: string, displayName: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ error: string | null }>;
-  updateProfile: (updates: Partial<Pick<Profile, 'display_name' | 'bio' | 'website' | 'avatar_url'>>) => Promise<{ error: string | null }>;
+  updateProfile: (updates: Partial<Pick<Profile, 'username' | 'display_name' | 'bio' | 'website' | 'avatar_url' | 'instagram_url' | 'tiktok_url'>>) => Promise<{ error: string | null }>;
   refreshProfile: () => Promise<void>;
   completeGoogleSignUp: (username: string, password: string, displayName: string) => Promise<{ error: string | null }>;
 }
@@ -287,11 +287,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { error: error?.message ?? null };
   };
 
-  const updateProfile = async (updates: Partial<Pick<Profile, 'display_name' | 'bio' | 'website' | 'avatar_url'>>) => {
+  const updateProfile = async (updates: Partial<Pick<Profile, 'username' | 'display_name' | 'bio' | 'website' | 'avatar_url' | 'instagram_url' | 'tiktok_url'>>) => {
     if (!user) return { error: 'No hay sesión activa.' };
+
+    // Validate username uniqueness if changing
+    if (updates.username && updates.username !== profile?.username) {
+      const { data: existing } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('username', updates.username.toLowerCase())
+        .maybeSingle();
+      if (existing) return { error: 'Este nombre de usuario ya está en uso.' };
+    }
+
     const { error } = await supabase
       .from('profiles')
-      .update({ ...updates, updated_at: new Date().toISOString() })
+      .update({ 
+        ...updates,
+        username: updates.username ? updates.username.toLowerCase() : undefined,
+        updated_at: new Date().toISOString() 
+      })
       .eq('id', user.id);
     if (!error) await fetchProfile(user.id);
     return { error: error?.message ?? null };

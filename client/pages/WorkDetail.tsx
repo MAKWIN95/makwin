@@ -290,8 +290,8 @@ export default function WorkDetail() {
           <div className="lg:col-span-2 space-y-6">
             {/* Primary Image/Cover */}
             {work.cover_url && (
-              <div className="rounded-xl overflow-hidden bg-[hsl(var(--muted))] flex items-center justify-center" style={{ maxHeight: '80vh', aspectRatio: '4/5' }}>
-                <img src={work.cover_url} alt={work.title} className="w-full h-full object-contain" loading="lazy" />
+              <div className="rounded-xl overflow-hidden bg-[hsl(var(--muted))] flex items-center justify-center" style={{ maxHeight: '80vh', width: '100%', height: 'auto' }}>
+                <img src={work.cover_url} alt={work.title} className="max-h-80vh w-auto h-auto object-contain" loading="lazy" />
               </div>
             )}
 
@@ -302,8 +302,8 @@ export default function WorkDetail() {
 
             {/* Video */}
             {work.work_type === 'video' && work.file_url && (
-              <div className="rounded-xl overflow-hidden bg-[hsl(var(--muted))] flex items-center justify-center" style={{ maxHeight: '80vh', aspectRatio: '16/9' }}>
-                <video src={work.file_url} controls className="w-full h-full object-contain" />
+              <div className="rounded-xl overflow-hidden bg-[hsl(var(--muted))] flex items-center justify-center" style={{ maxHeight: '80vh' }}>
+                <video src={work.file_url} controls className="max-h-80vh w-auto object-contain" />
               </div>
             )}
 
@@ -378,9 +378,9 @@ export default function WorkDetail() {
                 onClick={handleLike}
                 disabled={!user || isPendingLike}
                 variant={liked ? 'default' : 'outline'}
-                className="w-full"
+                className="w-full transition-all duration-250 ease-out"
               >
-                <Heart className={`w-4 h-4 mr-2 ${liked ? 'fill-current' : ''}`} />
+                <Heart className={`w-4 h-4 mr-2 transition-all duration-200 ${liked ? 'fill-current' : ''}`} />
                 {likeCount}
               </Button>
 
@@ -388,13 +388,13 @@ export default function WorkDetail() {
                 onClick={handleSave}
                 disabled={!user || isPendingSave}
                 variant={saved ? 'default' : 'outline'}
-                className="w-full"
+                className="w-full transition-all duration-250 ease-out"
               >
-                <Bookmark className={`w-4 h-4 mr-2 ${saved ? 'fill-current' : ''}`} />
+                <Bookmark className={`w-4 h-4 mr-2 transition-all duration-200 ${saved ? 'fill-current' : ''}`} />
                 {currentLang === 'es' ? 'Guardar' : 'Save'}
               </Button>
 
-              <Button onClick={handleReport} disabled={!user} variant="outline" className="w-full">
+              <Button onClick={handleReport} disabled={!user} variant="outline" className="w-full transition-all duration-250 ease-out">
                 <Flag className="w-4 h-4 mr-2" />
                 {currentLang === 'es' ? 'Reportar' : 'Report'}
               </Button>

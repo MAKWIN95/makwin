@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Menu, X } from 'lucide-react';
+import { Menu } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useI18n } from '@/lib/i18n';
 
@@ -9,9 +9,21 @@ export default function NavMenu() {
   const es = language === 'es';
 
   const menuItems = [
-    { label: es ? 'Galería' : 'Gallery', path: '/' },
-    { label: es ? 'Marketplace' : 'Marketplace', path: '/marketplace' },
-    { label: es ? 'Tienda' : 'Merch', path: '/merch' },
+    { 
+      label: es ? 'Galería' : 'Gallery', 
+      description: es ? 'Descubre obras seleccionadas de artistas emergentes' : 'Discover works from emerging artists',
+      path: '/' 
+    },
+    { 
+      label: es ? 'Marketplace' : 'Marketplace', 
+      description: es ? 'Compra y vende arte digital original' : 'Buy and sell original digital art',
+      path: '/marketplace' 
+    },
+    { 
+      label: es ? 'Tienda' : 'Merch', 
+      description: es ? 'Explora merchandising exclusivo de MAKWIN' : 'Explore exclusive MAKWIN merchandise',
+      path: '/merch' 
+    },
   ];
 
   return (
@@ -19,7 +31,7 @@ export default function NavMenu() {
       {/* Hamburger Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="p-2 rounded-lg hover:bg-[hsl(var(--muted))] transition-colors duration-200 relative w-10 h-10 flex items-center justify-center"
+        className="p-2 rounded-lg hover:bg-[hsl(var(--muted))] transition-all duration-200 ease-out relative w-10 h-10 flex items-center justify-center"
         aria-label="Menu"
         aria-expanded={isOpen}
       >
@@ -56,28 +68,33 @@ export default function NavMenu() {
 
       {/* Sidebar */}
       <div
-        className={`fixed left-0 top-0 h-screen w-72 bg-[hsl(var(--background))] border-r border-[hsl(var(--border))] shadow-xl transition-transform duration-300 ease-out z-50 flex flex-col ${
+        className={`fixed left-0 top-0 h-screen w-80 bg-[hsl(var(--background))] border-r border-[hsl(var(--border))] shadow-2xl transition-transform duration-300 ease-in-out z-50 flex flex-col ${
           isOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
         {/* Header */}
         <div className="p-6 border-b border-[hsl(var(--border))]">
-          <h2 className="text-lg font-semibold text-[hsl(var(--foreground))]">
-            {es ? 'Menú' : 'Menu'}
+          <h2 className="text-xl font-black uppercase tracking-wider text-[hsl(var(--foreground))]">
+            {es ? 'Explorar' : 'Explore'}
           </h2>
         </div>
 
         {/* Menu Items */}
         <nav className="flex-1 overflow-y-auto p-4">
-          <div className="space-y-2">
+          <div className="space-y-3">
             {menuItems.map((item) => (
               <Link
                 key={item.path}
                 to={item.path}
-                className="block px-4 py-3 rounded-lg text-[hsl(var(--foreground))] hover:bg-[hsl(var(--muted))] transition-all duration-200 hover:pl-5 text-base font-medium"
+                className="block p-4 rounded-xl border border-[hsl(var(--border))] hover:border-[hsl(var(--foreground))] hover:bg-[hsl(var(--muted))] transition-all duration-250 ease-out group"
                 onClick={() => setIsOpen(false)}
               >
-                {item.label}
+                <h3 className="text-base font-semibold text-[hsl(var(--foreground))] group-hover:translate-x-1 transition-transform duration-200">
+                  {item.label}
+                </h3>
+                <p className="text-xs text-[hsl(var(--muted-foreground))] mt-1.5 leading-relaxed">
+                  {item.description}
+                </p>
               </Link>
             ))}
           </div>
@@ -85,7 +102,7 @@ export default function NavMenu() {
 
         {/* Footer */}
         <div className="p-4 border-t border-[hsl(var(--border))] text-xs text-[hsl(var(--muted-foreground))] text-center">
-          {es ? 'MAKWIN © 2025' : 'MAKWIN © 2025'}
+          {es ? 'MAKWIN © 2026' : 'MAKWIN © 2026'}
         </div>
       </div>
     </>
