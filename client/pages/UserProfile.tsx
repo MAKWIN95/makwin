@@ -3,6 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { supabase, Profile, Work } from '@/lib/supabase';
 import { useAuth } from '@/lib/AuthContext';
 import { useI18n } from '@/lib/i18n';
+import { useStarsBackground } from '@/hooks/use-stars-background';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import WorkCard from '@/components/WorkCard';
@@ -13,6 +14,9 @@ export default function UserProfile() {
   const { username } = useParams<{ username: string }>();
   const { user, profile: myProfile, updateProfile, refreshProfile } = useAuth();
   const { language } = useI18n();
+  
+  // Initialize stars background animation
+  useStarsBackground('profile-stars-background');
   const navigate = useNavigate();
   const es = language === 'es';
 
@@ -137,10 +141,10 @@ export default function UserProfile() {
 
     if (profile?.username !== editForm.username && profile?.last_username_change) {
       const lastChange = new Date(profile.last_username_change);
-      const oneMonthAgo = new Date();
-      oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
-      if (lastChange > oneMonthAgo) {
-        const daysRemaining = Math.ceil((lastChange.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+      const fourteenDaysAgo = new Date();
+      fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14);
+      if (lastChange > fourteenDaysAgo) {
+        const daysRemaining = Math.ceil((lastChange.getTime() - Date.now() + 14 * 24 * 60 * 60 * 1000) / (1000 * 60 * 60 * 24));
         setEditError(es 
           ? `Puedes cambiar tu nombre de usuario en ${daysRemaining} día(s)`
           : `You can change your username in ${daysRemaining} day(s)`);
@@ -196,7 +200,9 @@ export default function UserProfile() {
   );
 
   return (
-    <div className="min-h-screen bg-[hsl(var(--background))]">
+    <div className="min-h-screen bg-[hsl(var(--background))] relative">
+      <div id="profile-stars-background" className="stars-background" />
+      <div className="relative z-10">
       <Header showSearchCentered />
 
       <main className="max-w-4xl mx-auto px-4 sm:px-8 py-10 page-enter">
@@ -303,10 +309,10 @@ export default function UserProfile() {
                 {/* Stats */}
                 <div className="flex gap-6 justify-center sm:justify-start text-sm mb-4">
                   <span><strong>{works.length}</strong> <span className="text-[hsl(var(--muted-foreground))]">{es ? 'obras' : 'works'}</span></span>
-                  <button onClick={() => setShowFollowersModal('followers')} className="hover:text-[hsl(var(--foreground))] transition-colors cursor-pointer">
+                  <button onClick={() => setShowFollowersModal('followers')} className="hover:text-[hsl(var(--foreground))] hover:scale-103 transition-all duration-200 ease-out cursor-pointer">
                     <strong>{followerCount}</strong> <span className="text-[hsl(var(--muted-foreground))]">{es ? 'seguidores' : 'followers'}</span>
                   </button>
-                  <button onClick={() => setShowFollowersModal('following')} className="hover:text-[hsl(var(--foreground))] transition-colors cursor-pointer">
+                  <button onClick={() => setShowFollowersModal('following')} className="hover:text-[hsl(var(--foreground))] hover:scale-103 transition-all duration-200 ease-out cursor-pointer">
                     <strong>{followingCount}</strong> <span className="text-[hsl(var(--muted-foreground))]">{es ? 'siguiendo' : 'following'}</span>
                   </button>
                 </div>
@@ -392,6 +398,7 @@ export default function UserProfile() {
       )}
 
       <Footer />
+      </div>
     </div>
   );
 }

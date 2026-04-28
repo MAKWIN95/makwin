@@ -4,6 +4,7 @@ import { supabase, Work } from '@/lib/supabase';
 import { useAuth } from '@/lib/AuthContext';
 import { useWorks } from '@/lib/WorksContext';
 import { useI18n } from '@/lib/i18n';
+import { useStarsBackground } from '@/hooks/use-stars-background';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import WorkCard from '@/components/WorkCard';
@@ -14,6 +15,9 @@ export default function Saved() {
   const worksContext = useWorks();
   const { language } = useI18n();
   const es = language === 'es';
+
+  // Initialize stars background animation
+  useStarsBackground('saved-stars-background');
 
   if (!user) return <Navigate to="/login" replace />;
 
@@ -120,7 +124,9 @@ export default function Saved() {
   };
 
   return (
-    <div className="min-h-screen bg-[hsl(var(--background))]">
+    <div className="min-h-screen bg-[hsl(var(--background))] relative">
+      <div id="saved-stars-background" className="stars-background" />
+      <div className="relative z-10">
       <Header showSearchCentered />
       <main className="max-w-6xl mx-auto px-4 sm:px-8 py-10 page-enter">
 
@@ -157,6 +163,7 @@ export default function Saved() {
 
       </main>
       <Footer />
+      </div>
     </div>
   );
 }

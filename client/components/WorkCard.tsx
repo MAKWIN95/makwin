@@ -33,6 +33,7 @@ export default function WorkCard({ work, onLikeToggle, onSaveToggle, isOwnProfil
   const navigate = useNavigate();
   const worksContext = useWorks();
   const [likeAnimating, setLikeAnimating] = useState(false);
+  const [imageLoaded, setImageLoaded] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -132,8 +133,11 @@ export default function WorkCard({ work, onLikeToggle, onSaveToggle, isOwnProfil
           <img
             src={work.cover_url ?? work.file_url ?? ''}
             alt={work.title}
-            className="w-full h-auto object-contain block"
+            className={`w-full h-auto object-contain block transition-opacity duration-300 ease-out ${
+              imageLoaded ? 'opacity-100' : 'opacity-0'
+            }`}
             loading="lazy"
+            onLoad={() => setImageLoaded(true)}
           />
         ) : isPoem ? (
           <div className="flex items-center justify-center min-h-48 w-full p-6">

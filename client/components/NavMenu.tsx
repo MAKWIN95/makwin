@@ -10,6 +10,11 @@ export default function NavMenu() {
 
   const menuItems = [
     { 
+      label: es ? 'Inicio' : 'Home', 
+      description: es ? 'Página de inicio de MAKWIN' : 'MAKWIN home page',
+      path: '/home' 
+    },
+    { 
       label: es ? 'Galería' : 'Gallery', 
       description: es ? 'Descubre obras seleccionadas de artistas emergentes' : 'Discover works from emerging artists',
       path: '/' 
@@ -71,6 +76,7 @@ export default function NavMenu() {
         className={`fixed left-0 top-0 h-screen w-80 bg-[hsl(var(--background))] border-r border-[hsl(var(--border))] shadow-2xl transition-transform duration-300 ease-in-out z-50 flex flex-col ${
           isOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
+        style={{ willChange: isOpen ? 'transform' : 'auto' }}
       >
         {/* Header */}
         <div className="p-6 border-b border-[hsl(var(--border))]">

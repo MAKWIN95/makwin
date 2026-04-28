@@ -72,11 +72,11 @@ export default function FollowButton({
     <Button
       onClick={handleToggleFollow}
       disabled={loading}
-      variant={isFollowing ? 'default' : 'outline'}
+      variant="outline"
       className={`transition-all duration-250 ease-out ${sizeClasses[size]} ${className} ${
         isFollowing
-          ? 'bg-[hsl(var(--foreground))] text-[hsl(var(--background))] hover:opacity-90'
-          : 'border border-[hsl(var(--border))] text-[hsl(var(--foreground))] hover:bg-[hsl(var(--muted))]'
+          ? 'bg-[hsl(var(--foreground))] text-[hsl(var(--background))] border-[hsl(var(--foreground))] hover:opacity-90'
+          : 'bg-white text-black border-white hover:bg-gray-100'
       }`}
     >
       {isFollowing ? (

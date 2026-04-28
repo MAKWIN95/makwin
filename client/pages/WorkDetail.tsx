@@ -275,7 +275,7 @@ export default function WorkDetail() {
       <div className="relative z-10">
       <Header hideSearch breadcrumb={work.title} />
 
-      <main className="w-full max-w-7xl mx-auto px-4 py-8">
+      <main className="w-full max-w-7xl mx-auto px-4 py-12 sm:py-16">
         <button
           onClick={() => navigate(-1)}
           className="flex items-center gap-2 text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] mb-8"
@@ -290,7 +290,7 @@ export default function WorkDetail() {
           <div className="lg:col-span-2 space-y-6">
             {/* Primary Image/Cover */}
             {work.cover_url && (
-              <div className="rounded-xl overflow-hidden bg-[hsl(var(--muted))] flex items-center justify-center" style={{ maxHeight: '80vh', width: '100%', height: 'auto' }}>
+              <div className="rounded-xl overflow-hidden bg-[hsl(var(--muted))] flex items-center justify-center" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '80vh' }}>
                 <img src={work.cover_url} alt={work.title} className="max-h-80vh w-auto h-auto object-contain" loading="lazy" />
               </div>
             )}
@@ -302,7 +302,7 @@ export default function WorkDetail() {
 
             {/* Video */}
             {work.work_type === 'video' && work.file_url && (
-              <div className="rounded-xl overflow-hidden bg-[hsl(var(--muted))] flex items-center justify-center" style={{ maxHeight: '80vh' }}>
+              <div className="rounded-xl overflow-hidden bg-[hsl(var(--muted))] flex items-center justify-center" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '80vh' }}>
                 <video src={work.file_url} controls className="max-h-80vh w-auto object-contain" />
               </div>
             )}

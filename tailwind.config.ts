@@ -82,6 +82,9 @@ export default {
       maxHeight: {
         "80vh": "80vh",
       },
+      scale: {
+        "103": "1.03",
+      },
       keyframes: {
         "accordion-down": {
           from: {
