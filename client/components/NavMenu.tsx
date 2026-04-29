@@ -43,19 +43,19 @@ export default function NavMenu() {
         <div className="relative w-5 h-5">
           {/* Line 1 */}
           <span
-            className={`absolute h-0.5 w-5 bg-[hsl(var(--foreground))] transition-all duration-300 ease-out origin-center ${
+            className={`absolute h-0.5 w-5 bg-[hsl(var(--muted-foreground))] transition-all duration-300 ease-out origin-center ${
               isOpen ? 'rotate-45 top-2' : 'top-1'
             }`}
           />
           {/* Line 2 */}
           <span
-            className={`absolute h-0.5 w-5 bg-[hsl(var(--foreground))] transition-all duration-300 ease-out top-2 ${
+            className={`absolute h-0.5 w-5 bg-[hsl(var(--muted-foreground))] transition-all duration-300 ease-out top-2 ${
               isOpen ? 'opacity-0' : 'opacity-100'
             }`}
           />
           {/* Line 3 */}
           <span
-            className={`absolute h-0.5 w-5 bg-[hsl(var(--foreground))] transition-all duration-300 ease-out origin-center ${
+            className={`absolute h-0.5 w-5 bg-[hsl(var(--muted-foreground))] transition-all duration-300 ease-out origin-center ${
               isOpen ? '-rotate-45 top-2' : 'top-3'
             }`}
           />

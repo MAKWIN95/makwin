@@ -55,7 +55,7 @@ export default function Header({ showSearch = true, showSearchCentered = false, 
   const isGalleryish = location.pathname.startsWith('/galeria') || location.pathname.startsWith('/merch') || location.pathname.startsWith('/marketplace');
   const headerRootClass = showSearchCentered
     ? `sticky top-3 z-50 bg-transparent border-none fast-theme w-full transition-all duration-500 ${isGalleryish ? 'gallery-navbar header-offset' : ''}`
-    : `sticky top-0 z-50 bg-[hsl(var(--popover))/0.95] backdrop-blur-md border-b border-[hsl(var(--border))] shadow-sm fast-theme w-full`;
+    : `sticky top-0 z-50 bg-[hsl(var(--popover))/0.95] backdrop-blur-md border-b border-[rgba(255,255,255,0.1)] shadow-sm fast-theme w-full`;
 
   const innerContainerClass = showSearchCentered
     ? 'w-full px-4 sm:px-6 py-2 sm:py-3 flex flex-col pointer-events-auto mx-auto max-w-6xl bg-[hsl(var(--popover))/0.95] backdrop-blur-md rounded-full border border-[hsl(var(--border))] shadow-md transition-all duration-500'

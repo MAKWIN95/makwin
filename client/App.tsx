@@ -10,6 +10,7 @@ import { useEffect } from "react";
 
 // Pages
 import Landing from "./pages/Landing";
+import Home from "./pages/Home";
 import Gallery from "./pages/Gallery";
 import Merch from "./pages/Merch";
 import Marketplace from "./pages/Marketplace";
@@ -59,7 +60,7 @@ const RoutesWrapper = () => {
     <Routes>
       {/* Main: Gallery is now home */}
       <Route path="/" element={<Gallery />} />
-      <Route path="/home" element={<Landing />} />
+      <Route path="/home" element={<Home />} />
       <Route path="/galeria" element={<Gallery />} />
       <Route path="/merch" element={<Merch />} />
       <Route path="/marketplace" element={<Marketplace />} />

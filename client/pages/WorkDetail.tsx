@@ -309,8 +309,8 @@ export default function WorkDetail() {
 
             {/* Pintura/Fotografia secondary image */}
             {(work.work_type === 'pintura' || work.work_type === 'fotografia') && work.file_url && (
-              <div className="rounded-xl overflow-hidden bg-[hsl(var(--muted))] flex items-center justify-center" style={{ maxHeight: '80vh' }}>
-                <img src={work.file_url} alt={work.title} className="w-full h-full object-contain" loading="lazy" />
+              <div className="rounded-xl overflow-hidden bg-[hsl(var(--muted))] flex items-center justify-center" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '80vh' }}>
+                <img src={work.file_url} alt={work.title} className="max-h-80vh w-auto h-auto object-contain" loading="lazy" />
               </div>
             )}
 
