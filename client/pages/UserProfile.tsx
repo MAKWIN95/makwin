@@ -33,7 +33,7 @@ export default function UserProfile() {
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [showFollowersModal, setShowFollowersModal] = useState<'followers' | 'following' | null>(null);
 
-  const isOwnProfile = myProfile?.username === username;
+  const isOwnProfile = myProfile?.id === profile?.id;
 
   // Validate URLs don't contain banned content
   const validateURL = (url: string): boolean => {

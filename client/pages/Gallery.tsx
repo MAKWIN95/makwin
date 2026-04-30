@@ -294,35 +294,12 @@ export default function Gallery() {
             {/* Works masonry grid - stable layout */}
             {!loadingInitial && filtered.length > 0 && (
               <div className="columns-2 sm:columns-3 lg:columns-4 xl:columns-5 2xl:columns-6 gap-4" style={{ columnFill: 'balance' }}>
-                {filtered.map((item: any) => {
-                  const isSong = item._isSong;
-                  const linkPath = isSong ? `/song/${item._songSlug ?? item.id}` : `/work/${item.id}`;
-
-                  if (isSong) {
-                    // Render song cards
-                    return (
-                      <Link key={`song-${item.id}`}
-                        to={linkPath}
-                        className={`group relative overflow-hidden rounded-2xl glass-effect transition-all duration-300 ${showItems ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}`}>
-                        {item.cover_url
-                          ? <img src={item.cover_url} alt={item.title} className="w-full h-48 object-cover" loading="lazy" />
-                          : <div className="flex items-center justify-center w-full h-48 text-4xl bg-[hsl(var(--muted))]\">🎵</div>
-                        }
-                        <div className="p-2">
-                          <p className="text-sm font-medium text-[hsl(var(--foreground))] truncate">{item.title}</p>
-                          <p className="text-xs text-[hsl(var(--muted-foreground))]">MAKWIN · {formatDate(item)}</p>
-                        </div>
-                      </Link>
-                    );
-                  }
-
-                  return (
-                    <div key={item.id}
-                      className={`inline-block w-full mb-4 break-inside-avoid transition-all duration-300 ${showItems ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}`}>
-                      <WorkCard work={item as Work} />
-                    </div>
-                  );
-                })}
+                {filtered.map((item: any) => (
+                  <div key={item.id}
+                    className={`inline-block w-full mb-4 break-inside-avoid transition-all duration-300 ${showItems ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}`}>
+                    <WorkCard work={item as Work} />
+                  </div>
+                ))}
               </div>
             )}
 

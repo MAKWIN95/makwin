@@ -36,7 +36,7 @@ export default function NavMenu() {
       {/* Hamburger Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="p-2 rounded-lg hover:bg-[hsl(var(--muted))] transition-all duration-200 ease-out relative w-10 h-10 flex items-center justify-center"
+        className="p-0 rounded-lg hover:bg-[hsl(var(--muted))] transition-all duration-200 ease-out relative w-10 h-10 flex items-center justify-center"
         aria-label="Menu"
         aria-expanded={isOpen}
       >
@@ -65,8 +65,9 @@ export default function NavMenu() {
       {/* Overlay */}
       {isOpen && (
         <div
-          className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 transition-opacity duration-300 ease-out"
+          className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40"
           onClick={() => setIsOpen(false)}
+          style={{ width: '100vw', height: '100vh', left: 0, top: 0 }}
           aria-hidden="true"
         />
       )}
