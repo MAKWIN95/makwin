@@ -34,8 +34,8 @@ export default function Home() {
         {
           q: es ? '¿Puedo contactar directamente al artista?' : 'Can I contact the artist directly?',
           a: es
-            ? 'Sí, en la página de cada obra puedes ver el perfil del artista y seguirlo.'
-            : 'Yes, on each work page you can view and follow the artist profile.'
+            ? 'Cada obra tiene el perfil del artista. En su página de perfil encontrarás sus redes sociales e información de contacto.'
+            : 'Each work displays the artist profile. You can visit their profile page to find their social media and contact information.'
         }
       ]
     },
@@ -43,21 +43,21 @@ export default function Home() {
       id: 'marketplace',
       title: es ? 'Marketplace' : 'Marketplace',
       description: es
-        ? 'Compra y vende arte digital original en nuestra plataforma segura. Los artistas controlan sus precios y términos. Cada transacción es verificada y protegida, conectando coleccionistas con creadores de forma directa.'
-        : 'Buy and sell original digital art on our secure platform. Artists control their prices and terms. Every transaction is verified and protected, connecting collectors with creators directly.',
+        ? 'Plataforma para comprar y vender arte digital original. Conecta coleccionistas con artistas de forma segura y directa. Próximamente.'
+        : 'Platform to buy and sell original digital art. Connect collectors with artists securely and directly. Coming soon.',
       link: '/marketplace',
       faqs: [
         {
-          q: es ? '¿Cuál es el costo de vender?' : 'What is the cost of selling?',
+          q: es ? '¿Cuándo está disponible?' : 'When is it available?',
           a: es
-            ? 'MAKWIN toma una comisión del 15% en cada venta. El 85% restante va directamente al artista.'
-            : 'MAKWIN takes a 15% commission on each sale. The remaining 85% goes directly to the artist.'
+            ? 'Estamos trabajando en llevar el marketplace a la vida. Pronto podrás comprar y vender arte directamente en MAKWIN.'
+            : 'We are working to bring the marketplace to life. Soon you will be able to buy and sell art directly on MAKWIN.'
         },
         {
-          q: es ? '¿Cómo recibo mi dinero?' : 'How do I receive my money?',
+          q: es ? '¿Cómo funcionará?' : 'How will it work?',
           a: es
-            ? 'Los pagos se transfieren automáticamente a tu cuenta bancaria después de cada venta.'
-            : 'Payments are transferred automatically to your bank account after each sale.'
+            ? 'Te lo contaremos muy pronto. Síguenos para las actualizaciones.'
+            : 'We will tell you very soon. Follow us for updates.'
         }
       ]
     },
@@ -65,21 +65,21 @@ export default function Home() {
       id: 'merch',
       title: es ? 'Tienda Oficial' : 'Official Store',
       description: es
-        ? 'Explorar merchandising exclusivo de MAKWIN. Colección minimalist con diseño limpio, paleta blanco y negro. Prendas y accesorios de calidad que reflejan la esencia de MAKWIN. Cada pieza es un objeto de diseño.'
-        : 'Explore exclusive MAKWIN merchandise. Minimalist collection with clean design, black and white palette. Quality apparel and accessories that reflect the essence of MAKWIN. Each piece is a design object.',
+        ? 'Merchandising exclusivo de MAKWIN. Colección de diseño limpio y minimalista. Próximamente disponible.'
+        : 'Exclusive MAKWIN merchandise. Clean and minimalist design collection. Coming soon.',
       link: '/merch',
       faqs: [
         {
-          q: es ? '¿Dónde se produce el merch?' : 'Where is the merchandise produced?',
+          q: es ? '¿Cuándo puedo comprar?' : 'When can I shop?',
           a: es
-            ? 'Nuestro merch es producido por manufactureros certificados con estándares éticos y ambientales.'
-            : 'Our merchandise is produced by certified manufacturers with ethical and environmental standards.'
+            ? 'La tienda estará disponible pronto. Ten atento este espacio.'
+            : 'The store will be available soon. Stay tuned.'
         },
         {
-          q: es ? '¿Cuál es el tiempo de entrega?' : 'What is the delivery time?',
+          q: es ? '¿Qué tipo de prendas habrá?' : 'What kind of apparel will there be?',
           a: es
-            ? 'Los pedidos se envían dentro de 5-7 días hábiles y llegan en 10-15 días dependiendo de tu ubicación.'
-            : 'Orders are shipped within 5-7 business days and arrive in 10-15 days depending on your location.'
+            ? 'Ropa y accesorios de calidad con diseño MAKWIN. Pronto descubrirás la colección completa.'
+            : 'Quality apparel and accessories with MAKWIN design. You will discover the full collection soon.'
         }
       ]
     }

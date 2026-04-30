@@ -141,10 +141,10 @@ export default function UserProfile() {
 
     if (profile?.username !== editForm.username && profile?.last_username_change) {
       const lastChange = new Date(profile.last_username_change);
-      const fourteenDaysAgo = new Date();
-      fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14);
-      if (lastChange > fourteenDaysAgo) {
-        const daysRemaining = Math.ceil((lastChange.getTime() - Date.now() + 14 * 24 * 60 * 60 * 1000) / (1000 * 60 * 60 * 24));
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      if (lastChange > thirtyDaysAgo) {
+        const daysRemaining = Math.ceil((lastChange.getTime() - Date.now() + 30 * 24 * 60 * 60 * 1000) / (1000 * 60 * 60 * 24));
         setEditError(es 
           ? `Puedes cambiar tu nombre de usuario en ${daysRemaining} día(s)`
           : `You can change your username in ${daysRemaining} day(s)`);
@@ -232,6 +232,17 @@ export default function UserProfile() {
           <div className="flex-1 text-center sm:text-left">
             {editing ? (
               <div className="space-y-3 max-w-sm">
+                <div>
+                  <label className="text-xs font-medium text-[hsl(var(--muted-foreground))] mb-1 block">
+                    {es ? 'Nombre de usuario' : 'Username'}
+                  </label>
+                  <div className="flex items-center border border-[hsl(var(--border))] rounded-lg overflow-hidden bg-[hsl(var(--input))]">
+                    <span className="px-3 py-2 text-sm text-[hsl(var(--muted-foreground))] font-medium">@</span>
+                    <input value={editForm.username} onChange={e => setEditForm(p => ({ ...p, username: e.target.value.toLowerCase() }))}
+                      placeholder={es ? 'tu_usuario' : 'your_username'}
+                      className="flex-1 px-0 py-2 bg-transparent text-sm border-0 focus:outline-none" />
+                  </div>
+                </div>
                 <input value={editForm.display_name} onChange={e => setEditForm(p => ({ ...p, display_name: e.target.value }))}
                   placeholder={es ? 'Nombre visible' : 'Display name'}
                   className="w-full px-3 py-2 rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--input))] text-sm" />
@@ -309,11 +320,11 @@ export default function UserProfile() {
                 {/* Stats */}
                 <div className="flex gap-6 justify-center sm:justify-start text-sm mb-4">
                   <span><strong>{works.length}</strong> <span className="text-[hsl(var(--muted-foreground))]">{es ? 'obras' : 'works'}</span></span>
-                  <button onClick={() => setShowFollowersModal('followers')} className="hover:text-[hsl(var(--foreground))] hover:scale-103 transition-all duration-200 ease-out cursor-pointer">
-                    <strong>{followerCount}</strong> <span className="text-[hsl(var(--muted-foreground))]">{es ? 'seguidores' : 'followers'}</span>
+                  <button onClick={() => setShowFollowersModal('followers')} className="group transition-all duration-200 ease-out cursor-pointer">
+                    <strong className="group-hover:text-[hsl(var(--foreground))] text-[hsl(var(--foreground))] transition-colors">{followerCount}</strong> <span className="text-[hsl(var(--muted-foreground))] group-hover:text-[hsl(var(--foreground))] transition-colors">{es ? 'seguidores' : 'followers'}</span>
                   </button>
-                  <button onClick={() => setShowFollowersModal('following')} className="hover:text-[hsl(var(--foreground))] hover:scale-103 transition-all duration-200 ease-out cursor-pointer">
-                    <strong>{followingCount}</strong> <span className="text-[hsl(var(--muted-foreground))]">{es ? 'siguiendo' : 'following'}</span>
+                  <button onClick={() => setShowFollowersModal('following')} className="group transition-all duration-200 ease-out cursor-pointer">
+                    <strong className="group-hover:text-[hsl(var(--foreground))] text-[hsl(var(--foreground))] transition-colors">{followingCount}</strong> <span className="text-[hsl(var(--muted-foreground))] group-hover:text-[hsl(var(--foreground))] transition-colors">{es ? 'siguiendo' : 'following'}</span>
                   </button>
                 </div>
 

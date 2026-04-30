@@ -275,10 +275,10 @@ export default function WorkDetail() {
       <div className="relative z-10">
       <Header hideSearch breadcrumb={work.title} />
 
-      <main className="w-full max-w-7xl mx-auto px-4 py-12 sm:py-16">
+      <main className="w-full max-w-7xl mx-auto px-4 py-6 sm:py-8">
         <button
           onClick={() => navigate(-1)}
-          className="flex items-center gap-2 text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] mb-8"
+          className="flex items-center gap-2 text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] mb-4"
         >
           <ArrowLeft className="w-4 h-4" />
           {currentLang === 'es' ? 'Atrás' : 'Back'}
@@ -290,7 +290,7 @@ export default function WorkDetail() {
           <div className="lg:col-span-2 space-y-6">
             {/* Primary Image/Cover */}
             {work.cover_url && (
-              <div className="rounded-xl overflow-hidden bg-[hsl(var(--muted))] flex items-center justify-center" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '80vh' }}>
+              <div className="flex items-center justify-center rounded-2xl border border-[rgba(255,255,255,0.1)] overflow-hidden backdrop-blur-sm" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '80vh', background: 'rgba(255,255,255,0.02)' }}>
                 <img src={work.cover_url} alt={work.title} className="max-h-80vh w-auto h-auto object-contain" loading="lazy" />
               </div>
             )}
@@ -302,14 +302,14 @@ export default function WorkDetail() {
 
             {/* Video */}
             {work.work_type === 'video' && work.file_url && (
-              <div className="rounded-xl overflow-hidden bg-[hsl(var(--muted))] flex items-center justify-center" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '80vh' }}>
+              <div className="flex items-center justify-center rounded-2xl border border-[rgba(255,255,255,0.1)] overflow-hidden backdrop-blur-sm" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '80vh', background: 'rgba(255,255,255,0.02)' }}>
                 <video src={work.file_url} controls className="max-h-80vh w-auto object-contain" />
               </div>
             )}
 
             {/* Pintura/Fotografia secondary image */}
             {(work.work_type === 'pintura' || work.work_type === 'fotografia') && work.file_url && (
-              <div className="rounded-xl overflow-hidden bg-[hsl(var(--muted))] flex items-center justify-center" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '80vh' }}>
+              <div className="flex items-center justify-center rounded-2xl border border-[rgba(255,255,255,0.1)] overflow-hidden backdrop-blur-sm" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '80vh', background: 'rgba(255,255,255,0.02)' }}>
                 <img src={work.file_url} alt={work.title} className="max-h-80vh w-auto h-auto object-contain" loading="lazy" />
               </div>
             )}
