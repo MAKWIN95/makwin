@@ -74,10 +74,10 @@ export default function NavMenu() {
 
       {/* Sidebar */}
       <div
-        className={`fixed left-0 top-0 h-screen w-80 bg-[hsl(var(--background))] border-r border-[hsl(var(--border))] shadow-2xl transition-transform duration-300 ease-in-out z-50 flex flex-col ${
-          isOpen ? 'translate-x-0' : '-translate-x-full'
+        className={`fixed left-0 top-0 h-screen w-80 bg-[hsl(var(--background))] border-r border-[hsl(var(--border))] shadow-2xl transition-transform duration-300 ease-in-out z-50 flex flex-col -translate-x-full ${
+          isOpen ? 'translate-x-0' : ''
         }`}
-        style={{ willChange: isOpen ? 'transform' : 'auto' }}
+        style={{ willChange: 'transform', transform: isOpen ? 'translateX(0)' : 'translateX(-100%)' }}
       >
         {/* Header */}
         <div className="p-6 border-b border-[hsl(var(--border))]">

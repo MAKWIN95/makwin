@@ -71,7 +71,7 @@ export default function Header({ showSearch = true, showSearchCentered = false, 
           {/* Left: navigation + logo */}
           <div className="col-span-1 flex items-center gap-1 sm:gap-2 min-w-0 relative">
             <NavMenu />
-            <button onClick={handleGoBack} className="p-2 rounded-lg hover:bg-[hsl(var(--muted))] transition-colors shrink-0" aria-label="Atrás">
+            <button onClick={handleGoBack} className="p-0 w-10 h-10 rounded-lg hover:bg-[hsl(var(--muted))] transition-all duration-200 ease-out flex items-center justify-center shrink-0" aria-label="Atrás">
               <ArrowLeft className="w-4 h-4 text-[hsl(var(--muted-foreground))]" />
             </button>
             <div onClick={handleMakwinClick} className="cursor-pointer flex items-center gap-2 ml-1 min-w-0">

@@ -272,7 +272,7 @@ export default function WorkDetail() {
   return (
     <div className="min-h-screen bg-[hsl(var(--background))] relative">
       <div id="detail-stars-background" className="stars-background" />
-      <div className="relative z-10 bg-[hsl(var(--background))]">
+      <div className="relative z-10">
       <Header hideSearch breadcrumb={work.title} />
 
       <main className="w-full max-w-7xl mx-auto px-4 py-6 sm:py-8">

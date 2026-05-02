@@ -153,10 +153,21 @@ export default function UserProfile() {
       }
     }
 
+    // Store old username to detect changes
+    const oldUsername = profile?.username;
+    const newUsername = editForm.username;
+
     const { error } = await updateProfile(editForm);
     setSaving(false);
     if (error) { setEditError(error); return; }
     await refreshProfile();
+
+    // If username changed, redirect to new profile URL
+    if (oldUsername !== newUsername) {
+      navigate(`/u/${newUsername}`);
+      return;
+    }
+
     setEditing(false);
     loadProfile();
   };

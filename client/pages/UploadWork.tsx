@@ -60,10 +60,38 @@ export default function UploadWork() {
   const [coverFile, setCoverFile] = useState<File | null>(null);
   const [progress, setProgress] = useState<UploadProgress>('idle');
   const [error, setError] = useState('');
+  const [fileError, setFileError] = useState('');
+  const [coverError, setCoverError] = useState('');
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setForm(p => ({ ...p, [name]: value }));
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0] ?? null;
+    setFile(f);
+    if (f) {
+      const err = validateFile(f, form.workType);
+      setFileError(err ?? '');
+    } else {
+      setFileError('');
+    }
+  };
+
+  const handleCoverChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0] ?? null;
+    setCoverFile(f);
+    if (f) {
+      const fileName = f.name.toLowerCase();
+      if (fileName.endsWith('.gif')) {
+        setCoverError(es ? 'Los GIFs no están permitidos en la portada.' : 'GIFs are not allowed for cover images.');
+      } else {
+        setCoverError('');
+      }
+    } else {
+      setCoverError('');
+    }
   };
 
   const validateFile = (f: File, type: string): string | null => {
@@ -304,8 +332,9 @@ export default function UploadWork() {
                   </div>
                   {form.addCover && (
                     <div className="mt-4 pt-4 border-t border-[hsl(var(--border))]">
-                      <input type="file" accept=".jpg,.jpeg,.png,.webp" onChange={e => setCoverFile(e.target.files?.[0] ?? null)}
+                      <input type="file" accept=".jpg,.jpeg,.png,.webp" onChange={handleCoverChange}
                         className="w-full text-sm text-[hsl(var(--muted-foreground))] file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:bg-[hsl(var(--foreground))] file:text-[hsl(var(--background))] cursor-pointer" />
+                      {coverError && <p className="text-xs text-red-500 mt-2">{coverError}</p>}
                     </div>
                   )}
                 </div>
@@ -376,9 +405,10 @@ export default function UploadWork() {
                   </label>
                   <input type="file"
                     accept={form.workType === 'cancion' ? 'audio/*' : (form.workType === 'pintura' || form.workType === 'fotografia') ? 'image/*' : '*/*'}
-                    onChange={e => setFile(e.target.files?.[0] ?? null)}
+                    onChange={handleFileChange}
                     className="w-full text-sm text-[hsl(var(--muted-foreground))] file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:bg-[hsl(var(--foreground))] file:text-[hsl(var(--background))] cursor-pointer" />
-                  {file && <p className="text-xs text-[hsl(var(--muted-foreground))] mt-1">{file.name} — {(file.size / 1024 / 1024).toFixed(2)}MB</p>}
+                  {fileError && <p className="text-xs text-red-500 mt-2">{fileError}</p>}
+                  {file && !fileError && <p className="text-xs text-[hsl(var(--muted-foreground))] mt-2">{file.name} — {(file.size / 1024 / 1024).toFixed(2)}MB</p>}
                 </div>
               )}
 
