@@ -62,22 +62,20 @@ export default function NavMenu() {
         </div>
       </button>
 
-      {/* Overlay */}
+      {/* Overlay - HIDDEN BY DEFAULT */}
       {isOpen && (
         <div
-          className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40"
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40"
           onClick={() => setIsOpen(false)}
-          style={{ width: '100vw', height: '100vh', left: 0, top: 0 }}
           aria-hidden="true"
         />
       )}
 
-      {/* Sidebar */}
+      {/* Sidebar - HIDDEN BY DEFAULT */}
       <div
-        className={`fixed left-0 top-0 h-screen w-80 bg-[hsl(var(--background))] border-r border-[hsl(var(--border))] shadow-2xl transition-transform duration-300 ease-in-out z-50 flex flex-col -translate-x-full ${
-          isOpen ? 'translate-x-0' : ''
+        className={`fixed top-0 left-0 h-full w-64 bg-[hsl(var(--background))] border-r border-[hsl(var(--border))] shadow-2xl z-50 flex flex-col transform transition-transform duration-300 ease-in-out ${
+          isOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
-        style={{ willChange: 'transform', transform: isOpen ? 'translateX(0)' : 'translateX(-100%)' }}
       >
         {/* Header */}
         <div className="p-6 border-b border-[hsl(var(--border))]">

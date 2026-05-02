@@ -168,10 +168,11 @@ export default function Gallery() {
     };
   }, [showFilterPopup]);
 
-  // ── Use only BD works (no coded songs) ─────────────────────────────────
+  // ── Use ALL BD works (no filtering) ─────────────────────────────────────
   const allItems = useMemo(() => {
-    // Filter to valid works only: must have cover_url and valid data
-    return works.filter(w => w.cover_url && w.title && w.profiles?.username);
+    console.log('WORKS FETCHED:', works.length, works);
+    // Render ALL works from DB - no filtering
+    return works;
   }, [works]);
 
   // ── Client-side filter + search (on already-fetched data) ─────────────────
