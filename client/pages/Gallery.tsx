@@ -1,9 +1,7 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
-import { Link } from 'react-router-dom';
 import { supabase, Work } from '@/lib/supabase';
 import { useAuth } from '@/lib/AuthContext';
 import { useWorks } from '@/lib/WorksContext';
-import { songs } from '@/lib/songs';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import WorkCard from '@/components/WorkCard';
@@ -170,30 +168,10 @@ export default function Gallery() {
     };
   }, [showFilterPopup]);
 
-  // ── Build combined items (songs + works) ─────────────────────────────────
+  // ── Use only BD works (no coded songs) ─────────────────────────────────
   const allItems = useMemo(() => {
-    const songsAsWorks = songs.map(s => ({
-      id: `makwin-song-${s.id}`,
-      user_id: 'makwin-bot-user-id',
-      title: s.title,
-      description: s.description ?? '',
-      work_type: 'cancion' as const,
-      file_url: null,
-      cover_url: s.coverUrl ?? null,
-      hashtags: [],
-      is_for_sale: false,
-      price: null,
-      status: 'published' as const,
-      like_count: 0,
-      view_count: 0,
-      language: s.originalLanguage ?? 'en',
-      created_at: s.releaseDate ?? '',
-      updated_at: s.releaseDate ?? '',
-      policy_flags: [],
-      profiles: { id: 'makwin-bot-user-id', username: 'makwin', display_name: 'MAKWIN', avatar_url: null, bio: null, website: null, is_verified: true, is_banned: false, created_at: '' },
-    }));
-
-    return [...songsAsWorks, ...works];
+    // Filter to valid works only: must have cover_url and valid data
+    return works.filter(w => w.cover_url && w.title && w.profiles?.username);
   }, [works]);
 
   // ── Client-side filter + search (on already-fetched data) ─────────────────

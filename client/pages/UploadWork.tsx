@@ -66,6 +66,8 @@ export default function UploadWork() {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setForm(p => ({ ...p, [name]: value }));
+    // Clear global error when user changes input
+    if (error) setError('');
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -400,15 +402,15 @@ export default function UploadWork() {
                 <div>
                   <label className={labelClass}>
                     {form.workType === 'cancion' ? (es ? 'Archivo de audio (mp3, wav, flac)' : 'Audio file (mp3, wav, flac)')
-                      : form.workType === 'pintura' || form.workType === 'fotografia' ? (es ? 'Imagen' : 'Image')
+                      : form.workType === 'pintura' || form.workType === 'fotografia' ? (es ? 'Imagen (requerida)' : 'Image (required)')
                       : (es ? 'Archivo (opcional)' : 'File (optional)')}
                   </label>
                   <input type="file"
                     accept={form.workType === 'cancion' ? 'audio/*' : (form.workType === 'pintura' || form.workType === 'fotografia') ? 'image/*' : '*/*'}
                     onChange={handleFileChange}
                     className="w-full text-sm text-[hsl(var(--muted-foreground))] file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:bg-[hsl(var(--foreground))] file:text-[hsl(var(--background))] cursor-pointer" />
-                  {fileError && <p className="text-xs text-red-500 mt-2">{fileError}</p>}
-                  {file && !fileError && <p className="text-xs text-[hsl(var(--muted-foreground))] mt-2">{file.name} — {(file.size / 1024 / 1024).toFixed(2)}MB</p>}
+                  {fileError && <p className="text-xs text-red-500 mt-2 font-medium">{fileError}</p>}
+                  {file && !fileError && <p className="text-xs text-[hsl(var(--muted-foreground))] mt-2">✓ {file.name} — {(file.size / 1024 / 1024).toFixed(2)}MB</p>}
                 </div>
               )}
 

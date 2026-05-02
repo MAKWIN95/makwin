@@ -188,9 +188,11 @@ export default function UserProfile() {
     const { error: uploadError } = await supabase.storage.from('avatars').upload(path, file, { upsert: true });
     if (!uploadError) {
       const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(path);
-      await updateProfile({ avatar_url: publicUrl + '?t=' + Date.now() });
+      const urlWithTimestamp = publicUrl + '?t=' + Date.now();
+      await updateProfile({ avatar_url: urlWithTimestamp });
       await refreshProfile();
-      loadProfile();
+      // Force reload after small delay to ensure cache bust
+      setTimeout(() => loadProfile(), 500);
     }
     setAvatarUploading(false);
   };

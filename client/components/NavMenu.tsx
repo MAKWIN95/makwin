@@ -36,7 +36,7 @@ export default function NavMenu() {
       {/* Hamburger Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="p-0 rounded-lg hover:bg-[hsl(var(--muted))] transition-all duration-200 ease-out relative w-10 h-10 flex items-center justify-center"
+        className="p-0 rounded-lg transition-all duration-200 ease-out relative w-10 h-10 flex items-center justify-center hover:scale-110 hover:text-white"
         aria-label="Menu"
         aria-expanded={isOpen}
       >
