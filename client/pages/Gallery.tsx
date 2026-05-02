@@ -173,11 +173,11 @@ export default function Gallery() {
   // ── Build combined items (songs + works) ─────────────────────────────────
   const allItems = useMemo(() => {
     const songsAsWorks = songs.map(s => ({
-      id: s.id,
-      user_id: '',
+      id: `makwin-song-${s.id}`,
+      user_id: 'makwin-bot-user-id',
       title: s.title,
       description: s.description ?? '',
-      work_type: 'cancion',
+      work_type: 'cancion' as const,
       file_url: null,
       cover_url: s.coverUrl ?? null,
       hashtags: [],
@@ -190,9 +190,7 @@ export default function Gallery() {
       created_at: s.releaseDate ?? '',
       updated_at: s.releaseDate ?? '',
       policy_flags: [],
-      profiles: { id: '', username: 'makwin', display_name: 'MAKWIN', avatar_url: null, bio: null, website: null, is_verified: true, is_banned: false, created_at: '' },
-      _isSong: true,
-      _songSlug: s.slug ?? s.id,
+      profiles: { id: 'makwin-bot-user-id', username: 'makwin', display_name: 'MAKWIN', avatar_url: null, bio: null, website: null, is_verified: true, is_banned: false, created_at: '' },
     }));
 
     return [...songsAsWorks, ...works];
