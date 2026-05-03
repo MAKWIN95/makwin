@@ -73,7 +73,7 @@ export default function NavMenu() {
 
       {/* Sidebar - HIDDEN BY DEFAULT */}
       <div
-        className={`fixed top-0 left-0 h-full w-64 bg-[hsl(var(--background))] border-r border-[hsl(var(--border))] shadow-2xl z-50 flex flex-col transform transition-transform duration-300 ease-in-out ${
+        className={`fixed top-0 left-0 h-full w-64 bg-black z-50 transform transition-transform duration-300 ${
           isOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >

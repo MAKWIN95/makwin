@@ -70,7 +70,10 @@ export default function UserProfile() {
     // Works
     const { data: worksData } = await supabase
       .from('works')
-      .select('*, profiles(*)')
+      .select(`*,
+  profiles (
+    username
+  )`)
       .eq('user_id', profileData.id)
       .eq('status', 'published')
       .order('created_at', { ascending: false });
@@ -206,11 +209,11 @@ export default function UserProfile() {
       console.log('[Avatar] refreshProfile result:', refreshResult);
       
       // Force reload after small delay to ensure cache bust
-      console.log('[Avatar] Waiting 500ms for cache bust...');
+      console.log('[Avatar] Waiting 1500ms for cache bust...');
       setTimeout(() => {
         console.log('[Avatar] Running loadProfile after timeout');
         loadProfile();
-      }, 500);
+      }, 1500);
     }
     setAvatarUploading(false);
   };

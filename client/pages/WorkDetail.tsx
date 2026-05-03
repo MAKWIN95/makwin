@@ -276,10 +276,10 @@ export default function WorkDetail() {
   }
 
   return (
-    <div className="min-h-screen relative">
-      <div id="detail-stars-background" className="stars-background" />
-      {/* DEBUG: Red background test - if visible, layout is OK. If not, z-index/structure issue */}
-      <div style={{ position: 'absolute', inset: 0, background: 'rgba(255, 0, 0, 0.15)', pointerEvents: 'none', zIndex: 5 }} />
+    <div className="relative min-h-screen">
+      {/* STARS BACKGROUND */}
+      <div id="detail-stars-background" className="absolute inset-0 z-0 stars-background" />
+      {/* CONTENIDO */}
       <div className="relative z-10">
       <Header hideSearch breadcrumb={work.title} />
 

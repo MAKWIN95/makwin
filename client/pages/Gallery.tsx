@@ -213,8 +213,8 @@ export default function Gallery() {
   };
 
   return (
-    <div className="min-h-screen bg-[hsl(var(--background))] relative">
-      <div id="gallery-stars-background" className="stars-background" />
+    <div className="relative min-h-screen bg-[hsl(var(--background))]">
+      <div id="gallery-stars-background" className="absolute inset-0 z-0 stars-background" />
       <div className="relative z-10 page-enter">
         <Header showSearchCentered />
 
