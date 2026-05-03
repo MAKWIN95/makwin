@@ -33,6 +33,7 @@ export default function Gallery() {
 
   // ── Fetch feed from Supabase ──────────────────────────────────────────────
   const fetchWorks = useCallback(async (pageNum: number, replace = false) => {
+    console.log('[Gallery] Fetching page:', pageNum, 'Replace:', replace);
     if (pageNum === 0) setLoadingInitial(true);
     else setLoadingMore(true);
 
@@ -44,6 +45,9 @@ export default function Gallery() {
       });
 
       if (error) throw error;
+
+      console.log('[Gallery] RPC returned:', data?.length, 'items');
+      console.log('[Gallery] First item sample:', data?.[0]);
 
       // Transform RPC data to expected Work type with profiles object
       const fetched = (data ?? []).map((item: any) => ({

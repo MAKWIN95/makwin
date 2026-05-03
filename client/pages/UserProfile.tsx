@@ -70,7 +70,7 @@ export default function UserProfile() {
     // Works
     const { data: worksData } = await supabase
       .from('works')
-      .select('*')
+      .select('*, profiles(*)')
       .eq('user_id', profileData.id)
       .eq('status', 'published')
       .order('created_at', { ascending: false });
@@ -176,6 +176,8 @@ export default function UserProfile() {
     const file = e.target.files?.[0];
     if (!file || !user) return;
     
+    console.log('[Avatar] Upload started:', file.name, 'Size:', file.size, 'Type:', file.type);
+    
     // Block GIFs
     const ext = file.name.split('.').pop()?.toLowerCase();
     if (ext === 'gif') {
@@ -185,14 +187,30 @@ export default function UserProfile() {
     
     setAvatarUploading(true);
     const path = `${user.id}/avatar.${ext}`;
+    console.log('[Avatar] Storage path:', path);
+    
     const { error: uploadError } = await supabase.storage.from('avatars').upload(path, file, { upsert: true });
+    console.log('[Avatar] Upload response - error:', uploadError);
+    
     if (!uploadError) {
       const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(path);
+      console.log('[Avatar] Public URL:', publicUrl);
+      
       const urlWithTimestamp = publicUrl + '?t=' + Date.now();
-      await updateProfile({ avatar_url: urlWithTimestamp });
-      await refreshProfile();
+      console.log('[Avatar] URL with timestamp:', urlWithTimestamp);
+      
+      const updateResult = await updateProfile({ avatar_url: urlWithTimestamp });
+      console.log('[Avatar] updateProfile result:', updateResult);
+      
+      const refreshResult = await refreshProfile();
+      console.log('[Avatar] refreshProfile result:', refreshResult);
+      
       // Force reload after small delay to ensure cache bust
-      setTimeout(() => loadProfile(), 500);
+      console.log('[Avatar] Waiting 500ms for cache bust...');
+      setTimeout(() => {
+        console.log('[Avatar] Running loadProfile after timeout');
+        loadProfile();
+      }, 500);
     }
     setAvatarUploading(false);
   };

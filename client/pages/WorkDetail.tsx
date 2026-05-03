@@ -98,6 +98,9 @@ export default function WorkDetail() {
 
   useEffect(() => {
     const fetchWork = async () => {
+      console.log('[WorkDetail] ID from route params:', id);
+      console.log('[WorkDetail] initialWorkData:', initialWorkData);
+      
       if (!id) {
         setError('No work ID provided');
         setLoading(false);
@@ -115,6 +118,7 @@ export default function WorkDetail() {
         setError('');
         
         // ISSUE 1 FIX: Fetch work WITHOUT profiles join (causes 400 error)
+        console.log('[WorkDetail] Fetching work with ID:', id, 'Type:', typeof id);
         const { data: workData, error: workError } = await supabase
           .from('works')
           .select(`
@@ -139,6 +143,8 @@ export default function WorkDetail() {
           .eq('id', id)
           .single();
 
+        console.log('[WorkDetail] Supabase response - workData:', workData, 'workError:', workError);
+        
         if (workError || !workData) {
           console.error('[WorkDetail] Work fetch error:', workError);
           
@@ -272,6 +278,8 @@ export default function WorkDetail() {
   return (
     <div className="min-h-screen relative">
       <div id="detail-stars-background" className="stars-background" />
+      {/* DEBUG: Red background test - if visible, layout is OK. If not, z-index/structure issue */}
+      <div style={{ position: 'absolute', inset: 0, background: 'rgba(255, 0, 0, 0.15)', pointerEvents: 'none', zIndex: 5 }} />
       <div className="relative z-10">
       <Header hideSearch breadcrumb={work.title} />
 
