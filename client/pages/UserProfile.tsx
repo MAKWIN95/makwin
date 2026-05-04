@@ -70,13 +70,16 @@ export default function UserProfile() {
     // Works
     const { data: worksData } = await supabase
       .from('works')
-      .select(`*,
-  profiles (
-    username
-  )`)
+      .select(`
+        *,
+        profiles (
+          username
+        )
+      `)
       .eq('user_id', profileData.id)
       .eq('status', 'published')
       .order('created_at', { ascending: false });
+    
     setWorks((worksData ?? []) as Work[]);
 
     // Follow counts

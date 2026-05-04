@@ -1,10 +1,10 @@
+import { useState } from 'react';
 import { Menu } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useI18n } from '@/lib/i18n';
-import { useSidebar } from '@/lib/SidebarContext';
 
 export default function NavMenu() {
-  const { isOpen, setIsOpen } = useSidebar();
+  const [isOpen, setIsOpen] = useState(false);
   const { language } = useI18n();
   const es = language === 'es';
 
@@ -62,7 +62,13 @@ export default function NavMenu() {
         </div>
       </button>
 
-      {/* Overlay is now global (in App.tsx) */}
+      {/* Overlay - FULL SCREEN */}
+      {isOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm"
+          onClick={() => setIsOpen(false)}
+        />
+      )}
 
       {/* Sidebar - HIDDEN BY DEFAULT */}
       <div
@@ -77,7 +83,7 @@ export default function NavMenu() {
           </h2>
         </div>
 
-        {/* Menu Items - Scrollable Center */}
+        {/* Menu Items - Scrollable */}
         <nav className="flex-1 overflow-y-auto p-4 space-y-2">
           {menuItems.map((item) => (
             <Link
@@ -96,7 +102,7 @@ export default function NavMenu() {
           ))}
         </nav>
 
-        {/* Footer - Sticky Bottom */}
+        {/* Footer */}
         <div className="p-4 border-t border-[hsl(var(--border))] text-xs text-[hsl(var(--muted-foreground))] text-center">
           {es ? 'MAKWIN © 2026' : 'MAKWIN © 2026'}
         </div>
@@ -104,3 +110,4 @@ export default function NavMenu() {
     </>
   );
 }
+

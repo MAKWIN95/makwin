@@ -616,31 +616,27 @@ html.dark body {
   pointer-events: none;
 }
 
-.star {
+/* DARK MODE — BLANCAS VISIBLES */
+.dark .stars-background::before {
+  content: '';
   position: absolute;
-  border-radius: 50%;
-  animation: twinkle var(--duration) ease-in-out infinite;
+  inset: 0;
+  background: radial-gradient(white 1px, transparent 1px);
+  background-size: 60px 60px;
+  opacity: 0.8;
+  z-index: 0;
+  pointer-events: none;
 }
 
-/* DARK MODE - White stars */
-.dark .star {
-  background: rgba(255, 255, 255, 0.8);
-  box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
-}
-
-/* LIGHT MODE - Black subtle stars */
-.star--light,
-:root .star {
-  background: rgba(0, 0, 0, 0.4) !important;
-  box-shadow: 0 0 6px rgba(0, 0, 0, 0.06) !important;
-  filter: blur(0.5px);
-}
-
-@keyframes twinkle {
-  0%, 100% {
-    opacity: 0.3;
-  }
-  50% {
-    opacity: 1;
-  }
+/* LIGHT MODE — NEGRAS MÁS FUERTES */
+.light .stars-background::before,
+:root .stars-background::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(black 1px, transparent 1px);
+  background-size: 60px 60px;
+  opacity: 0.6;
+  z-index: 0;
+  pointer-events: none;
 }

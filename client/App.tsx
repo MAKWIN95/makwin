@@ -28,7 +28,6 @@ import NotFound from "./pages/NotFound";
 
 // Global UI
 import { I18nProvider } from "@/lib/i18n";
-import { SidebarProvider, useSidebar } from "@/lib/SidebarContext";
 import LanguagePrompt from '@/components/LanguagePrompt';
 import Onboarding from '@/components/Onboarding';
 import GoogleSignupModal from '@/components/GoogleSignupModal';
@@ -36,20 +35,6 @@ import { AuthProvider, useAuth } from "@/lib/AuthContext";
 import { WorksProvider } from "@/lib/WorksContext";
 
 const queryClient = new QueryClient();
-
-// Global sidebar overlay
-const SidebarOverlay = () => {
-  const { isOpen, setIsOpen } = useSidebar();
-  
-  if (!isOpen) return null;
-  
-  return (
-    <div
-      className="fixed inset-0 z-40 backdrop-blur-sm bg-black/40"
-      onClick={() => setIsOpen(false)}
-    />
-  );
-};
 
 // Wrapper that waits for auth to be ready
 const RoutesWrapper = () => {
@@ -109,21 +94,18 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <I18nProvider>
-        <SidebarProvider>
-          <AuthProvider>
-            <WorksProvider>
-              <Toaster />
-              <Sonner />
-              <SidebarOverlay />
-              <LanguagePrompt />
-              <Onboarding />
-              <GoogleSignupModal />
-              <BrowserRouter>
-                <RoutesWrapper />
-              </BrowserRouter>
-            </WorksProvider>
-          </AuthProvider>
-        </SidebarProvider>
+        <AuthProvider>
+          <WorksProvider>
+            <Toaster />
+            <Sonner />
+            <LanguagePrompt />
+            <Onboarding />
+            <GoogleSignupModal />
+            <BrowserRouter>
+              <RoutesWrapper />
+            </BrowserRouter>
+          </WorksProvider>
+        </AuthProvider>
       </I18nProvider>
     </TooltipProvider>
   </QueryClientProvider>
