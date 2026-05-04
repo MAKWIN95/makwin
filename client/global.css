@@ -610,7 +610,7 @@ html.dark body {
 
 /* Stars Background - Reusable */
 .stars-background {
-  position: fixed;
+  position: absolute;
   inset: 0;
   z-index: 0;
   pointer-events: none;
@@ -618,17 +618,21 @@ html.dark body {
 
 .star {
   position: absolute;
-  background: rgba(255, 255, 255, 0.8);
   border-radius: 50%;
   animation: twinkle var(--duration) ease-in-out infinite;
+}
+
+/* DARK MODE - White stars */
+.dark .star {
+  background: rgba(255, 255, 255, 0.8);
   box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
 }
 
-/* Light-mode star variant */
-.star--light {
-  /* In light mode use darker (black-ish) subtle stars to be visible on bright backgrounds */
-  background: rgba(0,0,0,0.12) !important;
-  box-shadow: 0 0 6px rgba(0,0,0,0.06) !important;
+/* LIGHT MODE - Black subtle stars */
+.star--light,
+:root .star {
+  background: rgba(0, 0, 0, 0.4) !important;
+  box-shadow: 0 0 6px rgba(0, 0, 0, 0.06) !important;
   filter: blur(0.5px);
 }
 

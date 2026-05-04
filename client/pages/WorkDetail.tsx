@@ -4,6 +4,7 @@ import { supabase, Work, Profile } from '@/lib/supabase';
 import { useAuth } from '@/lib/AuthContext';
 import { useWorks } from '@/lib/WorksContext';
 import { useStarsBackground } from '@/hooks/use-stars-background';
+import { songs } from '@/lib/songs';
 import Header from '@/components/Header';
 import AuthModal from '@/components/AuthModal';
 import ReportModal from '@/components/ReportModal';
@@ -116,6 +117,54 @@ export default function WorkDetail() {
       try {
         setLoading(true);
         setError('');
+        
+        // CODED WORKS FALLBACK: Check if it's a coded work first
+        const codedWork = songs.find(s => s.id === id);
+        if (codedWork) {
+          console.log('[WorkDetail] Found coded work:', codedWork.id);
+          const workData: Work = {
+            id: codedWork.id,
+            user_id: 'makwin',
+            title: codedWork.title,
+            description: codedWork.description || '',
+            work_type: 'cancion',
+            file_url: '',
+            cover_url: codedWork.coverUrl || '',
+            lyrics: codedWork.lyrics || '',
+            hashtags: [],
+            is_for_sale: false,
+            price: null,
+            status: 'published',
+            like_count: 0,
+            view_count: 0,
+            language: codedWork.originalLanguage || 'es',
+            created_at: codedWork.releaseDate || new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            policy_flags: [],
+          } as Work;
+          setWork(workData);
+          
+          // Set author as Makwin
+          setAuthor({
+            id: 'makwin',
+            username: 'makwin',
+            display_name: 'Makwin',
+            bio: null,
+            avatar_url: null,
+            website: null,
+            instagram_url: null,
+            tiktok_url: null,
+            is_verified: true,
+            is_banned: false,
+            language_preference: 'es',
+            created_at: '',
+            last_name_change: null,
+            last_username_change: null,
+          } as Profile);
+          
+          setLoading(false);
+          return;
+        }
         
         // ISSUE 1 FIX: Fetch work WITHOUT profiles join (causes 400 error)
         console.log('[WorkDetail] Fetching work with ID:', id, 'Type:', typeof id);

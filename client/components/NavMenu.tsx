@@ -1,10 +1,10 @@
-import { useState } from 'react';
 import { Menu } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useI18n } from '@/lib/i18n';
+import { useSidebar } from '@/lib/SidebarContext';
 
 export default function NavMenu() {
-  const [isOpen, setIsOpen] = useState(false);
+  const { isOpen, setIsOpen } = useSidebar();
   const { language } = useI18n();
   const es = language === 'es';
 
@@ -62,50 +62,41 @@ export default function NavMenu() {
         </div>
       </button>
 
-      {/* Overlay - HIDDEN BY DEFAULT */}
-      {isOpen && (
-        <div
-          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40"
-          onClick={() => setIsOpen(false)}
-          aria-hidden="true"
-        />
-      )}
+      {/* Overlay is now global (in App.tsx) */}
 
       {/* Sidebar - HIDDEN BY DEFAULT */}
       <div
-        className={`fixed top-0 left-0 h-full w-64 bg-black z-50 transform transition-transform duration-300 ${
+        className={`fixed top-0 left-0 h-full w-64 z-50 transform transition-transform duration-300 bg-[hsl(var(--background))] border-r border-[hsl(var(--border))] flex flex-col ${
           isOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
         {/* Header */}
-        <div className="p-6 border-b border-[hsl(var(--border))]">
+        <div className="p-4 border-b border-[hsl(var(--border))]">
           <h2 className="text-xl font-black uppercase tracking-wider text-[hsl(var(--foreground))]">
             {es ? 'Explorar' : 'Explore'}
           </h2>
         </div>
 
-        {/* Menu Items */}
-        <nav className="flex-1 overflow-y-auto p-4">
-          <div className="space-y-3">
-            {menuItems.map((item) => (
-              <Link
-                key={item.path}
-                to={item.path}
-                className="block p-4 rounded-xl border border-[hsl(var(--border))] hover:border-[hsl(var(--foreground))] hover:bg-[hsl(var(--muted))] transition-all duration-250 ease-out group"
-                onClick={() => setIsOpen(false)}
-              >
-                <h3 className="text-base font-semibold text-[hsl(var(--foreground))] group-hover:translate-x-1 transition-transform duration-200">
-                  {item.label}
-                </h3>
-                <p className="text-xs text-[hsl(var(--muted-foreground))] mt-1.5 leading-relaxed">
-                  {item.description}
-                </p>
-              </Link>
-            ))}
-          </div>
+        {/* Menu Items - Scrollable Center */}
+        <nav className="flex-1 overflow-y-auto p-4 space-y-2">
+          {menuItems.map((item) => (
+            <Link
+              key={item.path}
+              to={item.path}
+              className="block p-4 rounded-xl border border-[hsl(var(--border))] hover:border-[hsl(var(--foreground))] hover:bg-[hsl(var(--muted))] transition-all duration-250 ease-out group"
+              onClick={() => setIsOpen(false)}
+            >
+              <h3 className="text-base font-semibold text-[hsl(var(--foreground))] group-hover:translate-x-1 transition-transform duration-200">
+                {item.label}
+              </h3>
+              <p className="text-xs text-[hsl(var(--muted-foreground))] mt-1.5 leading-relaxed">
+                {item.description}
+              </p>
+            </Link>
+          ))}
         </nav>
 
-        {/* Footer */}
+        {/* Footer - Sticky Bottom */}
         <div className="p-4 border-t border-[hsl(var(--border))] text-xs text-[hsl(var(--muted-foreground))] text-center">
           {es ? 'MAKWIN © 2026' : 'MAKWIN © 2026'}
         </div>
