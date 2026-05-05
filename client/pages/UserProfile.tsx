@@ -68,7 +68,7 @@ export default function UserProfile() {
     });
 
     // Works
-    const { data: worksData } = await supabase
+    const { data: worksData, error: worksError } = await supabase
       .from('works')
       .select(`
         *,
@@ -79,6 +79,13 @@ export default function UserProfile() {
       .eq('user_id', profileData.id)
       .eq('status', 'published')
       .order('created_at', { ascending: false });
+    
+    console.log('[UserProfile] Works query result:', {
+      userId: profileData.id,
+      worksCount: worksData?.length,
+      worksError,
+      works: worksData
+    });
     
     setWorks((worksData ?? []) as Work[]);
 

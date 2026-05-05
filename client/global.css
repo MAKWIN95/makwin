@@ -629,11 +629,12 @@ html.dark body {
   box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
 }
 
-/* LIGHT MODE - Black subtle stars */
+/* LIGHT MODE - Black subtle stars - MORE VISIBLE */
 .star--light {
-  background: rgba(0, 0, 0, 0.4) !important;
-  box-shadow: 0 0 6px rgba(0, 0, 0, 0.06) !important;
-  filter: blur(0.5px);
+  background: rgba(0, 0, 0, 0.5) !important;
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.12) !important;
+  filter: blur(0.3px);
+  opacity: 0.8 !important;
 }
 
 @keyframes twinkle {
@@ -643,4 +644,15 @@ html.dark body {
   50% {
     opacity: 1;
   }
+}
+
+/* Navigation sidebar explicit state classes */
+.nav-open {
+  transform: translateX(0);
+  visibility: visible;
+}
+
+.nav-closed {
+  transform: translateX(-100%);
+  visibility: hidden;
 }

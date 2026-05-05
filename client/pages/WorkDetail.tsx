@@ -99,8 +99,10 @@ export default function WorkDetail() {
 
   useEffect(() => {
     const fetchWork = async () => {
-      console.log('[WorkDetail] ID from route params:', id);
+      console.log('[WorkDetail] ID from route params:', id, typeof id);
       console.log('[WorkDetail] initialWorkData:', initialWorkData);
+      console.log('[WorkDetail] songs array length:', songs.length);
+      console.log('[WorkDetail] Available song IDs:', songs.map(s => s.id));
       
       if (!id) {
         setError('No work ID provided');
@@ -119,9 +121,13 @@ export default function WorkDetail() {
         setError('');
         
         // CODED WORKS FALLBACK: Check if it's a coded work first
-        const codedWork = songs.find(s => s.id === id);
+        const codedWork = songs.find(s => {
+          const match = s.id === id;
+          console.log(`[WorkDetail] Comparing: "${s.id}" (${typeof s.id}) === "${id}" (${typeof id}) = ${match}`);
+          return match;
+        });
         if (codedWork) {
-          console.log('[WorkDetail] Found coded work:', codedWork.id);
+          console.log('[WorkDetail] Found coded work:', codedWork.id, codedWork.title);
           const workData: Work = {
             id: codedWork.id,
             user_id: 'makwin',

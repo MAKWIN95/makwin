@@ -72,8 +72,8 @@ export default function NavMenu() {
 
       {/* Sidebar - HIDDEN BY DEFAULT */}
       <div
-        className={`fixed top-0 left-0 h-full w-64 z-50 transform transition-transform duration-300 bg-[hsl(var(--background))] border-r border-[hsl(var(--border))] flex flex-col ${
-          isOpen ? 'translate-x-0' : '-translate-x-full'
+        className={`fixed top-0 left-0 h-full w-64 z-50 transition-transform duration-300 bg-[hsl(var(--background))] border-r border-[hsl(var(--border))] flex flex-col ${
+          isOpen ? 'nav-open' : 'nav-closed'
         }`}
       >
         {/* Header */}

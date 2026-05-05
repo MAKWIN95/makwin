@@ -23,6 +23,13 @@ export default function FollowButton({
   const [isFollowing, setIsFollowing] = useState(initialFollowing);
   const [loading, setLoading] = useState(false);
 
+  console.log('[FollowButton] Initialized:', {
+    userId,
+    currentUserId: user?.id,
+    initialFollowing,
+    isFollowing
+  });
+
   const handleToggleFollow = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
