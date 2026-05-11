@@ -94,7 +94,7 @@ export default function HelpModal({
       <div className={`fixed inset-0 z-50 flex items-center justify-center pointer-events-none ${isOpen ? 'pointer-events-auto' : ''}`}>
         <div className="bg-[hsl(var(--background))] rounded-lg shadow-lg w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto border border-[hsl(var(--border))]">
           {/* Header */}
-          <div className="sticky top-0 bg-[hsl(var(--background))] border-b border-[hsl(var(--border))] p-4 flex items-center justify-between">
+          <div className="sticky top-0 bg-[hsl(var(--background))] border-b border-[rgba(120,120,120,0.25)] p-4 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <HelpCircle className="w-5 h-5 text-[hsl(var(--primary))]" />
               <h2 className="font-bold text-lg">

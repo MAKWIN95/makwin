@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/AuthContext';
+import { useFollow } from '@/lib/FollowContext';
 import { Button } from '@/components/ui/button';
 import { User, UserPlus } from 'lucide-react';
 
@@ -20,15 +21,11 @@ export default function FollowButton({
   size = 'md',
 }: FollowButtonProps) {
   const { user } = useAuth();
-  const [isFollowing, setIsFollowing] = useState(initialFollowing);
+  const { isFollowing: isFollowingGlobal, setFollowing } = useFollow();
   const [loading, setLoading] = useState(false);
 
-  console.log('[FollowButton] Initialized:', {
-    userId,
-    currentUserId: user?.id,
-    initialFollowing,
-    isFollowing
-  });
+  // Use global follow state (don't need to sync if context loads it properly)
+  const isFollowing = isFollowingGlobal(userId);
 
   const handleToggleFollow = async (e: React.MouseEvent) => {
     e.preventDefault();
@@ -46,22 +43,8 @@ export default function FollowButton({
     setLoading(true);
 
     try {
-      if (isFollowing) {
-        await supabase
-          .from('follows')
-          .delete()
-          .eq('follower_id', user.id)
-          .eq('following_id', userId);
-        setIsFollowing(false);
-      } else {
-        await supabase.from('follows').insert({
-          follower_id: user.id,
-          following_id: userId,
-        });
-        setIsFollowing(true);
-      }
-
-      onFollowChange?.(isFollowing ? false : true);
+      await setFollowing(userId, !isFollowing);
+      onFollowChange?.(!isFollowing);
     } catch (err) {
       console.error('Follow toggle error:', err);
     } finally {
@@ -80,10 +63,10 @@ export default function FollowButton({
       onClick={handleToggleFollow}
       disabled={loading}
       variant="outline"
-      className={`transition-all duration-250 ease-out ${sizeClasses[size]} ${className} ${
+      className={`transition-all duration-200 ease-out ${sizeClasses[size]} ${className} ${
         isFollowing
           ? 'bg-[hsl(var(--foreground))] text-[hsl(var(--background))] border-[hsl(var(--foreground))] hover:opacity-90'
-          : 'bg-white text-black border-white hover:bg-gray-100'
+          : 'border border-[rgba(120,120,120,0.25)] text-[hsl(var(--foreground))] hover:bg-[hsl(var(--muted))]'
       }`}
     >
       {isFollowing ? (

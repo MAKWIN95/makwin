@@ -6,7 +6,11 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+
+// Global components
+import NavMenu from "./components/NavMenu";
+import GlobalStars from "./components/GlobalStars";
 
 // Pages
 import Landing from "./pages/Landing";
@@ -14,7 +18,7 @@ import Home from "./pages/Home";
 import Gallery from "./pages/Gallery";
 import Merch from "./pages/Merch";
 import Marketplace from "./pages/Marketplace";
-import SongDetail from "./pages/SongDetail";
+import Attuned from "./pages/Attuned";
 import WorkDetail from "./pages/WorkDetail";
 import UploadWork from "./pages/UploadWork";
 import UserProfile from "./pages/UserProfile";
@@ -33,10 +37,25 @@ import Onboarding from '@/components/Onboarding';
 import GoogleSignupModal from '@/components/GoogleSignupModal';
 import { AuthProvider, useAuth } from "@/lib/AuthContext";
 import { WorksProvider } from "@/lib/WorksContext";
+import { SidebarProvider } from "@/lib/SidebarContext";
+import { AttuneProvider } from "@/lib/AttuneContext";
+import { FollowProvider } from "@/lib/FollowContext";
 
 const queryClient = new QueryClient();
 
 // Wrapper that waits for auth to be ready
+// Global app layout with NavMenu and overlay at viewport root
+const AppLayout = () => {
+  return (
+    <div className="relative w-full">
+      {/* NavMenu: viewport-fixed at root level */}
+      <NavMenu />
+      {/* Routes wrapper */}
+      <RoutesWrapper />
+    </div>
+  );
+};
+
 const RoutesWrapper = () => {
   const { loading } = useAuth();
   const location = useLocation();
@@ -64,7 +83,7 @@ const RoutesWrapper = () => {
       <Route path="/galeria" element={<Gallery />} />
       <Route path="/merch" element={<Merch />} />
       <Route path="/marketplace" element={<Marketplace />} />
-      <Route path="/song/:id" element={<SongDetail />} />
+      <Route path="/attuned" element={<Attuned />} />
       <Route path="/work/:id" element={<WorkDetail />} />
 
       {/* Auth */}
@@ -95,16 +114,23 @@ const App = () => (
     <TooltipProvider>
       <I18nProvider>
         <AuthProvider>
-          <WorksProvider>
-            <Toaster />
-            <Sonner />
-            <LanguagePrompt />
-            <Onboarding />
-            <GoogleSignupModal />
-            <BrowserRouter>
-              <RoutesWrapper />
-            </BrowserRouter>
-          </WorksProvider>
+          <SidebarProvider>
+            <FollowProvider>
+              <WorksProvider>
+                <AttuneProvider>
+                  <Toaster />
+                  <Sonner />
+                  <LanguagePrompt />
+                  <Onboarding />
+                  <GoogleSignupModal />
+                  <BrowserRouter>
+                    <GlobalStars />
+                    <AppLayout />
+                  </BrowserRouter>
+                </AttuneProvider>
+              </WorksProvider>
+            </FollowProvider>
+          </SidebarProvider>
         </AuthProvider>
       </I18nProvider>
     </TooltipProvider>

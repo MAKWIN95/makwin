@@ -109,7 +109,7 @@ export default function WorkCard({ work, onLikeToggle, onSaveToggle, isOwnProfil
     setShowReportModal(true);
   };
 
-  const linkPath = isSong ? `/song/${work.id}` : `/work/${work.id}`;
+  const linkPath = `/work/${work.id}`;
 
   return (
     <>
@@ -156,13 +156,17 @@ export default function WorkCard({ work, onLikeToggle, onSaveToggle, isOwnProfil
       <div className="mt-3 px-1">
         <p className="text-sm font-medium text-[hsl(var(--foreground))] truncate leading-tight">{work.title}</p>
         <div className="flex items-center justify-between gap-2 mt-1.5">
-          <Link
-            to={`/u/${work.profiles?.username ?? ''}`}
-            onClick={e => e.stopPropagation()}
-            className="text-xs text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] transition-colors duration-200"
-          >
-            @{work.profiles?.username ?? work.profiles?.display_name ?? ''}
-          </Link>
+          {work.profiles?.username ? (
+            <Link
+              to={`/u/${work.profiles.username}`}
+              onClick={e => e.stopPropagation()}
+              className="text-xs text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] transition-colors duration-200"
+            >
+              @{work.profiles.username}
+            </Link>
+          ) : (
+            <span className="text-xs text-[hsl(var(--muted-foreground))]">Usuario no encontrado</span>
+          )}
           <span className="text-xs text-[hsl(var(--muted-foreground))]">{formatDate(work.created_at)}</span>
         </div>
       </div>
@@ -177,10 +181,10 @@ export default function WorkCard({ work, onLikeToggle, onSaveToggle, isOwnProfil
                 e.stopPropagation();
                 setShowEditModal(true);
               }}
-              className="flex items-center gap-1 text-xs text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] transition-colors"
+              className="flex items-center gap-1 text-xs text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] transition-all duration-200 ease-out"
               title={currentLang === 'es' ? 'Editar' : 'Edit'}
             >
-              <Pencil className="w-3.5 h-3.5" />
+              <Pencil className="w-3.5 h-3.5 transition-all duration-200" />
             </button>
             <button
               onClick={(e) => {
@@ -188,10 +192,10 @@ export default function WorkCard({ work, onLikeToggle, onSaveToggle, isOwnProfil
                 e.stopPropagation();
                 setShowDeleteModal(true);
               }}
-              className="flex items-center gap-1 text-xs text-[hsl(var(--muted-foreground))] hover:text-red-500 transition-colors"
+              className="flex items-center gap-1 text-xs text-[hsl(var(--muted-foreground))] hover:text-red-500 transition-all duration-200 ease-out"
               title={currentLang === 'es' ? 'Eliminar' : 'Delete'}
             >
-              <Trash2 className="w-3.5 h-3.5" />
+              <Trash2 className="w-3.5 h-3.5 transition-all duration-200" />
             </button>
           </div>
         ) : (
@@ -200,20 +204,20 @@ export default function WorkCard({ work, onLikeToggle, onSaveToggle, isOwnProfil
             <button
               onClick={handleLike}
               disabled={isPendingLike}
-              className={`flex items-center gap-1 text-xs text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] transition-colors ${isPendingLike ? 'opacity-50' : ''}`}
+              className={`flex items-center gap-1 text-xs transition-all duration-200 ease-out ${liked ? 'text-rose-500' : 'text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))]'} ${isPendingLike ? 'opacity-50' : ''}`}
               aria-label="Me gusta"
             >
               <Heart
-                className={`w-3.5 h-3.5 transition-all duration-200 ${likeAnimating ? 'scale-125' : 'scale-100'} ${liked ? 'fill-current text-rose-500 stroke-rose-500' : ''}`}
+                className={`w-3.5 h-3.5 transition-all duration-200 ${likeAnimating ? 'scale-125' : 'scale-100'} ${liked ? 'fill-current stroke-current' : ''}`}
               />
               {/* Only show count if > 0 — keeps feed clean */}
-              {likeCount > 0 && <span>{likeCount}</span>}
+              {likeCount > 0 && <span className="transition-all duration-200">{likeCount}</span>}
             </button>
 
             {/* Report button — opens modal, doesn't render dropdown */}
             <button
               onClick={handleReport}
-              className="text-xs text-[hsl(var(--muted-foreground))] hover:text-red-500 transition-colors"
+              className="text-xs text-[hsl(var(--muted-foreground))] hover:text-red-500 transition-all duration-200 ease-out"
               aria-label={currentLang === 'es' ? 'Reportar' : 'Report'}
               title={currentLang === 'es' ? 'Reportar obra' : 'Report work'}
             >

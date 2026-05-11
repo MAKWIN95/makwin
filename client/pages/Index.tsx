@@ -1,7 +1,6 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import WorkTypeIcon from '@/components/WorkTypeIcon';
-import { songs } from '@/lib/songs';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { Filter } from 'lucide-react';
@@ -122,21 +121,8 @@ export default function Index() {
   }, [showFilterPopup]);
 
   const filteredAndSorted = useMemo(() => {
-    // Combine songs and works - add missing fields to songs for compatibility
-    const combined = [
-      ...songs.map(s => ({ 
-        ...s, 
-        workType: 'cancion' as const, 
-        hashtags: [] as string[],
-        artistName: s.artist,
-        submissionId: s.id,
-        // Map coverUrl to coverImageUrl for consistency with grid rendering
-        coverImageUrl: s.coverUrl,
-        // keep releaseDate from songs so we can display song dates
-        releaseDate: s.releaseDate
-      })),
-      ...works
-    ];
+    // Use only database works
+    const combined = [...works];
 
     // Search: by title, artist, or hashtag
     const searchLower = debouncedSearch.toLowerCase();
@@ -144,7 +130,6 @@ export default function Index() {
       if (!debouncedSearch) return true;
       return item.title.toLowerCase().includes(searchLower) || 
         item.artistName?.toLowerCase().includes(searchLower) ||
-        item.artist?.toLowerCase().includes(searchLower) ||
         (Array.isArray(item.hashtags) && item.hashtags.some(tag => tag.toLowerCase().includes(searchLower)));
     });
 
@@ -160,7 +145,7 @@ export default function Index() {
       const dateB = new Date(b.createdAt || b.publishedAt || b.date || 0).getTime();
       return filters.sort === 'recent' ? dateB - dateA : dateA - dateB;
     });
-  }, [searchTerm, filters, songs, works]);
+  }, [searchTerm, filters, works]);
 
   // Debounce searchTerm updates so results appear after 0.5s and fade-in
   useEffect(() => {
@@ -258,7 +243,7 @@ export default function Index() {
 
               const linkId = isSong ? item.id : item.submissionId;
               const linkSlug = isSong ? (item.slug ?? item.id) : linkId;
-              const linkPath = isSong ? `/song/${linkSlug}` : `/work/${linkId}`;
+              const linkPath = `/work/${linkId}`;
 
               return (
                 <Link

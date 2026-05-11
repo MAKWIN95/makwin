@@ -172,10 +172,9 @@ export default function Gallery() {
     };
   }, [showFilterPopup]);
 
-  // ── Use ALL BD works (no filtering) ─────────────────────────────────────
+  // ── Use all database works only ───────────────────────────────────────────
   const allItems = useMemo(() => {
     console.log('WORKS FETCHED:', works.length, works);
-    // Render ALL works from DB - no filtering
     return works;
   }, [works]);
 
@@ -241,8 +240,8 @@ export default function Gallery() {
               </div>
             )}
 
-            {/* Loading skeleton */}
-            {loadingInitial && (
+            {/* Loading skeleton - only show if we don't have cached data */}
+            {loadingInitial && works.length === 0 && (
               <div className="columns-2 sm:columns-3 lg:columns-4 xl:columns-5 gap-4">
                 {Array.from({ length: 12 }).map((_, i) => (
                   <div key={i} className="inline-block w-full mb-4 break-inside-avoid">

@@ -23,7 +23,7 @@ export default function Merch() {
     <div className="min-h-screen bg-[hsl(var(--background))] relative">
       <div id="merch-stars-background" className="stars-background"></div>
       <div className="relative z-10 page-enter">
-        <Header showSearchCentered={true} />
+        <Header showSearchCentered={true} hideSearch={true} />
         <main className="px-4 sm:px-8 py-12 page-enter">
           <div className="max-w-6xl mx-auto">
             <h1 className="text-4xl font-light mb-4">MAKWIN Merch</h1>

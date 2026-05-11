@@ -67,27 +67,43 @@ export default function UserProfile() {
       tiktok_url: profileData.tiktok_url ?? ''
     });
 
-    // Works
+    // Works - fetch published works only
     const { data: worksData, error: worksError } = await supabase
       .from('works')
-      .select(`
-        *,
-        profiles (
-          username
-        )
-      `)
+      .select('*')
       .eq('user_id', profileData.id)
       .eq('status', 'published')
       .order('created_at', { ascending: false });
     
+    // Map profile data to each work
+    const worksWithProfile = (worksData ?? []).map(work => ({
+      ...work,
+      profiles: {
+        id: profileData.id,
+        username: profileData.username,
+        display_name: profileData.display_name,
+        avatar_url: profileData.avatar_url,
+        bio: profileData.bio,
+        website: profileData.website,
+        instagram_url: profileData.instagram_url,
+        tiktok_url: profileData.tiktok_url,
+        is_verified: profileData.is_verified,
+        is_banned: profileData.is_banned,
+        language_preference: profileData.language_preference,
+        created_at: profileData.created_at,
+        last_name_change: profileData.last_name_change,
+        last_username_change: profileData.last_username_change,
+      }
+    }));
+    
     console.log('[UserProfile] Works query result:', {
       userId: profileData.id,
-      worksCount: worksData?.length,
+      worksCount: worksWithProfile?.length,
       worksError,
-      works: worksData
+      works: worksWithProfile
     });
     
-    setWorks((worksData ?? []) as Work[]);
+    setWorks((worksWithProfile ?? []) as Work[]);
 
     // Follow counts
     const [{ count: fwrCount }, { count: fwgCount }] = await Promise.all([
@@ -322,7 +338,7 @@ export default function UserProfile() {
                     {profile.is_verified && <span className="ml-2 text-blue-500 text-sm">✓</span>}
                   </h1>
                 </div>
-                <p className="text-sm text-[hsl(var(--muted-foreground))] mb-2">@{profile.username}</p>
+                <p className="text-sm text-[hsl(var(--muted-foreground))] mb-2">@{profile.username || username}</p>
                 {profile.bio && <p className="text-sm text-[hsl(var(--foreground))] mb-2 max-w-md">{profile.bio}</p>}
                 {profile.website && (
                   <a 

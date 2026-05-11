@@ -3,8 +3,8 @@ import { useState, useEffect } from 'react';
 import { supabase, Work, Profile } from '@/lib/supabase';
 import { useAuth } from '@/lib/AuthContext';
 import { useWorks } from '@/lib/WorksContext';
+import { useFollow } from '@/lib/FollowContext';
 import { useStarsBackground } from '@/hooks/use-stars-background';
-import { songs } from '@/lib/songs';
 import Header from '@/components/Header';
 import AuthModal from '@/components/AuthModal';
 import ReportModal from '@/components/ReportModal';
@@ -76,6 +76,7 @@ export default function WorkDetail() {
   const { user } = useAuth();
   const { language: currentLang, t } = useI18n();
   const worksContext = useWorks();
+  const { isFollowing, setFollowing } = useFollow();
   
   // Initialize stars background animation
   useStarsBackground('detail-stars-background');
@@ -90,7 +91,6 @@ export default function WorkDetail() {
   const [retrying, setRetrying] = useState(0);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
-  const [isFollowingAuthor, setIsFollowingAuthor] = useState(false);
 
   // Use context as source of truth
   const liked = id ? worksContext.isLiked(id) : false;
@@ -101,8 +101,6 @@ export default function WorkDetail() {
     const fetchWork = async () => {
       console.log('[WorkDetail] ID from route params:', id, typeof id);
       console.log('[WorkDetail] initialWorkData:', initialWorkData);
-      console.log('[WorkDetail] songs array length:', songs.length);
-      console.log('[WorkDetail] Available song IDs:', songs.map(s => s.id));
       
       if (!id) {
         setError('No work ID provided');
@@ -120,59 +118,7 @@ export default function WorkDetail() {
         setLoading(true);
         setError('');
         
-        // CODED WORKS FALLBACK: Check if it's a coded work first
-        const codedWork = songs.find(s => {
-          const match = s.id === id;
-          console.log(`[WorkDetail] Comparing: "${s.id}" (${typeof s.id}) === "${id}" (${typeof id}) = ${match}`);
-          return match;
-        });
-        if (codedWork) {
-          console.log('[WorkDetail] Found coded work:', codedWork.id, codedWork.title);
-          const workData: Work = {
-            id: codedWork.id,
-            user_id: 'makwin',
-            title: codedWork.title,
-            description: codedWork.description || '',
-            work_type: 'cancion',
-            file_url: '',
-            cover_url: codedWork.coverUrl || '',
-            lyrics: codedWork.lyrics || '',
-            hashtags: [],
-            is_for_sale: false,
-            price: null,
-            status: 'published',
-            like_count: 0,
-            view_count: 0,
-            language: codedWork.originalLanguage || 'es',
-            created_at: codedWork.releaseDate || new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-            policy_flags: [],
-          } as Work;
-          setWork(workData);
-          
-          // Set author as Makwin
-          setAuthor({
-            id: 'makwin',
-            username: 'makwin',
-            display_name: 'Makwin',
-            bio: null,
-            avatar_url: null,
-            website: null,
-            instagram_url: null,
-            tiktok_url: null,
-            is_verified: true,
-            is_banned: false,
-            language_preference: 'es',
-            created_at: '',
-            last_name_change: null,
-            last_username_change: null,
-          } as Profile);
-          
-          setLoading(false);
-          return;
-        }
-        
-        // ISSUE 1 FIX: Fetch work WITHOUT profiles join (causes 400 error)
+        // Fetch work from database only
         console.log('[WorkDetail] Fetching work with ID:', id, 'Type:', typeof id);
         const { data: workData, error: workError } = await supabase
           .from('works')
@@ -251,26 +197,8 @@ export default function WorkDetail() {
     fetchWork();
   }, [id, user]);
 
-  // Check if user is following the author
-  useEffect(() => {
-    if (!user || !author) {
-      setIsFollowingAuthor(false);
-      return;
-    }
-
-    const checkFollowStatus = async () => {
-      const { data } = await supabase
-        .from('follows')
-        .select('id')
-        .eq('follower_id', user.id)
-        .eq('following_id', author.id)
-        .limit(1);
-
-      setIsFollowingAuthor(data && data.length > 0);
-    };
-
-    checkFollowStatus();
-  }, [user, author]);
+  // Follow state is already loaded by FollowContext, no need to check again
+  // The isFollowing(author.id) call below will use the global context state
 
   const isPendingLike = id ? worksContext.isPendingLike(id) : false;
   const isPendingSave = id ? worksContext.isPendingSave(id) : false;
@@ -331,11 +259,11 @@ export default function WorkDetail() {
   }
 
   return (
-    <div className="relative min-h-screen">
+    <div className="relative w-full min-h-screen bg-[hsl(var(--background))]">
       {/* STARS BACKGROUND */}
-      <div id="detail-stars-background" className="absolute inset-0 z-0 stars-background" />
+      <div id="detail-stars-background" className="fixed inset-0 z-0 stars-background pointer-events-none" />
       {/* CONTENIDO */}
-      <div className="relative z-10">
+      <div className="relative z-20">
       <Header hideSearch breadcrumb={work.title} />
 
       <main className="w-full max-w-7xl mx-auto px-4 py-6 sm:py-8">
@@ -353,7 +281,7 @@ export default function WorkDetail() {
           <div className="lg:col-span-2 space-y-6">
             {/* Primary Image/Cover */}
             {work.cover_url && (
-              <div className="flex items-center justify-center" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '80vh' }}>
+              <div className="flex items-start justify-center pt-12" style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'center', minHeight: '50vh' }}>
                 <img src={work.cover_url} alt={work.title} className="rounded-lg border border-[rgba(255,255,255,0.1)] max-h-80vh w-auto h-auto object-contain" loading="lazy" />
               </div>
             )}
@@ -399,7 +327,7 @@ export default function WorkDetail() {
             )}
 
             {author && (
-              <div className="border-t border-b border-[hsl(var(--border))] py-4">
+              <div className="border-t border-b border-[rgba(120,120,120,0.25)] py-4">
                 <div className="flex items-center justify-between gap-4">
                   <Link to={`/u/${author.username}`} className="flex items-center gap-3 hover:opacity-70 transition-opacity duration-250 flex-1 min-w-0">
                     <div className="w-12 h-12 rounded-full overflow-hidden bg-[hsl(var(--muted))] flex-shrink-0">
@@ -417,8 +345,8 @@ export default function WorkDetail() {
                   {user && user.id !== author.id && (
                     <FollowButton
                       userId={author.id}
-                      isFollowing={isFollowingAuthor}
-                      onFollowChange={setIsFollowingAuthor}
+                      isFollowing={isFollowing(author.id)}
+                      onFollowChange={() => {}}
                       size="sm"
                     />
                   )}
@@ -429,10 +357,14 @@ export default function WorkDetail() {
             {work.hashtags && work.hashtags.length > 0 && (
               <div className="flex flex-wrap gap-2">
                 {work.hashtags.map((tag) => (
-                  <span key={tag} className="text-sm text-[hsl(var(--foreground))] bg-[hsl(var(--muted))] px-3 py-1 rounded-full">
-                  #{tag}
-                </span>
-              ))}
+                  <Link
+                    key={tag}
+                    to={`/galeria?search=%23${encodeURIComponent(tag)}`}
+                    className="text-sm text-[hsl(var(--foreground))] bg-[hsl(var(--muted))] hover:bg-[hsl(var(--muted))]/80 px-3 py-1 rounded-full transition-all duration-200 ease-out cursor-pointer"
+                  >
+                    #{tag}
+                  </Link>
+                ))}
               </div>
             )}
 

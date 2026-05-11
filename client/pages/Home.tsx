@@ -3,18 +3,36 @@ import { useStarsBackground } from '@/hooks/use-stars-background';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { ChevronDown } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useI18n } from '@/lib/i18n';
 
 export default function Home() {
   const { language } = useI18n();
   const es = language === 'es';
   const navigate = useNavigate();
+  const [showHeader, setShowHeader] = useState(false);
+  const heroTitleRef = useRef<HTMLHeadingElement>(null);
   
   // Initialize stars background animation
   useStarsBackground('home-stars-background');
 
   const [expandedFaq, setExpandedFaq] = useState<string | null>(null);
+
+  // Use IntersectionObserver to detect when hero title leaves viewport
+  useEffect(() => {
+    if (!heroTitleRef.current) return;
+    
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        // When title is NOT visible (intersectionRatio < threshold), show header
+        setShowHeader(!entry.isIntersecting);
+      },
+      { threshold: 0.1 }
+    );
+    
+    observer.observe(heroTitleRef.current);
+    return () => observer.disconnect();
+  }, []);
 
   const sections = [
     {
@@ -36,6 +54,28 @@ export default function Home() {
           a: es
             ? 'Cada obra tiene el perfil del artista. En su página de perfil encontrarás sus redes sociales e información de contacto.'
             : 'Each work displays the artist profile. You can visit their profile page to find their social media and contact information.'
+        }
+      ]
+    },
+    {
+      id: 'attuned',
+      title: 'ATTUNED',
+      description: es
+        ? 'Entrena tu percepción sensorial con experiencias interactivas innovadoras. ATTUNED es una serie de juegos que desafían tu vista, oído y sentido del tiempo. Mejora tu precisión sensorial y compite en las leaderboards globales.'
+        : 'Train your sensory perception with innovative interactive experiences. ATTUNED is a series of games that challenge your sight, hearing, and sense of time. Improve your sensory accuracy and compete on global leaderboards.',
+      link: '/attuned',
+      faqs: [
+        {
+          q: es ? '¿Cómo funciona ATTUNED?' : 'How does ATTUNED work?',
+          a: es
+            ? 'Cada experiencia (ColorResonance, TonalRecognition, TemporalCalibration) te desafía a afinar un aspecto diferente de tu percepción. Selecciona el número de rondas y comienza.'
+            : 'Each experience (ColorResonance, TonalRecognition, TemporalCalibration) challenges you to refine a different aspect of your perception. Select the number of rounds and begin.'
+        },
+        {
+          q: es ? '¿Hay competencia?' : 'Is there competition?',
+          a: es
+            ? 'Sí, tus scores se registran en las leaderboards globales. Compite con artistas de todo el mundo y mejora tu ranking.'
+            : 'Yes, your scores are recorded on global leaderboards. Compete with artists worldwide and improve your ranking.'
         }
       ]
     },
@@ -86,7 +126,7 @@ export default function Home() {
   ];
 
   const FaqItem = ({ item }: { item: { q: string; a: string } }) => (
-    <div className="border-b border-[hsl(var(--border))] py-4">
+    <div className="border-b border-[rgba(120,120,120,0.25)] py-4">
       <button
         onClick={() => setExpandedFaq(expandedFaq === item.q ? null : item.q)}
         className="w-full flex items-start justify-between gap-4 text-left hover:text-[hsl(var(--foreground))] transition-colors"
@@ -110,12 +150,15 @@ export default function Home() {
     <div className="min-h-screen bg-[hsl(var(--background))] relative">
       <div id="home-stars-background" className="stars-background" />
       <div className="relative z-10">
-        <Header />
+        {showHeader && <Header hideSearch={true} showSearch={false} />}
 
         <main className="max-w-4xl mx-auto px-4 sm:px-8 py-16 sm:py-24 page-enter">
           {/* Hero Section */}
           <div className="mb-20 sm:mb-32 text-center">
-            <h1 className="text-5xl sm:text-6xl lg:text-7xl font-black uppercase tracking-wider text-[hsl(var(--foreground))] mb-6 leading-tight">
+            <h1 
+              ref={heroTitleRef}
+              className="text-5xl sm:text-6xl lg:text-7xl font-black uppercase tracking-wider text-[hsl(var(--foreground))] mb-6 leading-tight"
+            >
               MAKWIN
             </h1>
             <p className="text-lg sm:text-xl text-[hsl(var(--muted-foreground))] font-light max-w-2xl mx-auto leading-relaxed">

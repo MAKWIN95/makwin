@@ -2,12 +2,11 @@ import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/custom-dialog";
 import LanguageSelector from "./LanguageSelector";
-import NavMenu from "./NavMenu";
-import { songs } from "@/lib/songs";
-import { Filter, ArrowLeft, Upload, Bookmark, User, LogOut, Settings, Heart, Moon, Sun } from 'lucide-react';
+import { Filter, ArrowLeft, Upload, Bookmark, User, LogOut, Settings, Heart, Moon, Sun, Menu } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
 import { useAuth } from '@/lib/AuthContext';
 import { useTheme } from "@/hooks/use-theme";
+import { useSidebar } from "@/lib/SidebarContext";
 
 interface HeaderProps {
   showSearch?: boolean;
@@ -30,6 +29,7 @@ export default function Header({ showSearch = true, showSearchCentered = false, 
   const navigate = useNavigate();
   const location = useLocation();
   const { isDark, toggleTheme } = useTheme();
+  const { toggleSidebar } = useSidebar();
 
   const handleMakwinClick = () => navigate('/');
   const handleGoHome = () => navigate('/');
@@ -53,12 +53,17 @@ export default function Header({ showSearch = true, showSearchCentered = false, 
   }, [searchTerm]);
 
   const isGalleryish = location.pathname.startsWith('/galeria') || location.pathname.startsWith('/merch') || location.pathname.startsWith('/marketplace');
+  const isHomePage = location.pathname === '/home';
   const headerRootClass = showSearchCentered
-    ? `sticky top-3 z-50 bg-transparent border-none fast-theme w-full transition-all duration-500 ${isGalleryish ? 'gallery-navbar header-offset' : ''}`
-    : `sticky top-0 z-50 bg-[hsl(var(--popover))/0.95] backdrop-blur-md border-b border-[rgba(255,255,255,0.1)] shadow-sm fast-theme w-full`;
+    ? `sticky top-4 z-50 bg-transparent border-none fast-theme w-full transition-all duration-500 px-4 ${isGalleryish ? 'gallery-navbar header-offset' : ''}`
+    : isHomePage
+    ? `fixed top-0 left-0 right-0 z-50 bg-[hsl(var(--popover))/0.95] backdrop-blur-md border-b shadow-sm fast-theme w-full transition-all duration-300 ease-out animate-in fade-in slide-in-from-top-1 border-[rgba(80,80,80,0.2)] px-4`
+    : `sticky top-4 z-50 bg-[hsl(var(--popover))/0.95] backdrop-blur-md border-b shadow-sm fast-theme w-full transition-all duration-500 border-[rgba(80,80,80,0.2)] px-4`;
 
   const innerContainerClass = showSearchCentered
-    ? 'w-full px-4 sm:px-6 py-2 sm:py-3 flex flex-col pointer-events-auto mx-auto max-w-6xl bg-[hsl(var(--popover))/0.95] backdrop-blur-md rounded-full border border-[hsl(var(--border))] shadow-md transition-all duration-500'
+    ? 'w-full px-4 sm:px-6 py-2 sm:py-3 flex flex-col pointer-events-auto mx-auto max-w-6xl bg-[hsl(var(--popover))/0.95] backdrop-blur-md rounded-full border border-[rgba(120,120,120,0.25)] shadow-md transition-all duration-500'
+    : isHomePage
+    ? 'w-full px-4 sm:px-6 py-4 sm:py-5 flex flex-col transition-all duration-500'
     : breadcrumb
     ? 'w-full px-4 sm:px-6 py-4 sm:py-5 flex flex-col transition-all duration-500'
     : 'w-full px-4 sm:px-6 py-3 sm:py-4 flex flex-col transition-all duration-500';
@@ -66,16 +71,29 @@ export default function Header({ showSearch = true, showSearchCentered = false, 
   return (
     <header className={headerRootClass}>
       <div className={innerContainerClass}>
+        {isHomePage ? (
+          /* HOME PAGE LAYOUT - CENTERED MAKWIN */
+          <div className="w-full flex items-center justify-center">
+            <div onClick={handleMakwinClick} className="cursor-pointer flex items-center gap-2">
+              <span className="logo-makwin tracking-widest hover:opacity-80 transition-opacity duration-200 whitespace-nowrap leading-tight text-2xl sm:text-3xl md:text-4xl">
+                MAKWIN
+              </span>
+            </div>
+          </div>
+        ) : (
+          /* NORMAL LAYOUT */
         <div className="w-full relative grid grid-cols-3 items-center gap-2 sm:gap-4">
 
           {/* Left: navigation + logo */}
-          <div className="col-span-1 flex items-center gap-1 sm:gap-2 min-w-0 relative">
-            <NavMenu />
-            <button onClick={handleGoBack} className="p-0 w-10 h-10 rounded-lg transition-all duration-200 ease-out flex items-center justify-center shrink-0 hover:scale-110 hover:text-white" aria-label="Atrás">
-              <ArrowLeft className="w-4 h-4 text-[hsl(var(--muted-foreground))]" />
+          <div className={`${isHomePage ? 'hidden' : 'col-span-1'} flex items-center gap-1 sm:gap-2 min-w-0 relative`}>
+            <button onClick={toggleSidebar} className="p-0 w-10 h-10 rounded-lg transition-all duration-200 ease-out flex items-center justify-center shrink-0 hover:scale-105 hover:bg-[hsl(var(--muted))] active:scale-95" aria-label="Menu">
+              <Menu className="w-5 h-5 text-[hsl(var(--muted-foreground))] transition-colors duration-300" />
+            </button>
+            <button onClick={handleGoBack} className="p-0 w-10 h-10 rounded-lg transition-all duration-200 ease-out flex items-center justify-center shrink-0 hover:scale-105 hover:bg-[hsl(var(--muted))] active:scale-95" aria-label="Atrás">
+              <ArrowLeft className="w-5 h-5 text-[hsl(var(--muted-foreground))] transition-colors duration-300" />
             </button>
             <div onClick={handleMakwinClick} className="cursor-pointer flex items-center gap-2 ml-1 min-w-0">
-              <span className={`font-black tracking-widest uppercase text-[hsl(var(--foreground))] hover:opacity-80 transition-opacity duration-200 whitespace-nowrap leading-tight ${hideSearch ? 'text-base sm:text-lg' : 'text-lg sm:text-xl md:text-2xl'}`}>
+              <span className={`logo-makwin tracking-widest hover:opacity-80 transition-opacity duration-200 whitespace-nowrap leading-tight ${hideSearch ? 'text-base sm:text-lg' : 'text-lg sm:text-xl md:text-2xl'}`}>
                 MAKWIN
               </span>
               {breadcrumb && <>
@@ -86,7 +104,7 @@ export default function Header({ showSearch = true, showSearchCentered = false, 
           </div>
 
           {/* Center: search */}
-          <div className="col-span-1 flex items-center justify-center" ref={searchRef}>
+          <div className={`${isHomePage ? 'hidden' : 'col-span-1'} flex items-center justify-center`} ref={searchRef}>
             {!hideSearch && showSearch && (
               <div className="flex items-center w-full max-w-xs sm:max-w-xl">
                 <input
@@ -97,11 +115,11 @@ export default function Header({ showSearch = true, showSearchCentered = false, 
                   onChange={(e) => { setSearchTerm(e.target.value); setIsSearching(true); }}
                   onFocus={() => setIsSearching(true)}
                   aria-label={t('search.placeholder')}
-                  className="flex-1 px-3 sm:px-4 py-2 text-sm bg-[hsl(var(--background))] border border-[hsl(var(--border))] rounded-lg focus:outline-none focus:ring-1 focus:ring-[hsl(var(--ring))] transition-all placeholder:text-[hsl(var(--muted-foreground))]"
+                  className="flex-1 px-3 sm:px-4 py-2 text-sm bg-[hsl(var(--popover))/0.6] backdrop-blur-sm border border-[rgba(120,120,120,0.25)] rounded-lg focus:outline-none focus:ring-1 focus:ring-[hsl(var(--ring))] transition-all placeholder:text-[hsl(var(--muted-foreground))]"
                 />
                 <button
                   id="filter-btn"
-                  className="ml-2 p-2 border border-[hsl(var(--border))] rounded-lg hover:bg-[hsl(var(--muted))] transition-colors"
+                  className="ml-2 p-2 border border-[rgba(120,120,120,0.25)] rounded-lg hover:bg-[hsl(var(--muted))] transition-colors duration-200"
                   onClick={() => document.dispatchEvent(new Event('toggleFilterPopup'))}
                 >
                   <Filter size={16} className="text-[hsl(var(--muted-foreground))]" />
@@ -111,7 +129,7 @@ export default function Header({ showSearch = true, showSearchCentered = false, 
           </div>
 
           {/* Right: lang + music + user */}
-          <div className="col-span-1 flex items-center justify-end gap-2 sm:gap-3">
+          <div className={`${isHomePage ? 'col-span-3 flex justify-center' : 'col-span-1 flex justify-end'} flex items-center gap-2 sm:gap-3`}>
             <div id="lang-selector-wrap" className="hidden sm:block whitespace-nowrap">
               <LanguageSelector />
             </div>
@@ -147,7 +165,7 @@ export default function Header({ showSearch = true, showSearchCentered = false, 
                   onClick={() => setShowUserMenu(p => !p)}
                   className="flex items-center gap-2 p-1 rounded-full hover:bg-[hsl(var(--muted))] transition-colors"
                 >
-                  <div className="w-8 h-8 rounded-full overflow-hidden bg-[hsl(var(--muted))] border border-[hsl(var(--border))] flex items-center justify-center text-sm font-medium">
+                  <div className="w-8 h-8 rounded-full overflow-hidden bg-[hsl(var(--muted))] border border-[rgba(120,120,120,0.25)] flex items-center justify-center text-sm font-medium">
                     {profile?.avatar_url
                       ? <img src={profile.avatar_url} alt={profile.display_name ?? ''} className="w-full h-full object-cover" />
                       : <span>{(profile?.display_name ?? profile?.username ?? 'U').charAt(0).toUpperCase()}</span>
@@ -156,8 +174,8 @@ export default function Header({ showSearch = true, showSearchCentered = false, 
                 </button>
 
                 {showUserMenu && (
-                  <div className="absolute right-0 top-full mt-2 w-52 bg-[hsl(var(--popover))] border border-[hsl(var(--border))] rounded-xl shadow-xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-150">
-                    <div className="px-4 py-3 border-b border-[hsl(var(--border))]">
+                  <div className="absolute right-0 top-full mt-2 w-52 bg-[hsl(var(--popover))] border border-[rgba(120,120,120,0.25)] rounded-xl shadow-xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-150">
+                    <div className="px-4 py-3 border-b border-[rgba(120,120,120,0.25)]">
                       <p className="text-sm font-medium text-[hsl(var(--foreground))] truncate">{profile?.display_name}</p>
                       <p className="text-xs text-[hsl(var(--muted-foreground))] truncate">@{profile?.username}</p>
                     </div>
@@ -187,7 +205,7 @@ export default function Header({ showSearch = true, showSearchCentered = false, 
                         {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
                         {isDark ? (es ? 'Modo claro' : 'Light mode') : (es ? 'Modo oscuro' : 'Dark mode')}
                       </button>
-                      <div className="border-t border-[hsl(var(--border))] mt-1 pt-1">
+                      <div className="border-t border-[rgba(120,120,120,0.25)] mt-1 pt-1">
                         <button onClick={async () => { 
                           setIsLoggingOut(true);
                           // Fade out effect
@@ -213,13 +231,14 @@ export default function Header({ showSearch = true, showSearchCentered = false, 
               </div>
             ) : (
               <Link to="/login"
-                className="text-xs font-medium text-[hsl(var(--foreground))] border border-[hsl(var(--border))] px-3 py-1.5 rounded-lg hover:bg-[hsl(var(--muted))] transition-colors whitespace-nowrap">
+                className="text-xs font-medium text-[hsl(var(--foreground))] border border-[rgba(120,120,120,0.25)] px-3 py-1.5 rounded-lg hover:bg-[hsl(var(--muted))] transition-colors duration-200 whitespace-nowrap">
                 {es ? 'Entrar' : 'Sign in'}
               </Link>
             )}
           </div>
 
         </div>
+        )}
       </div>
     </header>
   );
