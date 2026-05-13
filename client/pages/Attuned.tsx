@@ -52,10 +52,10 @@ export default function Attuned() {
   return (
     <div className="min-h-screen bg-[hsl(var(--background))] relative">
       <div id="attuned-stars-background" className="stars-background" />
-      <div className="relative z-10">
+      <div className="relative z-10 w-full">
         <Header showSearch={false} />
 
-        <main className="max-w-5xl mx-auto px-4 sm:px-8 py-12 sm:py-20 page-enter">
+        <main className="max-w-5xl mx-auto px-4 sm:px-8 py-8 sm:py-12 page-enter">
           {/* Header Section */}
           {!activeExperience ? (
             <>

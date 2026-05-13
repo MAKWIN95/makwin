@@ -160,7 +160,7 @@ export default function Settings() {
     <div className="min-h-screen bg-[hsl(var(--background))]">
       <Header hideSearch />
 
-      <div className="w-full max-w-2xl mx-auto px-4 py-12">
+      <div className="w-full max-w-2xl mx-auto px-4 py-12 page-enter">
         <h1 className="text-3xl font-bold text-[hsl(var(--foreground))] mb-8">
           Configuración de Cuenta
         </h1>

@@ -66,34 +66,49 @@ export default function TemporalCalibration({ onBack }: { onBack?: () => void })
 
   const playAmbientSound = () => {
     try {
+      // Ensure previous sound is stopped
+      stopAmbientSound();
+
       if (!audioContextRef.current) {
         audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
       }
 
       const audioCtx = audioContextRef.current;
-
-      if (!oscillatorRef.current) {
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        osc.type = 'sine';
-        osc.frequency.value = 200;
-        gain.gain.value = 0.08;
-        osc.start();
-        oscillatorRef.current = osc;
-        gainRef.current = gain;
+      
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume().catch(e => console.error('[Temporal] Resume failed:', e));
       }
-    } catch {}
+
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.type = 'sine';
+      osc.frequency.value = 200;
+      gain.gain.value = 0.08;
+      osc.start(audioCtx.currentTime);
+      
+      oscillatorRef.current = osc;
+      gainRef.current = gain;
+    } catch (e) {
+      console.error('[Temporal] Ambient sound error:', e);
+    }
   };
 
   const stopAmbientSound = () => {
     try {
       if (oscillatorRef.current) {
-        oscillatorRef.current.stop();
+        try {
+          oscillatorRef.current.stop();
+        } catch {}
         oscillatorRef.current = null;
       }
-    } catch {}
+      if (gainRef.current) {
+        gainRef.current = null;
+      }
+    } catch (e) {
+      console.error('[Temporal] Stop ambient error:', e);
+    }
   };
 
   const playSuccessSound = () => {
@@ -126,6 +141,11 @@ export default function TemporalCalibration({ onBack }: { onBack?: () => void })
 
   const handleStartExperience = () => {
     generateDuration();
+    startCountdown(1);
+  };
+
+  const startCountdown = (round: number) => {
+    setCurrentRound(round);
     setStage('countdown');
     
     // Show 3-2-1 countdown
@@ -140,29 +160,34 @@ export default function TemporalCalibration({ onBack }: { onBack?: () => void })
         clearInterval(countdownInterval);
         setCountdownNumber(null);
         setStage('showing');
+        // Play the target duration sound
         playAmbientSound();
-        
-        // Auto-advance to responding after showing duration + 300ms
-        setTimeout(() => {
-          stopAmbientSound();
-          setStage('responding');
-        }, targetDuration + 300);
       }
     }, 1000);
   };
   const handleMouseDown = () => {
-    // Allow holding in 'showing' (transition to responding) or 'responding'
+    // Only allow holding in 'showing' or 'responding' stage
     if (stage !== 'showing' && stage !== 'responding') return;
     
-    // If currently showing, transition to responding
+    // If in 'showing', stop the target sound and transition to 'responding'
     if (stage === 'showing') {
       stopAmbientSound();
       setStage('responding');
+      // Delay slight amount before starting user's response tracking
+      setTimeout(() => {
+        setIsHolding(true);
+        playAmbientSound(); // Start feedback sound for user's holding
+        startTimeRef.current = Date.now();
+      }, 50);
+      return;
     }
     
-    setIsHolding(true);
-    playAmbientSound();
-    startTimeRef.current = Date.now();
+    // If already in 'responding' and not holding yet, start holding
+    if (!isHolding) {
+      setIsHolding(true);
+      playAmbientSound();
+      startTimeRef.current = Date.now();
+    }
   };
 
   const handleMouseUp = () => {
@@ -171,12 +196,6 @@ export default function TemporalCalibration({ onBack }: { onBack?: () => void })
     setIsHolding(false);
     stopAmbientSound();
     const currentDuration = Date.now() - startTimeRef.current;
-    
-    // Enforce duration limits
-    if (currentDuration < MIN_DURATION || currentDuration > MAX_DURATION) {
-      // Out of range, penalize heavily
-      console.log(`[Temporal] Invalid duration: ${currentDuration}ms (range: ${MIN_DURATION}-${MAX_DURATION}ms)`);
-    }
     
     setUserDuration(currentDuration);
 
@@ -193,27 +212,9 @@ export default function TemporalCalibration({ onBack }: { onBack?: () => void })
       setStage('result');
     } else {
       // Pause between rounds for mental preparation
-      setCurrentRound(currentRound + 1);
-      
       setTimeout(() => {
         generateDuration();
-        setStage('countdown');
-        
-        // Show 3-2-1 countdown
-        let countdown = 3;
-        setCountdownNumber(countdown);
-        
-        const countdownInterval = setInterval(() => {
-          countdown--;
-          if (countdown > 0) {
-            setCountdownNumber(countdown);
-          } else {
-            clearInterval(countdownInterval);
-            setCountdownNumber(null);
-            setStage('showing');
-            playAmbientSound();
-          }
-        }, 1000);
+        startCountdown(currentRound + 1);
       }, 1500); // 1.5s pause
     }
   };

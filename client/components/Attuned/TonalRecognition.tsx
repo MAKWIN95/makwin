@@ -64,20 +64,14 @@ export default function TonalRecognition({ onBack }: { onBack?: () => void }) {
     if (stage !== 'responding') return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'ArrowUp') {
-        e.preventDefault();
-        const newFreq = Math.min(userFreq + 1, 1000);
-        setUserFreq(newFreq);
-        playToneRealtime(newFreq);
+      if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+        e.preventDefault(); // Prevent page scroll
         
-        // Clear existing timeout and set new one for 3s auto fade-out
-        if (keyboardToneTimeoutRef.current) clearTimeout(keyboardToneTimeoutRef.current);
-        keyboardToneTimeoutRef.current = setTimeout(() => {
-          stopTone();
-        }, 3000);
-      } else if (e.key === 'ArrowDown') {
-        e.preventDefault();
-        const newFreq = Math.max(userFreq - 1, 100);
+        const step = 1;
+        const newFreq = e.key === 'ArrowUp' 
+          ? Math.min(userFreq + step, 1000)
+          : Math.max(userFreq - step, 100);
+        
         setUserFreq(newFreq);
         playToneRealtime(newFreq);
         
@@ -89,9 +83,10 @@ export default function TonalRecognition({ onBack }: { onBack?: () => void }) {
       }
     };
 
-    window.addEventListener('keydown', handleKeyDown);
+    // Use capture phase to ensure we catch ALL keydown events
+    document.addEventListener('keydown', handleKeyDown, true);
     return () => {
-      window.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('keydown', handleKeyDown, true);
       if (keyboardToneTimeoutRef.current) clearTimeout(keyboardToneTimeoutRef.current);
       stopTone();
     };
@@ -99,14 +94,16 @@ export default function TonalRecognition({ onBack }: { onBack?: () => void }) {
 
   const playTone = (freq: number, duration: number = 1000) => {
     try {
+      stopTone(); // Ensure previous tone is stopped
+      
       if (!audioContextRef.current) {
         audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
       }
       const audioCtx = audioContextRef.current;
 
-      // Resume if suspended
+      // Ensure context is running
       if (audioCtx.state === 'suspended') {
-        audioCtx.resume();
+        audioCtx.resume().catch(e => console.error('[Tonal] Resume failed:', e));
       }
 
       const oscillator = audioCtx.createOscillator();
@@ -118,14 +115,15 @@ export default function TonalRecognition({ onBack }: { onBack?: () => void }) {
       oscillator.frequency.value = freq;
       oscillator.type = 'sine';
 
-      // Fade in
-      gain.gain.setValueAtTime(0, audioCtx.currentTime);
-      gain.gain.linearRampToValueAtTime(0.15, audioCtx.currentTime + 0.05);
-      // Fade out
-      gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration / 1000);
+      // Clean fade in/out
+      const now = audioCtx.currentTime;
+      gain.gain.setValueAtTime(0, now);
+      gain.gain.linearRampToValueAtTime(0.2, now + 0.05);
+      gain.gain.linearRampToValueAtTime(0.2, now + (duration / 1000) - 0.1);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + (duration / 1000));
 
-      oscillator.start(audioCtx.currentTime);
-      oscillator.stop(audioCtx.currentTime + duration / 1000);
+      oscillator.start(now);
+      oscillator.stop(now + (duration / 1000));
 
       oscillatorRef.current = oscillator;
       gainRef.current = gain;
@@ -144,23 +142,29 @@ export default function TonalRecognition({ onBack }: { onBack?: () => void }) {
       
       // Resume if suspended
       if (audioCtx.state === 'suspended') {
-        audioCtx.resume();
+        audioCtx.resume().catch(e => console.error('[Tonal] Resume failed:', e));
       }
 
+      // Create new oscillator if doesn't exist
       if (!oscillatorRef.current || !gainRef.current) {
         const osc = audioCtx.createOscillator();
         const gain = audioCtx.createGain();
         osc.connect(gain);
         gain.connect(audioCtx.destination);
         osc.type = 'sine';
-        gain.gain.value = 0.15;
-        osc.start();
+        gain.gain.value = 0.2;
+        osc.start(audioCtx.currentTime);
         oscillatorRef.current = osc;
         gainRef.current = gain;
       }
 
-      if (oscillatorRef.current) {
-        oscillatorRef.current.frequency.value = freq;
+      // Update frequency smoothly
+      if (oscillatorRef.current && audioCtx.state === 'running') {
+        oscillatorRef.current.frequency.setTargetAtTime(
+          freq,
+          audioCtx.currentTime,
+          0.01 // time constant for exponential ramp
+        );
       }
     } catch (e) {
       console.error('[Tonal] Realtime tone error:', e);
@@ -169,21 +173,23 @@ export default function TonalRecognition({ onBack }: { onBack?: () => void }) {
 
   const stopTone = () => {
     try {
-      if (gainRef.current) {
-        // Fade out
-        const ctx = audioContextRef.current;
-        if (ctx && gainRef.current) {
-          gainRef.current.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.1);
-        }
-      }
-      
       if (oscillatorRef.current) {
         try {
           oscillatorRef.current.stop();
-        } catch {}
+        } catch (e) {
+          // Oscillator might already be stopped
+        }
         oscillatorRef.current = null;
       }
-      gainRef.current = null;
+      
+      if (gainRef.current && audioContextRef.current) {
+        try {
+          gainRef.current.gain.setValueAtTime(0, audioContextRef.current.currentTime);
+        } catch (e) {
+          // Gain node might be disconnected
+        }
+        gainRef.current = null;
+      }
     } catch (e) {
       console.error('[Tonal] Stop tone error:', e);
     }
@@ -416,7 +422,7 @@ export default function TonalRecognition({ onBack }: { onBack?: () => void }) {
                   }
                 }}
                 onTouchEnd={stopTone}
-                className="w-full h-2 rounded-full appearance-none cursor-pointer transition-all duration-200"
+                className="w-full h-2 rounded-full appearance-none cursor-pointer transition-all duration-200 focus:outline-none"
                 style={{
                   background: `linear-gradient(to right, rgb(40, 40, 40), rgb(200, 200, 200))`,
                   WebkitAppearance: 'none',
@@ -432,6 +438,10 @@ export default function TonalRecognition({ onBack }: { onBack?: () => void }) {
                   background: white;
                   cursor: pointer;
                   box-shadow: 0 0 8px rgba(255, 255, 255, 0.6);
+                  -webkit-touch-callout: none;
+                }
+                input[type='range']::-webkit-slider-thumb:active {
+                  box-shadow: 0 0 12px rgba(255, 255, 255, 0.9);
                 }
                 input[type='range']::-moz-range-thumb {
                   width: 2px;
@@ -441,6 +451,12 @@ export default function TonalRecognition({ onBack }: { onBack?: () => void }) {
                   cursor: pointer;
                   border: none;
                   box-shadow: 0 0 8px rgba(255, 255, 255, 0.6);
+                }
+                input[type='range']::-moz-range-thumb:active {
+                  box-shadow: 0 0 12px rgba(255, 255, 255, 0.9);
+                }
+                input[type='range']:focus {
+                  outline: none;
                 }
               `}</style>
               <div className="flex justify-between text-xs text-[hsl(var(--muted-foreground))] mt-2">

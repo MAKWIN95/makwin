@@ -86,18 +86,15 @@ export default function ColorResonance({ onBack }: { onBack?: () => void }) {
     const sDiff = Math.abs(userColor.s - targetColor.s);
     const lDiff = Math.abs(userColor.l - targetColor.l);
 
-    // Much stricter scoring
-    // Hue: 0-180 range, penalize heavily (any 30° difference = major loss)
-    // Saturation: 0-100 range, each point matters
-    // Lightness: 0-100 range, each point matters
-    const huePenalty = (hDiff / 30) * 100;    // 30° = full penalty
-    const satPenalty = (sDiff / 20) * 100;    // 20% = full penalty
-    const lightPenalty = (lDiff / 20) * 100;  // 20% = full penalty
+    // Rebalanced, more forgiving scoring:
+    // Hue is most critical (0-180 range)
+    // Saturation and Lightness are secondary
+    const hueAccuracy = Math.max(0, 100 - (hDiff / 60) * 100);      // 60° = 0%, 0° = 100%
+    const satAccuracy = Math.max(0, 100 - (sDiff / 40) * 100);      // 40% deviation = 0%
+    const lightAccuracy = Math.max(0, 100 - (lDiff / 40) * 100);    // 40% deviation = 0%
     
-    const accuracy = Math.max(
-      0,
-      100 - (huePenalty + satPenalty + lightPenalty) / 3
-    );
+    // Weighted average: hue 50%, saturation 25%, lightness 25%
+    const accuracy = (hueAccuracy * 0.5) + (satAccuracy * 0.25) + (lightAccuracy * 0.25);
     return Math.round(accuracy);
   };
 
@@ -350,6 +347,50 @@ export default function ColorResonance({ onBack }: { onBack?: () => void }) {
             </div>
           </div>
 
+          {/* Final Round Comparison - Show two circles: target vs user */}
+          {results.length > 0 && (
+            <div className="bg-[hsl(var(--popover))/0.4] rounded-2xl p-8 space-y-4">
+              <p className="text-xs uppercase tracking-widest text-[hsl(var(--muted-foreground))] mb-6">
+                {es ? 'Comparación de la última ronda' : 'Final round comparison'}
+              </p>
+              <div className="grid grid-cols-2 gap-4">
+                {/* Target Color */}
+                <div className="flex flex-col items-center">
+                  <p className="text-xs uppercase tracking-widest text-[hsl(var(--muted-foreground))] mb-3 font-black">
+                    {es ? 'Objetivo' : 'Target'}
+                  </p>
+                  <div
+                    className="w-32 h-32 rounded-full border-4 border-[rgba(80,80,80,0.3)] shadow-lg"
+                    style={{
+                      backgroundColor: hslToString(
+                        results[results.length - 1].targetColor.h,
+                        results[results.length - 1].targetColor.s,
+                        results[results.length - 1].targetColor.l
+                      ),
+                    }}
+                  />
+                </div>
+                {/* User Color */}
+                <div className="flex flex-col items-center">
+                  <p className="text-xs uppercase tracking-widest text-[hsl(var(--muted-foreground))] mb-3 font-black">
+                    {es ? 'Tu respuesta' : 'Your answer'}
+                  </p>
+                  <div
+                    className="w-32 h-32 rounded-full border-4 border-[rgba(80,80,80,0.3)] shadow-lg"
+                    style={{
+                      backgroundColor: hslToString(
+                        results[results.length - 1].userColor.h,
+                        results[results.length - 1].userColor.s,
+                        results[results.length - 1].userColor.l
+                      ),
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* All Results History */}
           <div className="grid grid-cols-1 gap-3">
             {results.map((result, idx) => (
               <div key={idx} className="bg-[hsl(var(--popover))/0.4] rounded-lg p-4 text-left animate-in fade-in" style={{ animationDelay: `${idx * 50}ms` }}>

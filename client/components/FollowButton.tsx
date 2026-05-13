@@ -65,8 +65,8 @@ export default function FollowButton({
       variant="outline"
       className={`transition-all duration-200 ease-out ${sizeClasses[size]} ${className} ${
         isFollowing
-          ? 'bg-[hsl(var(--foreground))] text-[hsl(var(--background))] border-[hsl(var(--foreground))] hover:opacity-90'
-          : 'border border-[rgba(120,120,120,0.25)] text-[hsl(var(--foreground))] hover:bg-[hsl(var(--muted))]'
+          ? 'bg-[#000000] text-white border-[#000000] hover:opacity-90'
+          : 'bg-white border border-white text-[#000000] hover:opacity-90'
       }`}
     >
       {isFollowing ? (

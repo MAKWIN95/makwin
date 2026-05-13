@@ -103,8 +103,11 @@ export default function ComingSoon() {
           
           {/* Follow section */}
           <div className="space-y-8">
-            <div className="text-xs md:text-sm font-light tracking-widest opacity-60 uppercase">
-              Follow the evolution
+            <div className="flex flex-col items-center gap-6">
+              <div className="text-xs md:text-sm font-light tracking-widest opacity-60 uppercase">
+                Follow the evolution
+              </div>
+              <div className="w-32 h-[1px] bg-gradient-to-r from-transparent via-white/30 to-transparent"></div>
             </div>
             
             {/* Social links */}

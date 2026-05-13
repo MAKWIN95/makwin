@@ -57,11 +57,48 @@ export default function GlobalStars() {
   const { isDark } = useTheme();
   const containerRef = useRef<HTMLDivElement>(null);
   const [stars, setStars] = useState(() => generateStars(false));
+  const [mounted, setMounted] = useState(false);
 
+  // Regenerate stars immediately when theme changes
   useEffect(() => {
-    // Regenerate stars when theme changes
     setStars(generateStars(isDark));
+    setMounted(true);
   }, [isDark]);
+
+  // Inject CSS keyframes on mount to ensure they exist
+  useEffect(() => {
+    if (!document.getElementById('stars-keyframes')) {
+      const style = document.createElement('style');
+      style.id = 'stars-keyframes';
+      style.textContent = `
+        @keyframes twinkle {
+          0%, 100% {
+            opacity: 0.3;
+            transform: scale(1);
+          }
+          50% {
+            opacity: 0.8;
+            transform: scale(1.2);
+          }
+        }
+        
+        .star--dark {
+          background-color: rgba(255, 255, 255, 0.8);
+          box-shadow: 0 0 2px rgba(255, 255, 255, 0.6);
+        }
+        
+        .star--light {
+          background-color: rgba(50, 50, 50, 0.6);
+          box-shadow: 0 0 2px rgba(50, 50, 50, 0.4);
+        }
+      `;
+      document.head.appendChild(style);
+    }
+  }, []);
+
+  if (!mounted) {
+    return null;
+  }
 
   return (
     <div

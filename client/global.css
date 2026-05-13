@@ -366,6 +366,63 @@ html * {
     overflow-x: auto;
     white-space: pre;
   }
+
+  /* Remove default blue focus rings from browser */
+  button, input, select, textarea, [role="button"] {
+    outline: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+  }
+
+  /* Custom focus ring style using MAKWIN border color */
+  button:focus-visible, 
+  input:focus-visible, 
+  select:focus-visible, 
+  textarea:focus-visible,
+  [role="button"]:focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+  }
+
+  /* Remove default browser select arrow */
+  select {
+    background-image: none;
+    padding-right: 1rem;
+  }
+
+  /* Dropdown/select styling */
+  [data-radix-select-trigger],
+  select,
+  [role="combobox"] {
+    border: 1px solid hsl(var(--border));
+    background-color: hsl(var(--background));
+  }
+
+  [data-radix-select-trigger]:focus,
+  select:focus,
+  [role="combobox"]:focus {
+    border-color: hsl(var(--ring));
+    box-shadow: 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--ring));
+  }
+
+  /* Remove border-blue from inputs and popovers */
+  input[type="text"]:focus,
+  input[type="email"]:focus,
+  input[type="password"]:focus,
+  input[type="number"]:focus,
+  input[type="search"]:focus,
+  textarea:focus {
+    border-color: hsl(var(--border));
+    box-shadow: 0 0 0 2px hsl(var(--ring) / 0.1);
+  }
+
+  /* Radix popover and tooltip default styling */
+  [data-radix-popover-content],
+  [role="tooltip"] {
+    border: 1px solid hsl(var(--border));
+    background-color: hsl(var(--popover));
+  }
 }
 
 /* Glass border style (liquid glass / white-broken fallback) */

@@ -85,7 +85,7 @@ export default function Login() {
         ))}
       </div>
 
-      <div className="relative z-10 w-full max-w-sm">
+      <div className="relative z-10 w-full max-w-sm page-enter">
         {/* Logo */}
         <Link to="/" className="block text-center mb-10">
           <span className="text-3xl font-black tracking-widest uppercase text-[hsl(var(--foreground))]">

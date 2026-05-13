@@ -263,7 +263,7 @@ export default function WorkDetail() {
       {/* STARS BACKGROUND */}
       <div id="detail-stars-background" className="fixed inset-0 z-0 stars-background pointer-events-none" />
       {/* CONTENIDO */}
-      <div className="relative z-20">
+      <div className="relative z-20 page-enter">
       <Header hideSearch breadcrumb={work.title} />
 
       <main className="w-full max-w-7xl mx-auto px-4 py-6 sm:py-8">
