@@ -29,6 +29,7 @@ import ResetPassword from "./pages/ResetPassword";
 import Settings from "./pages/Settings";
 import Following from "./pages/Following";
 import NotFound from "./pages/NotFound";
+import ComingSoon from "./pages/ComingSoon";
 
 // Global UI
 import { I18nProvider } from "@/lib/i18n";
@@ -42,6 +43,12 @@ import { AttuneProvider } from "@/lib/AttuneContext";
 import { FollowProvider } from "@/lib/FollowContext";
 
 const queryClient = new QueryClient();
+
+// Detect if we're on the makwin.art domain (Coming Soon experience)
+const isComingSoonDomain = (): boolean => {
+  const hostname = window.location.hostname;
+  return hostname === "makwin.art" || hostname === "www.makwin.art";
+};
 
 // Wrapper that waits for auth to be ready
 // Global app layout with NavMenu and overlay at viewport root
@@ -109,33 +116,41 @@ const RoutesWrapper = () => {
   );
 };
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <I18nProvider>
-        <AuthProvider>
-          <SidebarProvider>
-            <FollowProvider>
-              <WorksProvider>
-                <AttuneProvider>
-                  <Toaster />
-                  <Sonner />
-                  <LanguagePrompt />
-                  <Onboarding />
-                  <GoogleSignupModal />
-                  <BrowserRouter>
-                    <GlobalStars />
-                    <AppLayout />
-                  </BrowserRouter>
-                </AttuneProvider>
-              </WorksProvider>
-            </FollowProvider>
-          </SidebarProvider>
-        </AuthProvider>
-      </I18nProvider>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+const App = () => {
+  // If we're on makwin.art, show Coming Soon page without providers
+  if (isComingSoonDomain()) {
+    return <ComingSoon />;
+  }
+
+  // Otherwise render the full app with all providers
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <I18nProvider>
+          <AuthProvider>
+            <SidebarProvider>
+              <FollowProvider>
+                <WorksProvider>
+                  <AttuneProvider>
+                    <Toaster />
+                    <Sonner />
+                    <LanguagePrompt />
+                    <Onboarding />
+                    <GoogleSignupModal />
+                    <BrowserRouter>
+                      <GlobalStars />
+                      <AppLayout />
+                    </BrowserRouter>
+                  </AttuneProvider>
+                </WorksProvider>
+              </FollowProvider>
+            </SidebarProvider>
+          </AuthProvider>
+        </I18nProvider>
+      </TooltipProvider>
+    </QueryClientProvider>
+  );
+};
 
 createRoot(document.getElementById("root")!).render(<App />);
 
