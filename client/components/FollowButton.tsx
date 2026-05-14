@@ -65,7 +65,7 @@ export default function FollowButton({
       variant="outline"
       className={`transition-all duration-200 ease-out ${sizeClasses[size]} ${className} ${
         isFollowing
-          ? 'bg-[#000000] text-white border-[#000000] hover:opacity-90'
+          ? 'bg-[#3a3a3a] text-white border-[#3a3a3a] hover:opacity-90'
           : 'bg-white border border-white text-[#000000] hover:opacity-90'
       }`}
     >

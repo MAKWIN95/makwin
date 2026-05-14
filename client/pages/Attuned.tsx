@@ -55,7 +55,7 @@ export default function Attuned() {
       <div className="relative z-10 w-full">
         <Header showSearch={false} />
 
-        <main className="max-w-5xl mx-auto px-4 sm:px-8 py-8 sm:py-12 page-enter">
+        <main className="max-w-5xl mx-auto px-4 sm:px-8 py-0 sm:py-0 page-enter">
           {/* Header Section */}
           {!activeExperience ? (
             <>

@@ -347,93 +347,48 @@ export default function ColorResonance({ onBack }: { onBack?: () => void }) {
             </div>
           </div>
 
-          {/* Final Round Comparison - Show two circles: target vs user */}
-          {results.length > 0 && (
-            <div className="bg-[hsl(var(--popover))/0.4] rounded-2xl p-8 space-y-4">
-              <p className="text-xs uppercase tracking-widest text-[hsl(var(--muted-foreground))] mb-6">
-                {es ? 'Comparación de la última ronda' : 'Final round comparison'}
-              </p>
-              <div className="grid grid-cols-2 gap-4">
-                {/* Target Color */}
-                <div className="flex flex-col items-center">
-                  <p className="text-xs uppercase tracking-widest text-[hsl(var(--muted-foreground))] mb-3 font-black">
-                    {es ? 'Objetivo' : 'Target'}
-                  </p>
-                  <div
-                    className="w-32 h-32 rounded-full border-4 border-[rgba(80,80,80,0.3)] shadow-lg"
-                    style={{
-                      backgroundColor: hslToString(
-                        results[results.length - 1].targetColor.h,
-                        results[results.length - 1].targetColor.s,
-                        results[results.length - 1].targetColor.l
-                      ),
-                    }}
-                  />
-                </div>
-                {/* User Color */}
-                <div className="flex flex-col items-center">
-                  <p className="text-xs uppercase tracking-widest text-[hsl(var(--muted-foreground))] mb-3 font-black">
-                    {es ? 'Tu respuesta' : 'Your answer'}
-                  </p>
-                  <div
-                    className="w-32 h-32 rounded-full border-4 border-[rgba(80,80,80,0.3)] shadow-lg"
-                    style={{
-                      backgroundColor: hslToString(
-                        results[results.length - 1].userColor.h,
-                        results[results.length - 1].userColor.s,
-                        results[results.length - 1].userColor.l
-                      ),
-                    }}
-                  />
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* All Results History */}
-          <div className="grid grid-cols-1 gap-3">
+          {/* All Rounds Results */}
+          <div className="space-y-3">
             {results.map((result, idx) => (
-              <div key={idx} className="bg-[hsl(var(--popover))/0.4] rounded-lg p-4 text-left animate-in fade-in" style={{ animationDelay: `${idx * 50}ms` }}>
+              <div key={idx} className="bg-[hsl(var(--popover))/0.4] rounded-lg p-4 animate-in fade-in" style={{ animationDelay: `${idx * 50}ms` }}>
                 <div className="flex justify-between items-center mb-3">
-                  <span className="text-xs uppercase tracking-widest text-[hsl(var(--muted-foreground))]">
+                  <span className="text-xs uppercase tracking-widest text-[hsl(var(--muted-foreground))] font-black">
                     {es ? 'Ronda' : 'Round'} {idx + 1}
                   </span>
                   <span className="text-lg font-black text-[hsl(var(--foreground))]">
                     {result.accuracy}%
                   </span>
                 </div>
-                <div className="grid grid-cols-3 gap-2 text-xs text-[hsl(var(--muted-foreground))]">
-                  <div>
-                    <div className="text-[0.65rem] uppercase tracking-wider font-black mb-1">
-                      {es ? 'Matiz' : 'Hue'}
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <div
-                        className="w-4 h-4 rounded-full border border-[hsl(var(--border))]"
-                        style={{
-                          backgroundColor: `hsl(${result.targetColor?.h || 0}, 100%, 50%)`
-                        }}
-                      />
-                      <span className="text-[0.7rem]">
-                        {result.targetColor?.h || 0}° → {result.userColor?.h || 0}°
-                      </span>
-                    </div>
+
+                {/* Hue */}
+                <div className="mb-2">
+                  <p className="text-xs uppercase tracking-widest text-[hsl(var(--muted-foreground))] font-black mb-2">
+                    {es ? 'Matiz' : 'Hue'}
+                  </p>
+                  <div className="flex items-center justify-center gap-2">
+                    <div className="w-8 h-8 rounded-full border border-[hsl(var(--border))]" style={{ backgroundColor: `hsl(${result.targetColor.h}, 100%, 50%)` }} />
+                    <span className="text-xs">→</span>
+                    <div className="w-8 h-8 rounded-full border border-[hsl(var(--border))]" style={{ backgroundColor: `hsl(${result.userColor.h}, 100%, 50%)` }} />
                   </div>
-                  <div>
-                    <div className="text-[0.65rem] uppercase tracking-wider font-black mb-1">
-                      {es ? 'Saturación' : 'Sat'}
-                    </div>
-                    <span className="text-[0.7rem]">
-                      {result.targetColor?.s || 0}% → {result.userColor?.s || 0}%
-                    </span>
+                </div>
+
+                {/* Saturation */}
+                <div className="mb-2">
+                  <p className="text-xs uppercase tracking-widest text-[hsl(var(--muted-foreground))] font-black mb-1">
+                    {es ? 'Saturación' : 'Saturation'}
+                  </p>
+                  <div className="text-xs text-center text-[hsl(var(--muted-foreground))]">
+                    {result.targetColor.s}% → {result.userColor.s}%
                   </div>
-                  <div>
-                    <div className="text-[0.65rem] uppercase tracking-wider font-black mb-1">
-                      {es ? 'Luminancia' : 'Light'}
-                    </div>
-                    <span className="text-[0.7rem]">
-                      {result.targetColor?.l || 0}% → {result.userColor?.l || 0}%
-                    </span>
+                </div>
+
+                {/* Lightness */}
+                <div>
+                  <p className="text-xs uppercase tracking-widest text-[hsl(var(--muted-foreground))] font-black mb-1">
+                    {es ? 'Luminancia' : 'Lightness'}
+                  </p>
+                  <div className="text-xs text-center text-[hsl(var(--muted-foreground))]">
+                    {result.targetColor.l}% → {result.userColor.l}%
                   </div>
                 </div>
               </div>

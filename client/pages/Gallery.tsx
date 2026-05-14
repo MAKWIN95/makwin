@@ -225,7 +225,7 @@ export default function Gallery() {
               <div ref={filterRef} className="fixed z-50 bg-[hsl(var(--popover))] border border-[hsl(var(--border))] rounded-xl shadow-lg p-3 flex flex-col gap-2 animate-in fade-in slide-in-from-top-2 duration-200"
                 style={{ top: `${filterBtnPos.top}px`, left: `${Math.max(10, filterBtnPos.left)}px`, width: '200px' }}>
                 <select value={filters.workType} onChange={e => setFilters(f => ({ ...f, workType: e.target.value }))}
-                  className="w-full px-2 py-2 border border-[hsl(var(--border))] rounded bg-[hsl(var(--input))] text-sm">
+                  className="w-full px-2 py-2 border border-[hsl(var(--border))] rounded bg-[hsl(var(--input))] text-sm focus:outline-none focus:ring-0 focus:border-[hsl(var(--border))]">
                   <option value="">{t('filter.allTypes')}</option>
                   <option value="pintura">{t('filter.painting')}</option>
                   <option value="fotografia">{t('filter.photography')}</option>

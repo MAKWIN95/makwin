@@ -162,6 +162,10 @@ export default function TemporalCalibration({ onBack }: { onBack?: () => void })
         setStage('showing');
         // Play the target duration sound
         playAmbientSound();
+        // Stop after target duration
+        setTimeout(() => {
+          stopAmbientSound();
+        }, targetDuration);
       }
     }, 1000);
   };
@@ -176,7 +180,7 @@ export default function TemporalCalibration({ onBack }: { onBack?: () => void })
       // Delay slight amount before starting user's response tracking
       setTimeout(() => {
         setIsHolding(true);
-        playAmbientSound(); // Start feedback sound for user's holding
+        playAmbientSound();
         startTimeRef.current = Date.now();
       }, 50);
       return;

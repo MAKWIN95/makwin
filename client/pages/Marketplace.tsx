@@ -8,6 +8,8 @@ import { useStarsBackground } from '@/hooks/use-stars-background';
 export default function Marketplace() {
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showFilters, setShowFilters] = useState(false);
+  const [filters, setFilters] = useState({ workType: '' });
 
   // Initialize stars background
   useStarsBackground('marketplace-stars-background');
@@ -49,10 +51,39 @@ export default function Marketplace() {
       <div id="marketplace-stars-background" className="stars-background"></div>
       <div className="relative z-10 page-enter">
         <Header showSearch={true} />
-        <main className="px-4 sm:px-8 py-12 page-enter">
+        <main className="px-4 sm:px-8 py-0 page-enter">
         <div className="max-w-6xl mx-auto">
-          <h1 className="text-4xl font-light mb-4">MAKWIN Marketplace</h1>
-          <p className="text-sm text-[hsl(var(--muted-foreground))] mb-8">Piezas disponibles para compra. Contacta con el artista para cerrar la operación.</p>
+          <div className="flex justify-between items-center mb-8">
+            <div>
+              <h1 className="text-4xl font-light mb-4">MAKWIN Marketplace</h1>
+              <p className="text-sm text-[hsl(var(--muted-foreground))]">Piezas disponibles para compra. Contacta con el artista para cerrar la operación.</p>
+            </div>
+            <button
+              onClick={() => setShowFilters(!showFilters)}
+              className="p-2 rounded border border-[hsl(var(--border))] hover:bg-[hsl(var(--muted))] transition-colors"
+              title="Filtros"
+            >
+              ⊙
+            </button>
+          </div>
+
+          {/* Filter Panel */}
+          {showFilters && (
+            <div className="mb-6 p-4 bg-[hsl(var(--popover))] border border-[hsl(var(--border))] rounded-lg">
+              <select
+                value={filters.workType}
+                onChange={(e) => setFilters({ ...filters, workType: e.target.value })}
+                className="w-full md:w-48 px-2 py-2 border border-[hsl(var(--border))] rounded bg-[hsl(var(--input))] text-sm focus:outline-none focus:ring-0"
+              >
+                <option value="">Todos los tipos</option>
+                <option value="pintura">Pintura</option>
+                <option value="fotografia">Fotografía</option>
+                <option value="poema">Poema</option>
+                <option value="cancion">Canción</option>
+                <option value="video">Video</option>
+              </select>
+            </div>
+          )}
 
           {loading ? (
             <div className="py-12 text-center">Cargando...</div>
@@ -60,7 +91,9 @@ export default function Marketplace() {
             <div className="py-12 text-center text-[hsl(var(--muted-foreground))]">No hay obras en venta ahora mismo.</div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {items.map(item => (
+              {items
+                .filter(item => !filters.workType || item.work_type === filters.workType)
+                .map(item => (
                 <article key={item.submissionId} className="rounded-lg border border-[hsl(var(--border))] overflow-hidden">
                   <div className="h-56 bg-gray-100 flex items-center justify-center">
                     {item.fileUrl ? (

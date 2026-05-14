@@ -145,25 +145,29 @@ export default function TonalRecognition({ onBack }: { onBack?: () => void }) {
         audioCtx.resume().catch(e => console.error('[Tonal] Resume failed:', e));
       }
 
-      // Create new oscillator if doesn't exist
+      // If first time, create oscillator
       if (!oscillatorRef.current || !gainRef.current) {
+        stopTone(); // Clean up any existing
+        
         const osc = audioCtx.createOscillator();
         const gain = audioCtx.createGain();
         osc.connect(gain);
         gain.connect(audioCtx.destination);
         osc.type = 'sine';
         gain.gain.value = 0.2;
-        osc.start(audioCtx.currentTime);
+        
+        const now = audioCtx.currentTime;
+        osc.start(now);
+        
         oscillatorRef.current = osc;
         gainRef.current = gain;
       }
 
-      // Update frequency smoothly
+      // Update frequency smoothly in real-time
       if (oscillatorRef.current && audioCtx.state === 'running') {
-        oscillatorRef.current.frequency.setTargetAtTime(
+        oscillatorRef.current.frequency.exponentialRampToValueAtTime(
           freq,
-          audioCtx.currentTime,
-          0.01 // time constant for exponential ramp
+          audioCtx.currentTime + 0.05
         );
       }
     } catch (e) {
