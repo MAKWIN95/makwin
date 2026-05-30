@@ -139,7 +139,20 @@ export default function Settings() {
 
       console.log('[Settings] Account deleted successfully');
 
-      // Then sign out
+      // CRITICAL: Clear all auth data from storage BEFORE signing out
+      // This prevents the ghost account issue
+      localStorage.removeItem('sb-vaompdhmnnvgzybhhqak-auth-token');
+      localStorage.removeItem('sb-vaompdhmnnvgzybhhqak-auth');
+      sessionStorage.clear();
+      
+      // Clear any Supabase related keys
+      Object.keys(localStorage).forEach(key => {
+        if (key.includes('supabase') || key.includes('sb-')) {
+          localStorage.removeItem(key);
+        }
+      });
+
+      // Then sign out from Supabase (this should be redundant now)
       await signOut();
 
       // Navigate away

@@ -357,3 +357,132 @@ Ver `TESTING_GUIDE.md` para guía completa.
 - Staging: `makwin.vercel.app` (auto-deploy desde main)
 - Supabase: proyecto privado del equipo
 - GitHub: `MAKWIN95/makwin` (rama main)
+
+---
+
+## 📧 Infraestructura de Email (OFICIAL Y OPERATIVA)
+
+### Estado
+✅ **Completamente funcional y desplegado en producción**
+
+### Stack Utilizado
+```
+DNS Provider:          Cloudflare (primario, DNSSEC desactivado)
+Envío SMTP:            Resend (verificado con makwin.art)
+Recepción:             Cloudflare Email Routing
+Cliente Manual:        Gmail (alias SMTP - NO es arquitectura)
+```
+
+### Direcciones de Email Activas
+```
+help@makwin.art        ← Soporte general
+contact@makwin.art     ← Contacto general
+business@makwin.art    ← Consultas comerciales
+press@makwin.art       ← Relaciones con prensa
+no-reply@makwin.art    ← Transaccional automatizado (futuro backend)
+```
+
+### Flujo Arquitectónico (Production)
+```
+INBOUND:
+└─ Email externo → makwin.art
+   ├─ DNS MX: Cloudflare
+   └─ Email Routing: Reenvía a Gmail central
+
+OUTBOUND (Manual):
+└─ Respuesta desde Gmail
+   ├─ Using: Gmail SMTP alias
+   └─ From: help@makwin.art / contact@ / business@ / press@
+
+OUTBOUND (Automatizado - Futuro):
+└─ Cuando backend/auth esté implementado
+   ├─ From: no-reply@makwin.art
+   ├─ Via: Resend API
+   ├─ Usecase: Auth emails, password reset, notifications
+   └─ Config: Env vars en Vercel/Supabase
+```
+
+### Configuración DNS (Cloudflare)
+```
+MX Records:           ✓ Configurados
+SPF Record:           ✓ Configurado (include:resend.com)
+DKIM Record:          ✓ Configurado (resend._domainkey)
+DMARC Policy:         ✓ Configurado (p=none)
+Email Routing Rules:  ✓ 5 direcciones activas
+```
+
+### Environment Variables (Vercel)
+```
+RESEND_API_KEY        ✓ Configurado
+RESEND_FROM           ✓ Configurado (help@makwin.art por defecto)
+RECIPIENT_EMAIL       ✓ Configurado (Gmail central)
+```
+
+### Importante: Arquitectura Oficial
+⚠️ **Gmail es CLIENTE, NO ARQUITECTURA**
+```
+❌ No confundir Gmail como dependencia del backend
+✅ Gmail solo es cliente operativo para gestión manual
+✅ La arquitectura real es: Cloudflare + Resend + dominio propio
+```
+
+### Integración Backend (Futuro Próximo)
+Cuando se implementen:
+- Autenticación/signup
+- Password reset
+- Email verification
+- Notificaciones transaccionales
+- Newsletters automáticas
+
+**Utilizar obligatoriamente:**
+```
+From: no-reply@makwin.art
+Provider: Resend API
+Method: POST endpoint en /api/send-email o serverless function
+Config: Variables env en Vercel
+Auth: API key from environment
+```
+
+### Ejemplo de Uso Futuro (Pseudocódigo)
+```typescript
+// En /api/send-email o serverless function
+import { Resend } from 'resend';
+
+const resend = new Resend(process.env.RESEND_API_KEY);
+
+await resend.emails.send({
+  from: 'no-reply@makwin.art',  // Dominio verificado
+  to: user.email,
+  subject: 'Verify your email',
+  html: emailTemplate,
+  // headers, tags, etc
+});
+```
+
+### Directrices para Desarrollo Futuro
+Cuando implementes cualquier funcionalidad relacionada con:
+- Formularios de contacto
+- Authentication
+- Password reset
+- Email verification
+- Transactional emails
+- Notificaciones
+- Automatizaciones
+
+**DEBES asumir esta infraestructura como la oficial:**
+✅ Usar Resend API con no-reply@makwin.art
+✅ Configurar en environment variables
+✅ Seguir best practices (no hacks, no dependencias Gmail)
+✅ Documentar integración en código
+
+**NO debes:**
+❌ Crear dependencias en Gmail SMTP manual
+❌ Usar soluciones temporales/hacks
+❌ Agregar providers redundantes
+❌ Implementar sin documentar
+
+### Referencias
+- Dominio: makwin.art (Cloudflare DNS)
+- Resend Dashboard: https://resend.com/domains
+- Cloudflare Email Routing: Dashboard → makwin.art → Email Routing
+- Docs: Ver EMAIL_INFRASTRUCTURE_GUIDE.md para detalles técnicos

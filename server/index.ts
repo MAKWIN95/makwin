@@ -3,6 +3,7 @@ import express from "express";
 import cors from "cors";
 import { handleDemo } from "./routes/demo";
 import { handleSubmitWork } from "./routes/submit-work";
+import { handleDeleteAccount } from "./routes/delete-account";
 import { checkEmailExists } from "../api/check-email-exists";
 import { saveHelpMessage } from "../api/save-help-message";
 
@@ -58,6 +59,9 @@ export function createServer() {
       return res.status(500).json({ error: "Error interno del servidor" });
     }
   });
+
+  // Delete user account and associated data
+  app.post("/api/delete-account", handleDeleteAccount);
 
   return app;
 }

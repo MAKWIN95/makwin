@@ -71,6 +71,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.log('[AuthContext] Got session:', session?.user?.id ?? 'No user');
         
         if (isMounted) {
+          // If there's a session, validate that the user still exists in Supabase Auth
+          if (session?.user) {
+            try {
+              // Try to get the user from Supabase - if it fails, the user was deleted
+              const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
+              if (authError || !authUser) {
+                console.warn('[AuthContext] Auth user not found or deleted, clearing session');
+                // User was deleted, clear the session
+                await supabase.auth.signOut({ scope: 'local' });
+                setSession(null);
+                setUser(null);
+                setProfile(null);
+                setLoading(false);
+                return;
+              }
+            } catch (err) {
+              console.error('[AuthContext] Error validating auth user:', err);
+              // On error, be safe and clear the session
+              await supabase.auth.signOut({ scope: 'local' });
+              setSession(null);
+              setUser(null);
+              setProfile(null);
+              setLoading(false);
+              return;
+            }
+          }
+          
           setSession(session);
           setUser(session?.user ?? null);
           
@@ -87,6 +114,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 setProfile(data as Profile);
               } else {
                 console.warn('[AuthContext] Error fetching profile:', error?.message);
+                // If we can't find a profile, the account might be deleted
+                // Clear the session to prevent ghost accounts
+                await supabase.auth.signOut({ scope: 'local' });
+                setSession(null);
+                setUser(null);
+                setProfile(null);
               }
             } catch (err) {
               console.error('[AuthContext] Error fetching initial profile:', err);

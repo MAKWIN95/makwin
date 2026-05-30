@@ -1,8 +1,56 @@
 # 📧 Configuración de Envío de Emails - Makwin
 
-El sistema de envío de obras está completamente implementado. Los datos se guardan en archivos JSON y el sistema está listo para enviar notificaciones por email.
+⚠️ **ACTUALIZACIÓN IMPORTANTE (20 Mayo 2026)**
 
-## 🚀 Cómo configurar emails reales
+La infraestructura de email profesional de MAKWIN **ya está completamente desplegada y operativa**:
+
+```
+✅ Cloudflare Email Routing (recepción)
+✅ Resend SMTP (envío verificado con dominio makwin.art)
+✅ 5 direcciones activas: help@, contact@, business@, press@, no-reply@
+✅ Gmail integrado como cliente manual (via SMTP alias)
+```
+
+Este documento es referencia histórica. **La arquitectura actual en SYSTEMS.md es la oficial.**
+
+---
+
+## 🚀 Cómo usar la infraestructura actual
+
+### Para transaccional/automatizado (futuro backend)
+
+Usar `no-reply@makwin.art` con Resend API:
+
+```typescript
+import { Resend } from 'resend';
+
+const resend = new Resend(process.env.RESEND_API_KEY);
+
+await resend.emails.send({
+  from: 'no-reply@makwin.art',  // Dominio verificado
+  to: user.email,
+  subject: 'Asunto aquí',
+  html: emailTemplate,
+});
+```
+
+Variables necesarias en `.env`:
+```
+RESEND_API_KEY=re_xxxxxxxxxxxxx
+RESEND_FROM=no-reply@makwin.art
+```
+
+### Para soporte/manual
+
+Usar `help@makwin.art`, `contact@makwin.art`, etc desde Gmail.
+
+---
+
+## ℹ️ Referencia histórica: Opciones que NO se usan
+
+El contenido abajo es histórico. **No aplica - usar infraestructura anterior.**
+
+---
 
 ### Opción 1: Usar Resend (RECOMENDADO - Lo más simple)
 

@@ -1,0 +1,12 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width,initial-scale=1" /><title>Teléfono actualizado — MAKWIN</title>
+<style>body{background:#0f0f10;color:#e6e6e6;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial;margin:0}.wrap{max-width:640px;margin:0 auto;padding:28px 16px}.card{background:#111;border:1px solid rgba(255,255,255,0.04);border-radius:12px;padding:28px}h1{margin:0 0 12px;font-size:20px}p{margin:0 0 12px;color:#cfcfcf}.muted{color:#8f9599;font-size:13px}</style>
+</head><body>
+  <div class="wrap"><div class="card">
+    <h1>Teléfono actualizado</h1>
+    <p class="muted">La información de teléfono de la cuenta <strong>{{ .Email }}</strong> ha sido actualizada.</p>
+    <p>Si reconoces este cambio, no es necesario hacer nada. Si no, por favor verifica la seguridad de tu cuenta.</p>
+    <p style="margin-top:14px"><a href="{{ .ActionURL }}{{ .SiteURL }}">Revisar cuenta</a></p>
+    <p class="muted" style="margin-top:18px">© MAKWIN — {{ .SiteURL }}</p>
+  </div></div>
+</body></html>

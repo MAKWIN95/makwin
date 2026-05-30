@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Seguridad — MAKWIN</title>
+  <style>
+    body { margin:0; padding:0; background:#0d0d0f; color:#e6e6e6; font-family:Inter, system-ui, sans-serif; }
+    .wrapper { width:100%; max-width:620px; margin:0 auto; padding:28px 16px; }
+    .card { background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); border-radius:16px; padding:32px; }
+    h1 { margin:0 0 16px; font-size:26px; color:#fff; }
+    p { margin:0 0 18px; color:#cfcfcf; line-height:1.6; }
+    a.button { display:inline-block; padding:12px 20px; border-radius:10px; background:#111; color:#fff; text-decoration:none; border:1px solid rgba(255,255,255,0.08); }
+    .muted { color:#8f9599; font-size:13px; }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <div class="card">
+      <h1>Actividad de seguridad</h1>
+      <p class="muted">Hemos detectado una acción importante en tu cuenta MAKWIN.</p>
+      <p>Si reconoces esto, no necesitas hacer nada. Si no, revisa tu actividad y cambia tu contraseña.</p>
+      <p><a href="{{ .ActionURL }}" class="button">Revisar actividad</a></p>
+      <p class="muted">Correo enviado desde no-reply@makwin.art.</p>
+    </div>
+    <p class="muted" style="margin-top:18px;">© MAKWIN {{ .SiteURL }}</p>
+  </div>
+</body>
+</html>
