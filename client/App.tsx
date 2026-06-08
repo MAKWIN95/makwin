@@ -47,8 +47,22 @@ const queryClient = new QueryClient();
 // Detect if we're on the makwin.art domain (Coming Soon experience)
 const isComingSoonDomain = (): boolean => {
   const hostname = window.location.hostname;
-  return hostname === "makwin.art" || hostname === "www.makwin.art";
+  const pathname = window.location.pathname;
+  const isMakwinDomain = hostname === "makwin.art" || hostname === "www.makwin.art";
+
+  // Allow /beats to bypass the coming soon experience on makwin.art
+  return isMakwinDomain && !pathname.startsWith("/beats");
 };
+
+const BeatsPage = () => (
+  <div className="w-full h-screen bg-black">
+    <iframe
+      title="MKWN Beats"
+      src="/beats/index.html"
+      className="w-full h-screen border-none"
+    />
+  </div>
+);
 
 // Wrapper that waits for auth to be ready
 // Global app layout with NavMenu and overlay at viewport root
@@ -104,6 +118,7 @@ const RoutesWrapper = () => {
       <Route path="/siguiendo" element={<Following />} />
       <Route path="/configuracion" element={<Settings />} />
       <Route path="/u/:username" element={<UserProfile />} />
+      <Route path="/beats/*" element={<BeatsPage />} />
 
       {/* Legacy redirects */}
       <Route path="/enviar-obra" element={<Navigate to="/subir-obra" replace />} />
@@ -135,7 +150,6 @@ const App = () => {
                     <Toaster />
                     <Sonner />
                     <LanguagePrompt />
-                    <Onboarding />
                     <GoogleSignupModal />
                     <BrowserRouter>
                       <GlobalStars />

@@ -1,7 +1,20 @@
 import { defineConfig, Plugin } from "vite";
 import react from "@vitejs/plugin-react-swc";
+import fs from "fs";
 import path from "path";
 import { createServer } from "./server";
+
+function beatsStaticPlugin(): Plugin {
+  return {
+    name: "beats-static-copy",
+    closeBundle() {
+      const src = path.resolve(__dirname, "mkwn-beats.html");
+      const destDir = path.resolve(__dirname, "dist/spa/beats");
+      fs.mkdirSync(destDir, { recursive: true });
+      fs.copyFileSync(src, path.join(destDir, "index.html"));
+    },
+  };
+}
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
@@ -16,7 +29,7 @@ export default defineConfig(({ mode }) => ({
   build: {
     outDir: "dist/spa",
   },
-  plugins: [react(), expressPlugin()],
+  plugins: [react(), expressPlugin(), beatsStaticPlugin()],
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./client"),

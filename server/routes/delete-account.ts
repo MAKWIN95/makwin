@@ -2,7 +2,7 @@ import { RequestHandler } from "express";
 import {
   deleteAccountForUser,
   getUserIdFromAuthorizationHeader,
-} from "../lib/delete-account";
+} from "../lib/delete-account.ts";
 
 export const handleDeleteAccount: RequestHandler = async (req, res) => {
   try {

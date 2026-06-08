@@ -1,5 +1,6 @@
 import "dotenv/config";
 import express from "express";
+import path from "path";
 import cors from "cors";
 import { handleDemo } from "./routes/demo";
 import { handleSubmitWork } from "./routes/submit-work";
@@ -14,6 +15,11 @@ export function createServer() {
   app.use(cors());
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
+
+  // Beats page route: serve the standalone HTML file directly from project root
+  app.get(["/beats", "/beats/"], (_req, res) => {
+    res.sendFile(path.resolve(process.cwd(), "mkwn-beats.html"));
+  });
 
   // Example API routes
   app.get("/api/ping", (_req, res) => {
