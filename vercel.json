@@ -1,6 +1,6 @@
 {
     "outputDirectory":  "dist/spa",
-    "buildCommand":  "pnpm build",
+    "buildCommand":  "pnpm build:client",
     "cleanUrls":  false,
     "headers": [
         {
@@ -121,6 +121,10 @@
                      {
                          "source": "/marketplace/:slug",
                          "destination": "/index.html"
+                     },
+                     {
+                         "source": "/beats/(.*)",
+                         "destination": "/beats/$1"
                      },
                      {
                          "destination":  "/index.html",
