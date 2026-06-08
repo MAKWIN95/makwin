@@ -123,10 +123,6 @@
                          "destination": "/index.html"
                      },
                      {
-                         "source": "/beats/(.*)",
-                         "destination": "/beats/$1"
-                     },
-                     {
                          "destination":  "/index.html",
                          "source":  "/(.*)"
                      }

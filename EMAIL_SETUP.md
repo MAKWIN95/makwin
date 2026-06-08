@@ -52,7 +52,7 @@ El contenido abajo es histórico. **No aplica - usar infraestructura anterior.**
 
 ---
 
-### Opción 1: Usar Resend (RECOMENDADO - Lo más simple)
+### Opción actual: Usar Resend (RECOMENDADO)
 
 1. **Crea una cuenta en [Resend.com](https://resend.com)**
 2. **Obtén tu API Key** desde el dashboard de Resend
@@ -61,41 +61,11 @@ El contenido abajo es histórico. **No aplica - usar infraestructura anterior.**
    npm install resend
    ```
 4. **Añade a tu `.env`**:
-   ```
+   ```bash
    RESEND_API_KEY=re_xxxxxxxxxxxxx
-   RECIPIENT_EMAIL=sendtomakwin@gmail.com
+   RESEND_FROM=no-reply@makwin.art
    ```
-5. **Código ya preparado en `server/routes/submit-work.ts`** - solo descomenta la sección de Resend
-
-### Opción 2: Usar SendGrid
-
-1. **Crea una cuenta en [SendGrid.com](https://sendgrid.com)**
-2. **Obtén tu API Key**
-3. **Instala la dependencia**:
-   ```bash
-   npm install @sendgrid/mail
-   ```
-4. **Añade a tu `.env`**:
-   ```
-   SENDGRID_API_KEY=SG.xxxxxxxxxxxxx
-   SENDGRID_FROM_EMAIL=noreply@makwin.com
-   RECIPIENT_EMAIL=sendtomakwin@gmail.com
-   ```
-
-### Opción 3: Usar Mailgun
-
-1. **Crea una cuenta en [Mailgun.com](https://mailgun.com)**
-2. **Obtén tu API Key y dominio**
-3. **Instala la dependencia**:
-   ```bash
-   npm install mailgun.js
-   ```
-4. **Añade a tu `.env`**:
-   ```
-   MAILGUN_API_KEY=xxxxxxxxxxxxx
-   MAILGUN_DOMAIN=sandbox.mailgun.org
-   RECIPIENT_EMAIL=sendtomakwin@gmail.com
-   ```
+5. **En producción** el backend envía todos los mensajes desde Resend. No se usa SendGrid ni Mailgun.
 
 ## 📊 Estructura de datos guardados
 

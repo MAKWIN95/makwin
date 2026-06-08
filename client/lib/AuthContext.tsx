@@ -26,6 +26,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [needsUsernameSetup, setNeedsUsernameSetup] = useState(false);
+  const [onboardingUser, setOnboardingUser] = useState<User | null>(null);
 
   // Fetch profile without being a dependency
   const fetchProfile = useCallback(async (userId: string) => {
@@ -53,170 +54,146 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [profile?.language_preference]);
 
+  const isGoogleAuthSession = useCallback((session: Session | null) => {
+    if (!session?.user) return false;
+    const hasGoogleIdentity = session.user.identities?.some((identity) => identity.provider === 'google');
+    return Boolean(
+      hasGoogleIdentity ||
+      session.user.app_metadata?.provider === 'google' ||
+      session.user.user_metadata?.provider === 'google'
+    );
+  }, []);
+
   const refreshProfile = useCallback(async () => {
-    if (user) await fetchProfile(user.id);
+    if (!user) return;
+    await fetchProfile(user.id);
   }, [user, fetchProfile]);
 
-  // Initialize auth on mount only
+  const handleSession = useCallback(async (session: Session | null) => {
+    if (!session?.user) {
+      setSession(null);
+      setUser(null);
+      setProfile(null);
+      setNeedsUsernameSetup(false);
+      setOnboardingUser(null);
+      try {
+        if (typeof window !== 'undefined') {
+          window.sessionStorage.removeItem('makwin-onboarding-incomplete');
+        }
+      } catch (err) {
+        console.warn('[AuthContext] Error clearing sessionStorage:', err);
+      }
+      return;
+    }
+
+    setSession(session);
+    setUser(session.user);
+
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', session.user.id)
+        .single();
+
+      if (!error && data) {
+        const usernameExists = !!(data.username && String(data.username).trim().length > 0);
+        const displayNameExists = !!(data.display_name && String(data.display_name).trim().length > 0);
+        const profileComplete = usernameExists && displayNameExists;
+
+        if (isGoogleAuthSession(session) && !profileComplete) {
+          // Partial profile row exists, but onboarding is still incomplete.
+          setProfile(null);
+          setNeedsUsernameSetup(true);
+          setOnboardingUser(session.user);
+          try {
+            if (typeof window !== 'undefined') {
+              window.sessionStorage.setItem('makwin-onboarding-incomplete', session.user.id);
+            }
+          } catch (err) {
+            console.warn('[AuthContext] Error setting sessionStorage:', err);
+          }
+          return;
+        }
+
+        setProfile(data as Profile);
+        setOnboardingUser(null);
+        setNeedsUsernameSetup(false);
+        try {
+          if (typeof window !== 'undefined') {
+            window.sessionStorage.removeItem('makwin-onboarding-incomplete');
+          }
+        } catch (err) {
+          console.warn('[AuthContext] Error clearing sessionStorage:', err);
+        }
+        return;
+      }
+
+      // Profile doesn't exist
+      const isGoogleUser = isGoogleAuthSession(session);
+      if (isGoogleUser) {
+        // -- ONBOARDING INCOMPLETE: store ephemerally
+        setProfile(null);
+        setNeedsUsernameSetup(true);
+        setOnboardingUser(session.user);
+        // Mark in sessionStorage that this tab is in onboarding
+        // (sessionStorage auto-clears on tab close; F5 also clears it)
+        try {
+          if (typeof window !== 'undefined') {
+            window.sessionStorage.setItem('makwin-onboarding-incomplete', session.user.id);
+          }
+        } catch (err) {
+          console.warn('[AuthContext] Error setting sessionStorage:', err);
+        }
+        // ** IMPORTANT: Do NOT clear Supabase session from localStorage
+        // ** The OAuth session is valid; we just guard app-level routes via needsUsernameSetup
+        return;
+      }
+
+      // Non-Google user with no profile: sign out (shouldn't happen, but cleanup)
+      await supabase.auth.signOut({ scope: 'local' });
+      setSession(null);
+      setUser(null);
+      setProfile(null);
+      setNeedsUsernameSetup(false);
+      setOnboardingUser(null);
+    } catch (err) {
+      console.error('[AuthContext] Error fetching profile for session:', err);
+      setProfile(null);
+      setNeedsUsernameSetup(false);
+      setOnboardingUser(null);
+    }
+  }, [isGoogleAuthSession]);
+
   useEffect(() => {
     let isMounted = true;
     let timeoutId: NodeJS.Timeout;
 
     const initAuth = async () => {
       try {
-        console.log('[AuthContext] Starting auth initialization...');
-        
-        // Get session from storage
         const { data: { session } } = await supabase.auth.getSession();
-        console.log('[AuthContext] Got session:', session?.user?.id ?? 'No user');
-        
-        if (isMounted) {
-          // If there's a session, validate that the user still exists in Supabase Auth
-          if (session?.user) {
-            try {
-              // Try to get the user from Supabase - if it fails, the user was deleted
-              const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
-              if (authError || !authUser) {
-                console.warn('[AuthContext] Auth user not found or deleted, clearing session');
-                // User was deleted, clear the session
-                await supabase.auth.signOut({ scope: 'local' });
-                setSession(null);
-                setUser(null);
-                setProfile(null);
-                setLoading(false);
-                return;
-              }
-            } catch (err) {
-              console.error('[AuthContext] Error validating auth user:', err);
-              // On error, be safe and clear the session
-              await supabase.auth.signOut({ scope: 'local' });
-              setSession(null);
-              setUser(null);
-              setProfile(null);
-              setLoading(false);
-              return;
-            }
-          }
-          
-          setSession(session);
-          setUser(session?.user ?? null);
-          
-          // Fetch profile if user exists
-          if (session?.user) {
-            try {
-              const { data, error } = await supabase
-                .from('profiles')
-                .select('*')
-                .eq('id', session.user.id)
-                .single();
-              if (!error && data) {
-                console.log('[AuthContext] Loaded profile:', data.username);
-                setProfile(data as Profile);
-              } else {
-                console.warn('[AuthContext] Error fetching profile:', error?.message);
-                // If we can't find a profile, the account might be deleted
-                // Clear the session to prevent ghost accounts
-                await supabase.auth.signOut({ scope: 'local' });
-                setSession(null);
-                setUser(null);
-                setProfile(null);
-              }
-            } catch (err) {
-              console.error('[AuthContext] Error fetching initial profile:', err);
-            }
-          }
-          
-          console.log('[AuthContext] Auth initialization complete, setting loading to false');
-          setLoading(false);
-        }
+        if (!isMounted) return;
+        await handleSession(session);
       } catch (error) {
-        console.error('[AuthContext] Error getting session:', error);
-        if (isMounted) {
-          setLoading(false);
-        }
+        console.error('[AuthContext] Error initializing auth:', error);
+      } finally {
+        if (isMounted) setLoading(false);
       }
     };
 
-    // Initialize auth
     initAuth();
 
-    // Fallback: Force loading to false after 10 seconds if something gets stuck
     timeoutId = setTimeout(() => {
       if (isMounted) {
-        console.warn('[AuthContext] Forcing loading=false due to timeout');
+        console.warn('[AuthContext] Auth initialization timeout, setting loading=false');
         setLoading(false);
       }
     }, 10000);
 
-    // Listen for auth changes - this is critical for detecting OAuth redirect
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      console.log('[AuthContext] Auth state changed:', _event, 'User:', session?.user?.id ?? 'No user');
-      
-      if (isMounted) {
-        setSession(session);
-        setUser(session?.user ?? null);
-        
-        if (session?.user) {
-          console.log('[AuthContext] Fetching profile for user:', session.user.id);
-          
-          // Fetch profile but don't block - use timeout
-          const fetchProfileWithTimeout = async () => {
-            try {
-              console.log('[AuthContext] Starting Supabase query with 3s timeout...');
-              
-              // Create a timeout promise that rejects after 3s
-              const timeoutPromise = new Promise((_, reject) => 
-                setTimeout(() => reject(new Error('Profile fetch timeout')), 3000)
-              );
-              
-              // Race: whichever finishes first
-              const queryPromise = supabase
-                .from('profiles')
-                .select('*')
-                .eq('id', session.user.id)
-                .single();
-              
-              const result = await Promise.race([queryPromise, timeoutPromise]);
-              const { data, error } = result as any;
-              
-              console.log('[AuthContext] Supabase query response:', { 
-                hasData: !!data, 
-                hasError: !!error, 
-                errorMsg: error?.message 
-              });
-              
-              if (!error && data && isMounted) {
-                console.log('[AuthContext] Loaded profile from listener:', data.username);
-                setProfile(data as Profile);
-                
-                // Force Google OAuth users through setup if they haven't completed it
-                if (session?.user?.user_metadata?.provider === 'google' && data.google_setup_completed === false) {
-                  console.log('[AuthContext] Google user needs setup - showing modal');
-                  setNeedsUsernameSetup(true);
-                }
-              } else if (error && isMounted) {
-                console.warn('[AuthContext] Could not fetch profile:', error?.message);
-                setProfile(null);
-              }
-            } catch (err: any) {
-              console.warn('[AuthContext] Profile fetch failed/timeout:', err?.message);
-              if (isMounted) {
-                setProfile(null);
-              }
-            }
-          };
-          
-          // Don't await - let it happen in background
-          fetchProfileWithTimeout();
-        } else {
-          console.log('[AuthContext] No user in session, clearing profile');
-          setProfile(null);
-        }
-        
-        console.log('[AuthContext] Auth listener complete, setting loading=false');
-        // Always ensure loading is false when auth state changes - DON'T WAIT for profile
-        setLoading(false);
-      }
+      if (!isMounted) return;
+      await handleSession(session);
+      setLoading(false);
     });
 
     return () => {
@@ -224,12 +201,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       clearTimeout(timeoutId);
       subscription?.unsubscribe();
     };
-  }, []); // Only run on mount
+  }, [handleSession]);
 
   const signInWithGoogle = async () => {
+    const redirectTo =
+      typeof window !== 'undefined'
+        ? `${window.location.origin}/galeria`
+        : 'https://www.makwin.art/galeria';
+
     await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: 'https://makwin.vercel.app/galeria' },
+      options: { redirectTo },
     });
   };
 
@@ -288,10 +270,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     if (existing) return { error: 'Este nombre de usuario ya está en uso.' };
 
+    const redirectTo =
+      typeof window !== 'undefined'
+        ? `${window.location.origin}/login`
+        : 'https://www.makwin.art/login';
+
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { username: username.toLowerCase(), display_name: displayName } },
+      options: {
+        emailRedirectTo: redirectTo,
+        data: { username: username.toLowerCase(), display_name: displayName },
+      },
     });
 
     if (error) return { error: error.message };
@@ -311,11 +301,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signOut = async () => {
     await supabase.auth.signOut();
     setProfile(null);
+    setNeedsUsernameSetup(false);
+    setOnboardingUser(null);
+    setUser(null);
+    setSession(null);
+    // Clean up onboarding flag from sessionStorage only
+    try {
+      if (typeof window !== 'undefined') {
+        window.sessionStorage.removeItem('makwin-onboarding-incomplete');
+      }
+    } catch (err) {
+      console.warn('[AuthContext] Error clearing sessionStorage on signOut:', err);
+    }
   };
 
   const resetPassword = async (email: string) => {
+    const redirectTo =
+      typeof window !== 'undefined'
+        ? `${window.location.origin}/reset-password`
+        : 'https://www.makwin.art/reset-password';
+
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: 'https://makwin.vercel.app/reset-password',
+      redirectTo,
     });
     return { error: error?.message ?? null };
   };
@@ -346,7 +353,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const completeGoogleSignUp = async (username: string, password: string, displayName: string) => {
-    if (!user) return { error: 'No hay sesión activa.' };
+    // Use ephemeral onboardingUser or current user (shouldn't happen, but fallback)
+    const effectiveUser = user ?? onboardingUser;
+    if (!effectiveUser) return { error: 'No hay sesión activa.' };
 
     try {
       // Check username uniqueness
@@ -358,29 +367,49 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (existing) return { error: 'Este nombre de usuario ya está en uso.' };
 
-      // Update password in auth
-      const { error: passwordError } = await supabase.auth.updateUser({
-        password: password,
-      });
-
-      if (passwordError) return { error: passwordError.message };
+      // Try to set a password for the OAuth user
+      // (This works if the session is active; for Google OAuth it may be optional)
+      try {
+        const { error: passwordError } = await supabase.auth.updateUser({ password });
+        if (passwordError) {
+          console.warn('[AuthContext] updateUser password (non-fatal):', passwordError.message);
+        }
+      } catch (err) {
+        console.warn('[AuthContext] Failed to set password:', err);
+        // Non-fatal; continue with profile update
+      }
 
       // Update or create profile with username
       const { error: profileError } = await supabase
         .from('profiles')
-        .update({
-          username: username.toLowerCase(),
-          display_name: displayName,
-          google_setup_completed: true,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', user.id);
+        .upsert(
+          {
+            id: effectiveUser.id,
+            username: username.toLowerCase(),
+            display_name: displayName,
+            google_setup_completed: true,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: 'id' }
+        );
 
       if (profileError) return { error: profileError.message };
 
-      // Clear the flag and refresh profile
+      // Onboarding complete: session is already valid from OAuth, just update state
       setNeedsUsernameSetup(false);
-      await fetchProfile(user.id);
+      setOnboardingUser(null);
+
+      // Fetch the refreshed profile to populate app state
+      await fetchProfile(effectiveUser.id);
+
+      // Clear the sessionStorage flag
+      try {
+        if (typeof window !== 'undefined') {
+          window.sessionStorage.removeItem('makwin-onboarding-incomplete');
+        }
+      } catch (err) {
+        console.warn('[AuthContext] Error clearing sessionStorage:', err);
+      }
 
       return { error: null };
     } catch (err: any) {

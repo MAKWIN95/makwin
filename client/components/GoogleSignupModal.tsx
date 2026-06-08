@@ -50,7 +50,7 @@ export default function GoogleSignupModal() {
 
   return (
     <Dialog open={needsUsernameSetup} onOpenChange={() => {}} modal>
-      <DialogContent className="sm:max-w-md" onPointerDownOutside={(e) => e.preventDefault()}>
+      <DialogContent className="sm:max-w-md" disableClose>
         <DialogHeader>
           <DialogTitle>{es ? 'Completar perfil' : 'Complete your profile'}</DialogTitle>
           <DialogDescription>
@@ -59,6 +59,15 @@ export default function GoogleSignupModal() {
               : 'Choose a username and password for your account.'}
           </DialogDescription>
         </DialogHeader>
+
+        <div className="mb-4">
+          <div className="flex items-start gap-3 p-3 rounded-md border border-red-100 bg-red-50">
+            <div className="flex-0 text-red-600 font-semibold">!</div>
+            <div className="text-sm text-red-700">
+              {es ? 'Completar este paso es obligatorio para continuar.' : 'Completing this step is required to continue.'}
+            </div>
+          </div>
+        </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>

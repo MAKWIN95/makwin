@@ -33,7 +33,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const { Resend } = await import('resend');
     const resendApiKey = process.env.RESEND_API_KEY;
-    const fromAddress = process.env.RESEND_FROM || 'onboarding@resend.dev';
+    const fromAddress = process.env.RESEND_FROM || 'no-reply@makwin.art';
 
     if (!resendApiKey) {
       console.error('[REQUEST_CHANGE] Resend key no configurada');

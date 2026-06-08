@@ -1,0 +1,1398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MKWN — Beats</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Inter:wght@300;400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --black: #000000;
+    --void: #060606;
+    --deep: #0d0d0d;
+    --carbon: #141414;
+    --cement: #1a1a1a;
+    --ash: #2a2a2a;
+    --stone: #3a3a3a;
+    --fog: #555;
+    --mist: #888;
+    --dust: #aaa;
+    --bone: #ccc;
+    --white: #e8e8e8;
+    --crack: #222;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--void);
+    color: var(--bone);
+    font-family: 'Space Mono', monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    cursor: crosshair;
+    overflow-x: hidden;
+  }
+
+  /* Grain overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 9999;
+    opacity: 0.6;
+  }
+
+  /* ============ NAVIGATION ============ */
+  nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.5rem 3rem;
+    border-bottom: 1px solid var(--crack);
+    background: rgba(6,6,6,0.92);
+    backdrop-filter: blur(12px);
+  }
+
+  .nav-logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2rem;
+    letter-spacing: 0.15em;
+    color: var(--white);
+    text-decoration: none;
+  }
+
+  .nav-links {
+    display: flex;
+    gap: 2.5rem;
+    list-style: none;
+  }
+
+  .nav-links a {
+    color: var(--fog);
+    text-decoration: none;
+    font-size: 13px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    transition: color 0.3s cubic-bezier(0.25,0.46,0.45,0.94);
+  }
+
+  .nav-links a:hover { color: var(--white); }
+
+  /* ============ HERO ============ */
+  #hero {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    padding: 0 3rem 4rem;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .hero-bg {
+    position: absolute;
+    inset: 0;
+    background: 
+      radial-gradient(ellipse 60% 40% at 70% 60%, rgba(40,40,40,0.15) 0%, transparent 70%),
+      linear-gradient(180deg, transparent 40%, rgba(0,0,0,0.8) 100%);
+  }
+
+  /* Geometric arches SVG background */
+  .hero-arches {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    padding-left: 0;
+    opacity: 0.08;
+    pointer-events: none;
+  }
+
+  .hero-arches svg {
+    width: 70%;
+    height: 100%;
+  }
+
+  .hero-content {
+    position: relative;
+    z-index: 2;
+    max-width: 800px;
+  }
+
+  .hero-tag {
+    font-size: 10px;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--fog);
+    margin-bottom: 1.5rem;
+  }
+
+  .hero-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(5rem, 12vw, 11rem);
+    line-height: 0.95;
+    letter-spacing: 0.04em;
+    color: var(--white);
+    margin-bottom: 2rem;
+    white-space: nowrap;
+  }
+
+  .hero-title span {
+    display: inline;
+    color: inherit;
+  }
+
+  .hero-sub {
+    color: var(--fog);
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    max-width: 400px;
+    border-left: 1px solid var(--stone);
+    padding-left: 1.5rem;
+  }
+
+  .hero-scroll {
+    position: absolute;
+    bottom: 2rem;
+    right: 3rem;
+    font-size: 10px;
+    letter-spacing: 0.3em;
+    color: var(--stone);
+    text-transform: uppercase;
+    writing-mode: vertical-rl;
+  }
+
+  /* ============ SECTIONS ============ */
+  section {
+    padding: 6rem 3rem;
+    border-top: 1px solid var(--crack);
+  }
+
+  .section-label {
+    font-size: 14px;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--mist);
+    margin-bottom: 3rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .section-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--crack);
+    max-width: 200px;
+  }
+
+  /* ============ BEATS / STORE ============ */
+  #store {
+    background: var(--void);
+  }
+
+  .store-embed-placeholder {
+    border: 1px solid var(--ash);
+    border-radius: 20px;
+    min-height: 500px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    color: var(--stone);
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .store-embed-placeholder::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 39px,
+      var(--crack) 39px,
+      var(--crack) 40px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      transparent,
+      transparent 39px,
+      var(--crack) 39px,
+      var(--crack) 40px
+    );
+    opacity: 0.3;
+  }
+
+  .store-embed-placeholder p { position: relative; z-index: 1; }
+  .store-embed-placeholder .embed-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.5rem;
+    color: var(--ash);
+    letter-spacing: 0.1em;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* Actual Airbit embed goes here */
+  #airbit-embed {
+    width: 100%;
+    min-height: 600px;
+  }
+
+  /* ============ LICENSING ============ */
+  #licensing {
+    background: var(--black);
+  }
+
+  .license-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 12px;
+    background: transparent;
+    border: none;
+    margin-top: 2rem;
+  }
+
+  .license-card {
+    background: var(--carbon);
+    border: 1px solid var(--ash);
+    border-radius: 18px;
+    padding: 2.5rem 2rem;
+    position: relative;
+    transition: background 0.4s cubic-bezier(0.25,0.46,0.45,0.94), transform 0.4s cubic-bezier(0.25,0.46,0.45,0.94), border-color 0.4s;
+  }
+
+  .license-card:hover {
+    background: var(--cement);
+    transform: translateY(-4px);
+    border-color: var(--stone);
+  }
+
+  .license-card.featured {
+    background: var(--cement);
+    border-color: var(--stone);
+  }
+
+  .license-name {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.6rem;
+    letter-spacing: 0.08em;
+    color: var(--white);
+    margin-bottom: 0.5rem;
+  }
+
+  .license-price {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2.8rem;
+    color: var(--white);
+    line-height: 1;
+    margin-bottom: 1.5rem;
+  }
+
+  .license-price span {
+    font-size: 1rem;
+    color: var(--fog);
+    font-family: 'Space Mono', monospace;
+  }
+
+  .license-features {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+  }
+
+  .license-features li {
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    color: var(--mist);
+    padding-left: 1rem;
+    position: relative;
+  }
+
+  .license-features li::before {
+    content: '—';
+    position: absolute;
+    left: 0;
+    color: var(--stone);
+  }
+
+  .license-tag {
+    font-size: 8px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--stone);
+    border: 1px solid var(--stone);
+    padding: 2px 6px;
+    position: absolute;
+    top: 1.5rem;
+    right: 1.5rem;
+  }
+
+  /* ============ ABOUT ============ */
+  #about {
+    background: var(--void);
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6rem;
+    align-items: center;
+  }
+
+  #about .about-text {
+    grid-column: 2;
+  }
+
+  .about-monolith {
+    grid-column: 1;
+    grid-row: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .about-monolith svg {
+    width: 180px;
+    opacity: 0.3;
+  }
+
+  .about-body {
+    color: var(--mist);
+    font-size: 12px;
+    line-height: 2;
+    max-width: 480px;
+  }
+
+  .about-body p + p { margin-top: 1.5rem; }
+
+  /* ============ CONTACT ============ */
+  #contact {
+    background: var(--black);
+    text-align: center;
+  }
+
+  .contact-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(3rem, 8vw, 7rem);
+    letter-spacing: 0.05em;
+    color: var(--white);
+    line-height: 1;
+    margin-bottom: 2rem;
+  }
+
+  .contact-links {
+    display: flex;
+    gap: 3rem;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .contact-link {
+    color: var(--fog);
+    text-decoration: none;
+    font-size: 13px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    border: 1px solid var(--ash);
+    border-radius: 100px;
+    padding: 10px 22px;
+    transition: color 0.3s cubic-bezier(0.25,0.46,0.45,0.94),
+                border-color 0.3s cubic-bezier(0.25,0.46,0.45,0.94),
+                background 0.3s cubic-bezier(0.25,0.46,0.45,0.94);
+  }
+
+  .contact-link:hover {
+    color: var(--white);
+    border-color: var(--stone);
+    background: var(--carbon);
+  }
+
+  /* ============ FOOTER ============ */
+  footer {
+    padding: 2rem 3rem;
+    border-top: 1px solid var(--crack);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    color: var(--stone);
+    text-transform: uppercase;
+  }
+
+  /* ============ SCROLL ANIMATIONS — Apple style ============ */
+  .fade-in {
+    opacity: 0;
+    transform: translateY(32px);
+    transition: opacity 0.75s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+                transform 0.75s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  }
+
+  .fade-in.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  /* Staggered children */
+  .fade-in-group > * {
+    opacity: 0;
+    transform: translateY(24px);
+    transition: opacity 0.65s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+                transform 0.65s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  }
+
+  .fade-in-group.visible > *:nth-child(1) { opacity: 1; transform: none; transition-delay: 0s; }
+  .fade-in-group.visible > *:nth-child(2) { opacity: 1; transform: none; transition-delay: 0.1s; }
+  .fade-in-group.visible > *:nth-child(3) { opacity: 1; transform: none; transition-delay: 0.2s; }
+  .fade-in-group.visible > *:nth-child(4) { opacity: 1; transform: none; transition-delay: 0.3s; }
+
+  /* Scale-in for cards */
+  .scale-in {
+    opacity: 0;
+    transform: scale(0.96) translateY(20px);
+    transition: opacity 0.65s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+                transform 0.65s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  }
+
+  .scale-in.visible {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+
+  /* When scale-in is inside fade-in-group, parent controls visibility via stagger */
+  .fade-in-group.visible .scale-in:nth-child(1) { opacity: 1; transform: scale(1) translateY(0); transition-delay: 0s; }
+  .fade-in-group.visible .scale-in:nth-child(2) { opacity: 1; transform: scale(1) translateY(0); transition-delay: 0.1s; }
+  .fade-in-group.visible .scale-in:nth-child(3) { opacity: 1; transform: scale(1) translateY(0); transition-delay: 0.2s; }
+  .fade-in-group.visible .scale-in:nth-child(4) { opacity: 1; transform: scale(1) translateY(0); transition-delay: 0.3s; }
+
+  /* ============ SECRET PAGE ============ */
+  #secret-page {
+    display: none;
+    min-height: 100vh;
+    background: var(--void);
+    padding: 2rem 3rem;
+  }
+
+  #secret-page.active { display: block; }
+  #main-site.hidden { display: none; }
+
+  .secret-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 3rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid var(--crack);
+  }
+
+  .secret-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2.5rem;
+    letter-spacing: 0.1em;
+    color: var(--white);
+  }
+
+  .secret-subtitle {
+    font-size: 9px;
+    letter-spacing: 0.3em;
+    color: var(--stone);
+    text-transform: uppercase;
+    margin-top: 0.3rem;
+  }
+
+  .back-btn {
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--fog);
+    background: none;
+    border: 1px solid var(--ash);
+    border-radius: 100px;
+    padding: 8px 20px;
+    cursor: pointer;
+    font-family: 'Space Mono', monospace;
+    transition: all 0.3s cubic-bezier(0.25,0.46,0.45,0.94);
+  }
+
+  .back-btn:hover { color: var(--white); border-color: var(--stone); background: var(--carbon); }
+
+  /* Upload zone */
+  .upload-zone {
+    border: 1px dashed var(--ash);
+    border-radius: 20px;
+    padding: 4rem 3rem;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.3s cubic-bezier(0.25,0.46,0.45,0.94),
+                background 0.3s cubic-bezier(0.25,0.46,0.45,0.94);
+    position: relative;
+    margin-bottom: 2rem;
+  }
+
+  .upload-zone:hover, .upload-zone.dragover {
+    border-color: var(--stone);
+    background: rgba(40,40,40,0.2);
+  }
+
+  .upload-zone input[type="file"] {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+    width: 100%;
+    height: 100%;
+  }
+
+  .upload-icon {
+    font-size: 2rem;
+    color: var(--stone);
+    margin-bottom: 1rem;
+  }
+
+  .upload-label {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.5rem;
+    letter-spacing: 0.1em;
+    color: var(--mist);
+    display: block;
+    margin-bottom: 0.5rem;
+  }
+
+  .upload-sub {
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    color: var(--stone);
+  }
+
+  .upload-filename {
+    margin-top: 1rem;
+    font-size: 11px;
+    color: var(--bone);
+    letter-spacing: 0.1em;
+  }
+
+  /* BPM / Key inputs */
+  .meta-inputs {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 1rem;
+    margin-bottom: 2rem;
+  }
+
+  .meta-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .meta-label {
+    font-size: 9px;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--stone);
+  }
+
+  .meta-input {
+    background: var(--carbon);
+    border: 1px solid var(--ash);
+    border-radius: 10px;
+    color: var(--bone);
+    padding: 10px 14px;
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .meta-input:focus { border-color: var(--stone); }
+  .meta-input::placeholder { color: var(--fog); }
+
+  /* Analyze button */
+  .analyze-btn {
+    width: 100%;
+    background: var(--carbon);
+    border: 1px solid var(--ash);
+    border-radius: 14px;
+    color: var(--white);
+    padding: 1.2rem;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.4rem;
+    letter-spacing: 0.2em;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.25,0.46,0.45,0.94);
+    margin-bottom: 2rem;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .analyze-btn::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(255,255,255,0.03);
+    transform: translateX(-100%);
+    transition: transform 0.4s;
+  }
+
+  .analyze-btn:hover::before { transform: translateX(0); }
+  .analyze-btn:hover { border-color: var(--fog); }
+  .analyze-btn:disabled {
+    color: var(--stone);
+    cursor: not-allowed;
+    border-color: var(--crack);
+  }
+
+  /* Loading */
+  .loading-bar {
+    width: 100%;
+    height: 1px;
+    background: var(--crack);
+    margin-bottom: 2rem;
+    display: none;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .loading-bar.active { display: block; }
+
+  .loading-bar::after {
+    content: '';
+    position: absolute;
+    height: 100%;
+    width: 40%;
+    background: var(--bone);
+    animation: scan 1.2s ease-in-out infinite;
+  }
+
+  @keyframes scan {
+    0% { left: -40%; }
+    100% { left: 140%; }
+  }
+
+  .loading-text {
+    font-size: 10px;
+    letter-spacing: 0.3em;
+    color: var(--fog);
+    text-transform: uppercase;
+    text-align: center;
+    margin-bottom: 2rem;
+    display: none;
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  .loading-text.active { display: block; }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 0.4; }
+    50% { opacity: 1; }
+  }
+
+  /* Results */
+  .results-container {
+    display: none;
+  }
+
+  .results-container.active { display: block; }
+
+  .result-block {
+    background: var(--carbon);
+    border: 1px solid var(--ash);
+    border-radius: 18px;
+    padding: 2rem;
+    margin-bottom: 1rem;
+    position: relative;
+  }
+
+  .result-block-label {
+    font-size: 8px;
+    letter-spacing: 0.4em;
+    text-transform: uppercase;
+    color: var(--stone);
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .result-block-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--crack);
+  }
+
+  .result-title-options {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+  }
+
+  .result-option {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.75rem 1rem;
+    background: var(--cement);
+    border: 1px solid transparent;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.25,0.46,0.45,0.94);
+    font-size: 12px;
+    color: var(--bone);
+    letter-spacing: 0.05em;
+  }
+
+  .result-option:hover {
+    border-color: var(--stone);
+    background: var(--ash);
+    transform: translateX(4px);
+  }
+
+  .result-option .copy-icon {
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    color: var(--stone);
+    text-transform: uppercase;
+    flex-shrink: 0;
+    transition: color 0.2s;
+  }
+
+  .result-option:hover .copy-icon { color: var(--bone); }
+
+  .result-prompt {
+    background: var(--cement);
+    border-radius: 12px;
+    padding: 1.25rem;
+    font-size: 11px;
+    line-height: 1.8;
+    color: var(--mist);
+    border-left: 2px solid var(--stone);
+    position: relative;
+  }
+
+  .result-analysis {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 8px;
+    background: transparent;
+    margin-bottom: 1rem;
+  }
+
+  .analysis-item {
+    background: var(--cement);
+    border: 1px solid var(--ash);
+    border-radius: 12px;
+    padding: 1rem 1.25rem;
+  }
+
+  .analysis-key {
+    font-size: 8px;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--stone);
+    margin-bottom: 0.4rem;
+  }
+
+  .analysis-val {
+    font-size: 13px;
+    color: var(--white);
+    font-family: 'Bebas Neue', sans-serif;
+    letter-spacing: 0.05em;
+  }
+
+  .copy-prompt-btn {
+    font-size: 9px;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--fog);
+    background: none;
+    border: 1px solid var(--ash);
+    border-radius: 100px;
+    padding: 6px 16px;
+    cursor: pointer;
+    font-family: 'Space Mono', monospace;
+    transition: all 0.3s cubic-bezier(0.25,0.46,0.45,0.94);
+    margin-top: 1rem;
+    display: inline-block;
+  }
+
+  .copy-prompt-btn:hover { color: var(--white); border-color: var(--stone); background: var(--cement); }
+
+  .error-msg {
+    color: #888;
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    padding: 1rem 1.25rem;
+    border: 1px solid #333;
+    border-radius: 12px;
+    background: var(--carbon);
+    display: none;
+  }
+
+  .error-msg.active { display: block; }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    nav { padding: 1.2rem 1.5rem; }
+    section { padding: 4rem 1.5rem; }
+    #hero { padding: 0 1.5rem 3rem; }
+    #about { grid-template-columns: 1fr; }
+    #about .about-monolith { display: none; }
+    #about .about-text { grid-column: 1; }
+    .meta-inputs { grid-template-columns: 1fr 1fr; }
+    footer { flex-direction: column; gap: 1rem; text-align: center; }
+    #secret-page { padding: 1.5rem; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ============ MAIN SITE ============ -->
+<div id="main-site">
+
+  <nav>
+    <a href="#" class="nav-logo">MKWN</a>
+    <ul class="nav-links">
+      <li><a href="#store">Store</a></li>
+      <li><a href="#licensing">Licensing</a></li>
+      <li><a href="#about">About</a></li>
+      <li><a href="#contact">Contact</a></li>
+    </ul>
+  </nav>
+
+  <!-- HERO -->
+  <section id="hero">
+    <div class="hero-bg"></div>
+    <div class="hero-arches">
+      <svg viewBox="0 0 900 500" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <!-- Cracked stone arches approximation -->
+        <rect x="0" y="400" width="900" height="100" fill="#1a1a1a"/>
+        <path d="M80 400 Q80 200 200 200 Q320 200 320 400" stroke="#2a2a2a" stroke-width="28" fill="none"/>
+        <path d="M200 400 Q200 150 340 150 Q480 150 480 400" stroke="#222" stroke-width="24" fill="none"/>
+        <path d="M360 400 Q360 120 500 120 Q640 120 640 400" stroke="#1e1e1e" stroke-width="22" fill="none"/>
+        <path d="M500 400 Q500 100 660 100 Q820 100 820 400" stroke="#1a1a1a" stroke-width="20" fill="none"/>
+        <path d="M620 400 Q620 80 800 80 Q980 80 980 400" stroke="#161616" stroke-width="18" fill="none"/>
+        <!-- Floor cracks -->
+        <line x1="0" y1="420" x2="900" y2="420" stroke="#1e1e1e" stroke-width="1"/>
+        <path d="M100 420 L140 440 L160 430" stroke="#161616" stroke-width="1" fill="none"/>
+        <path d="M300 420 L320 450 L360 435 L380 455" stroke="#161616" stroke-width="1" fill="none"/>
+        <path d="M500 420 L530 448 L550 435" stroke="#161616" stroke-width="1" fill="none"/>
+        <path d="M700 420 L720 445 L750 430 L780 450" stroke="#161616" stroke-width="1" fill="none"/>
+      </svg>
+    </div>
+
+    <div class="hero-content">
+      <p class="hero-tag">— Archive in progress — Barcelona</p>
+      <h1 class="hero-title">
+        MK<span>WN</span>
+      </h1>
+      <p class="hero-sub">Instrumentals built from weight, silence, and structure. Each beat is a document.</p>
+    </div>
+    <p class="hero-scroll">Scroll</p>
+  </section>
+
+  <!-- STORE -->
+  <section id="store">
+    <p class="section-label fade-in">01 — Beats</p>
+    <div id="airbit-embed" class="fade-in">
+      <!-- 
+        INSTRUCCIONES: Reemplaza este bloque con tu embed de Airbit.
+        Ve a Airbit > Music Stores > y copia el código embed de tu catálogo.
+        Pega el <iframe> o script de Airbit aquí dentro.
+      -->
+      <div class="store-embed-placeholder">
+        <p class="embed-title">AIRBIT STORE EMBED</p>
+        <p>→ Pega aquí el código embed de Airbit</p>
+        <p style="font-size:9px; color: #333; margin-top: 1rem;">Airbit Dashboard → Music Stores → Embed Code</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- LICENSING -->
+  <section id="licensing">
+    <p class="section-label fade-in">02 — Licensing</p>
+    <div class="license-grid fade-in-group">
+
+      <div class="license-card scale-in">
+        <p class="license-name">Basic</p>
+        <p class="license-price">$24<span>.99</span></p>
+        <ul class="license-features">
+          <li>MP3 file</li>
+          <li>Up to 50,000 streams</li>
+          <li>1 monetized video</li>
+          <li>No physical distribution</li>
+          <li>Credit: Prod. MKWN</li>
+        </ul>
+      </div>
+
+      <div class="license-card featured scale-in">
+        <span class="license-tag">Most popular</span>
+        <p class="license-name">Premium</p>
+        <p class="license-price">$49<span>.99</span></p>
+        <ul class="license-features">
+          <li>WAV + MP3 files</li>
+          <li>Up to 500,000 streams</li>
+          <li>Spotify / Apple Music</li>
+          <li>1 monetized video</li>
+          <li>Credit: Prod. MKWN</li>
+        </ul>
+      </div>
+
+      <div class="license-card scale-in">
+        <p class="license-name">Unlimited</p>
+        <p class="license-price">$99<span>.99</span></p>
+        <ul class="license-features">
+          <li>WAV + MP3 files</li>
+          <li>Unlimited streams</li>
+          <li>Unlimited distribution</li>
+          <li>Sync licensing</li>
+          <li>Credit: Prod. MKWN</li>
+        </ul>
+      </div>
+
+      <div class="license-card scale-in">
+        <p class="license-name">Exclusive</p>
+        <p class="license-price">$299<span>+</span></p>
+        <ul class="license-features">
+          <li>WAV + full stems</li>
+          <li>All rights transferred</li>
+          <li>Removed from catalog</li>
+          <li>Unlimited everything</li>
+          <li>No credit required</li>
+        </ul>
+      </div>
+
+    </div>
+
+    <p class="fade-in" style="margin-top: 2rem; font-size: 10px; color: var(--stone); letter-spacing: 0.15em;">
+      Free for profit available. Credit required: Prod. MKWN — contact@makwin.art for custom deals.
+    </p>
+  </section>
+
+  <!-- ABOUT -->
+  <section id="about">
+    <div class="about-monolith">
+      <svg viewBox="0 0 200 300" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="60" y="20" width="80" height="260" fill="#1a1a1a" stroke="#2a2a2a" stroke-width="1"/>
+        <line x1="60" y1="80" x2="140" y2="80" stroke="#222" stroke-width="0.5"/>
+        <line x1="60" y1="150" x2="140" y2="150" stroke="#222" stroke-width="0.5"/>
+        <line x1="60" y1="220" x2="140" y2="220" stroke="#222" stroke-width="0.5"/>
+        <path d="M75 60 L85 75 L95 65 L105 72 L115 55" stroke="#333" stroke-width="0.5" fill="none"/>
+        <path d="M70 110 L90 125 L100 115 L120 130" stroke="#2a2a2a" stroke-width="0.5" fill="none"/>
+        <rect x="40" y="260" width="120" height="20" fill="#111" stroke="#222" stroke-width="1"/>
+      </svg>
+    </div>
+    <div class="about-text fade-in">
+      <p class="section-label">03 — About</p>
+      <div class="about-body">
+        <p>MKWN is a production project built on restraint. Rap, trap, jazz, bossanova and more — instrumentals designed to carry weight without noise.</p>
+        <p>Based in Barcelona. Working independently. Every beat in this catalog is available for licensing — free for non-commercial use with proper credit, licensed for everything else.</p>
+        <p>This is not a service. It is an output.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- CONTACT -->
+  <section id="contact">
+    <h2 class="contact-title fade-in">Work<br>With MKWN</h2>
+    <div class="contact-links fade-in">
+      <a href="mailto:contact@makwin.art" class="contact-link">contact@makwin.art</a>
+      <a href="https://instagram.com/makwin.art" target="_blank" class="contact-link">@makwin.art</a>
+      <a href="#store" class="contact-link">Buy a license</a>
+    </div>
+  </section>
+
+  <footer>
+    <span>© MKWN — All rights reserved</span>
+    <span>contact@makwin.art</span>
+    <span>Barcelona, ES</span>
+  </footer>
+
+</div>
+<!-- END MAIN SITE -->
+
+
+<!-- ============ SECRET PAGE ============ -->
+<div id="secret-page">
+
+  <div class="secret-header">
+    <div>
+      <p class="secret-title">MKWN — BEAT ANALYZER</p>
+      <p class="secret-subtitle">Internal tool — Restricted access</p>
+    </div>
+    <button class="back-btn" onclick="goToMain()">← Back to site</button>
+  </div>
+
+  <!-- Upload -->
+  <div class="upload-zone" id="drop-zone">
+    <input type="file" id="beat-file" accept="audio/*" onchange="handleFile(this)">
+    <div class="upload-icon">⬡</div>
+    <span class="upload-label">Drop your beat here</span>
+    <span class="upload-sub">MP3 / WAV / AIFF — Max 50MB</span>
+    <p class="upload-filename" id="filename-display"></p>
+  </div>
+
+  <!-- Meta -->
+  <div class="meta-inputs">
+    <div class="meta-group">
+      <label class="meta-label">BPM (optional)</label>
+      <input type="number" class="meta-input" id="bpm-input" placeholder="e.g. 140">
+    </div>
+    <div class="meta-group">
+      <label class="meta-label">Key (optional)</label>
+      <input type="text" class="meta-input" id="key-input" placeholder="e.g. F# minor">
+    </div>
+    <div class="meta-group">
+      <label class="meta-label">Notes (optional)</label>
+      <input type="text" class="meta-input" id="notes-input" placeholder="e.g. dark, guitar sample">
+    </div>
+  </div>
+
+  <button class="analyze-btn" id="analyze-btn" onclick="analyzeBeat()">
+    ANALYZE BEAT
+  </button>
+
+  <div class="loading-bar" id="loading-bar"></div>
+  <p class="loading-text" id="loading-text">Analyzing audio structure...</p>
+
+  <div class="error-msg" id="error-msg"></div>
+
+  <!-- Results -->
+  <div class="results-container" id="results">
+
+    <!-- Audio analysis summary -->
+    <div class="result-block">
+      <p class="result-block-label">Beat Analysis</p>
+      <div class="result-analysis" id="analysis-grid"></div>
+    </div>
+
+    <!-- YouTube Titles -->
+    <div class="result-block">
+      <p class="result-block-label">YouTube Titles — Pick the most viral</p>
+      <div class="result-title-options" id="title-options"></div>
+    </div>
+
+    <!-- Cover prompt -->
+    <div class="result-block">
+      <p class="result-block-label">Gemini Prompt — Cover Art</p>
+      <div class="result-prompt" id="cover-prompt"></div>
+      <button class="copy-prompt-btn" id="copy-prompt-btn">Copy prompt</button>
+    </div>
+
+  </div>
+
+</div>
+<!-- END SECRET PAGE -->
+
+
+<script>
+  // ============ ROUTING ============
+  function checkRoute() {
+    const hash = window.location.hash;
+    const path = window.location.pathname;
+    if (hash === '#/studio' || path.includes('/studio') || window.location.search.includes('studio')) {
+      showSecret();
+    }
+  }
+
+  function showSecret() {
+    document.getElementById('main-site').classList.add('hidden');
+    document.getElementById('secret-page').classList.add('active');
+  }
+
+  function goToMain() {
+    document.getElementById('main-site').classList.remove('hidden');
+    document.getElementById('secret-page').classList.remove('active');
+    window.location.hash = '';
+  }
+
+  window.addEventListener('hashchange', checkRoute);
+  window.addEventListener('load', () => {
+    checkRoute();
+    initFadeIn();
+    initDragDrop();
+  });
+
+  // ============ FADE IN ============
+  function initFadeIn() {
+    const obs = new IntersectionObserver((entries) => {
+      entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+    }, { threshold: 0.08 });
+    document.querySelectorAll('.fade-in, .scale-in, .fade-in-group').forEach(el => obs.observe(el));
+  }
+
+  // ============ DRAG AND DROP ============
+  function initDragDrop() {
+    const zone = document.getElementById('drop-zone');
+    zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('dragover'); });
+    zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
+    zone.addEventListener('drop', e => {
+      e.preventDefault();
+      zone.classList.remove('dragover');
+      const file = e.dataTransfer.files[0];
+      if (file && file.type.startsWith('audio/')) {
+        document.getElementById('filename-display').textContent = '→ ' + file.name;
+        window._beatFile = file;
+      }
+    });
+  }
+
+  function handleFile(input) {
+    if (input.files[0]) {
+      const file = input.files[0];
+      document.getElementById('filename-display').textContent = '→ ' + file.name;
+      window._beatFile = file;
+    }
+  }
+
+  // ============ AUDIO ANALYSIS (Web Audio API) ============
+  async function analyzeAudioLocally(file) {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        try {
+          const ctx = new (window.AudioContext || window.webkitAudioContext)();
+          const buffer = await ctx.decodeAudioData(e.target.result);
+          
+          const data = buffer.getChannelData(0);
+          const sampleRate = buffer.sampleRate;
+          const duration = buffer.duration;
+          
+          // RMS energy
+          let sum = 0;
+          for (let i = 0; i < data.length; i++) sum += data[i] * data[i];
+          const rms = Math.sqrt(sum / data.length);
+          const energy = Math.min(100, Math.round(rms * 800));
+          
+          // Frequency analysis via FFT on a chunk
+          const analyserCtx = new (window.AudioContext || window.webkitAudioContext)();
+          const analyser = analyserCtx.createAnalyser();
+          analyser.fftSize = 2048;
+          const src = analyserCtx.createBufferSource();
+          const buf = analyserCtx.createBuffer(1, Math.min(data.length, 44100 * 4), sampleRate);
+          buf.copyToChannel(data.slice(0, Math.min(data.length, 44100 * 4)), 0);
+          src.buffer = buf;
+          src.connect(analyser);
+          
+          const freqData = new Uint8Array(analyser.frequencyBinCount);
+          src.start(0);
+          await new Promise(r => setTimeout(r, 200));
+          analyser.getByteFrequencyData(freqData);
+          
+          // Low/mid/high freq balance
+          const low = freqData.slice(0, 100).reduce((a,b) => a+b, 0) / 100;
+          const mid = freqData.slice(100, 400).reduce((a,b) => a+b, 0) / 300;
+          const high = freqData.slice(400).reduce((a,b) => a+b, 0) / (freqData.length - 400);
+          
+          const dominant = low > mid && low > high ? 'bass-heavy' : mid > high ? 'mid-forward' : 'bright';
+          const mood = low > 80 ? 'dark/heavy' : low > 50 ? 'balanced' : 'airy/melodic';
+          
+          await analyserCtx.close();
+          await ctx.close();
+          
+          resolve({
+            duration: Math.round(duration) + 's',
+            energy: energy + '%',
+            dominant_freq: dominant,
+            mood_hint: mood,
+            low: Math.round(low),
+            mid: Math.round(mid),
+            high: Math.round(high)
+          });
+        } catch(err) {
+          resolve({ error: true, duration: '—', energy: '—', dominant_freq: '—', mood_hint: '—' });
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    });
+  }
+
+  // ============ MAIN ANALYZE FUNCTION ============
+  async function analyzeBeat() {
+    const file = window._beatFile || document.getElementById('beat-file').files[0];
+    if (!file) {
+      showError('Upload a beat file first.');
+      return;
+    }
+
+    const bpm = document.getElementById('bpm-input').value;
+    const key = document.getElementById('key-input').value;
+    const notes = document.getElementById('notes-input').value;
+
+    const btn = document.getElementById('analyze-btn');
+    btn.disabled = true;
+    document.getElementById('loading-bar').classList.add('active');
+    document.getElementById('loading-text').classList.add('active');
+    document.getElementById('results').classList.remove('active');
+    document.getElementById('error-msg').classList.remove('active');
+
+    setLoadingText('Analyzing audio structure...');
+    const audioData = await analyzeAudioLocally(file);
+    
+    setLoadingText('Reading frequency spectrum...');
+    await sleep(600);
+
+    setLoadingText('Querying AI for beat intelligence...');
+
+    const prompt = buildPrompt(file.name, bpm, key, notes, audioData);
+
+    try {
+      const response = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 1000,
+          messages: [{ role: 'user', content: prompt }]
+        })
+      });
+
+      const data = await response.json();
+      
+      if (data.error) throw new Error(data.error.message);
+      
+      const text = data.content.map(b => b.text || '').join('');
+      const clean = text.replace(/```json|```/g, '').trim();
+      
+      let parsed;
+      try {
+        parsed = JSON.parse(clean);
+      } catch(e) {
+        const jsonMatch = clean.match(/\{[\s\S]*\}/);
+        if (jsonMatch) parsed = JSON.parse(jsonMatch[0]);
+        else throw new Error('Could not parse AI response');
+      }
+
+      renderResults(parsed, audioData, bpm, key);
+
+    } catch(err) {
+      showError('AI analysis failed: ' + err.message + '. Check your API key or connection.');
+    } finally {
+      btn.disabled = false;
+      document.getElementById('loading-bar').classList.remove('active');
+      document.getElementById('loading-text').classList.remove('active');
+    }
+  }
+
+  function buildPrompt(filename, bpm, key, notes, audioData) {
+    return `You are a music industry expert specializing in beat marketing and YouTube SEO for hip-hop, trap, drill, melodic, and jazz beats. You analyze beats and generate viral YouTube titles and cover art prompts.
+
+BEAT FILE: ${filename}
+BPM: ${bpm || 'unknown (estimate from context)'}
+KEY: ${key || 'unknown'}
+ADDITIONAL NOTES: ${notes || 'none'}
+AUDIO ANALYSIS:
+- Duration: ${audioData.duration}
+- Energy level: ${audioData.energy}
+- Dominant frequency: ${audioData.dominant_freq}
+- Mood hint: ${audioData.mood_hint}
+- Bass level: ${audioData.low}/255
+- Mid level: ${audioData.mid}/255
+- High level: ${audioData.high}/255
+
+Based on the filename, BPM, key, notes, and audio energy/frequency data, do the following:
+
+1. Infer the genre/style (trap, UK drill, NY drill, melodic trap, emo rap, lofi hip-hop, jazz rap, etc.)
+2. Identify which artist the vibe is closest to (be specific: Central Cee, Lil Baby, Rod Wave, Playboi Carti, SZA, Travis Scott, Gunna, JID, etc.)
+3. Generate 3 viral YouTube type beat titles. Rules: include [FREE] or [FREE FOR PROFIT], use "x" collabs between 2 relevant artists, include genre descriptor, BPM if known, one emotional word (dark, melodic, sad, cold, smooth, eerie). Make them searchable and viral.
+4. Decide what the best performing title is
+5. Generate a Gemini image prompt for the beat cover art. The prompt MUST follow the MKWN brand: brutalist/concrete aesthetic, monochromatic (black, grey, charcoal), cracked stone textures, architectural impossible structures, dramatic chiaroscuro lighting, cinematic grain, no colors, no neon, no text in image. Tie it to the beat's emotional mood. End with: "--ar 1:1 --style raw --v 6.0 --no color --no neon --no text"
+
+Respond ONLY with a valid JSON object, no markdown, no explanation:
+{
+  "genre": "string",
+  "vibe_artists": ["artist1", "artist2"],
+  "estimated_bpm": "number or string",
+  "mood": "string",
+  "titles": [
+    {"title": "string", "why": "string"},
+    {"title": "string", "why": "string"},
+    {"title": "string", "why": "string"}
+  ],
+  "best_title": "string",
+  "cover_prompt": "string"
+}`;
+  }
+
+  function renderResults(data, audioData, bpm, key) {
+    // Analysis grid
+    const grid = document.getElementById('analysis-grid');
+    grid.innerHTML = `
+      <div class="analysis-item"><p class="analysis-key">Genre</p><p class="analysis-val">${data.genre || '—'}</p></div>
+      <div class="analysis-item"><p class="analysis-key">Vibe</p><p class="analysis-val">${(data.vibe_artists || []).join(' × ')}</p></div>
+      <div class="analysis-item"><p class="analysis-key">BPM</p><p class="analysis-val">${bpm || data.estimated_bpm || '—'}</p></div>
+      <div class="analysis-item"><p class="analysis-key">Key</p><p class="analysis-val">${key || '—'}</p></div>
+      <div class="analysis-item"><p class="analysis-key">Mood</p><p class="analysis-val">${data.mood || '—'}</p></div>
+      <div class="analysis-item"><p class="analysis-key">Energy</p><p class="analysis-val">${audioData.energy}</p></div>
+    `;
+
+    // Titles
+    const titleContainer = document.getElementById('title-options');
+    titleContainer.innerHTML = '';
+    (data.titles || []).forEach(t => {
+      const isBest = t.title === data.best_title;
+      const div = document.createElement('div');
+      div.className = 'result-option';
+      div.style.borderColor = isBest ? 'var(--stone)' : 'transparent';
+      div.innerHTML = `
+        <span style="flex:1">${isBest ? '★ ' : ''}${t.title}</span>
+        <span class="copy-icon" title="${t.why}">Copy</span>
+      `;
+      div.querySelector('.copy-icon').addEventListener('click', (e) => {
+        e.stopPropagation();
+        navigator.clipboard.writeText(t.title);
+        const el = div.querySelector('.copy-icon');
+        el.textContent = 'Copied';
+        setTimeout(() => el.textContent = 'Copy', 2000);
+      });
+      div.addEventListener('click', () => {
+        navigator.clipboard.writeText(t.title);
+        div.querySelector('.copy-icon').textContent = 'Copied';
+        setTimeout(() => div.querySelector('.copy-icon').textContent = 'Copy', 2000);
+      });
+      titleContainer.appendChild(div);
+    });
+
+    // Cover prompt
+    document.getElementById('cover-prompt').textContent = data.cover_prompt || '—';
+    document.getElementById('copy-prompt-btn').onclick = () => {
+      navigator.clipboard.writeText(data.cover_prompt || '');
+      document.getElementById('copy-prompt-btn').textContent = 'Copied';
+      setTimeout(() => document.getElementById('copy-prompt-btn').textContent = 'Copy prompt', 2000);
+    };
+
+    document.getElementById('results').classList.add('active');
+  }
+
+  function showError(msg) {
+    const el = document.getElementById('error-msg');
+    el.textContent = msg;
+    el.classList.add('active');
+  }
+
+  function setLoadingText(text) {
+    document.getElementById('loading-text').textContent = text;
+  }
+
+  function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+</script>
+</body>
+</html>

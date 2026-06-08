@@ -19,16 +19,44 @@ export default function ResetPassword() {
   const [success, setSuccess] = useState(false);
   const [linkExpired, setLinkExpired] = useState(false);
   const [sendingReset, setSendingReset] = useState(false);
+  const [checkingSession, setCheckingSession] = useState(true);
 
   useEffect(() => {
-    // Check if user came from email link (has recovery session)
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!session || session.user.recovery_sent_at === null) {
-        // No recovery session, link is expired or already used
-        setLinkExpired(true);
+    let isMounted = true;
+
+    const checkInitialSession = async () => {
+      try {
+        const { data } = await supabase.auth.getSession();
+        if (!isMounted) return;
+
+        if (!data.session || data.session.user.recovery_sent_at === null) {
+          setLinkExpired(true);
+        }
+      } catch (err: any) {
+        console.error('[ResetPassword] Error checking session:', err?.message || err);
+        if (isMounted) setLinkExpired(true);
+      } finally {
+        if (isMounted) setCheckingSession(false);
       }
+    };
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!isMounted) return;
+      if (!session || session.user.recovery_sent_at === null) {
+        setLinkExpired(true);
+      } else {
+        setLinkExpired(false);
+      }
+      setCheckingSession(false);
     });
-  }, [navigate]);
+
+    checkInitialSession();
+
+    return () => {
+      isMounted = false;
+      subscription?.unsubscribe();
+    };
+  }, []);
 
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -93,6 +121,18 @@ export default function ResetPassword() {
       setSendingReset(false);
     }
   };
+
+  if (checkingSession) {
+    return (
+      <div className="min-h-screen bg-[hsl(var(--background))]">
+        <Header hideSearch />
+        <div className="w-full max-w-md mx-auto px-4 py-16 text-center">
+          <Loader2 className="mx-auto mb-4 h-8 w-8 animate-spin text-[hsl(var(--foreground))]" />
+          <p className="text-sm text-[hsl(var(--muted-foreground))]">Validando enlace de reseteo…</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[hsl(var(--background))]">

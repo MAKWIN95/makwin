@@ -43,7 +43,7 @@ function generateSubmissionId(): string {
 
 async function sendEmailNotification(submissionData: SubmissionData, submissionId: string) {
   try {
-    const recipientEmail = process.env.RECIPIENT_EMAIL || "sendtomakwin@gmail.com";
+    const recipientEmail = 'sendtomakwin@gmail.com';
     const resendApiKey = process.env.RESEND_API_KEY;
     
     const emailHTML = `
@@ -120,16 +120,11 @@ async function sendEmailNotification(submissionData: SubmissionData, submissionI
 </html>
     `.trim();
 
-    // Log in development
-    console.log(`📧 Email notification:`);
-    console.log(`   To: ${recipientEmail}`);
-    console.log(`   Subject: Nueva obra enviada: ${submissionData.title}`);
-    
     // Try to send with Resend if API key is configured
     if (resendApiKey && resendApiKey !== 're_test123456789') {
       try {
         const resend = new Resend(resendApiKey);
-        const fromAddress = process.env.RESEND_FROM || 'onboarding@resend.dev';
+        const fromAddress = process.env.RESEND_FROM || 'no-reply@makwin.art';
         const response = await resend.emails.send({
           from: fromAddress,
           to: recipientEmail,
@@ -144,18 +139,14 @@ async function sendEmailNotification(submissionData: SubmissionData, submissionI
         }
       } catch (resendError: any) {
         console.error('   ❌ Error de Resend:', resendError);
-        // If domain not verified, give actionable advice
         if (resendError?.message && resendError.message.includes('domain is not verified')) {
-          console.log('   ⚠️  Dominio no verificado en Resend. Verifica tu dominio en https://resend.com/domains o usa el from por defecto onboarding@resend.dev en la variable RESEND_FROM.');
+          console.log('   ⚠️  Dominio no verificado en Resend. Verifica tu dominio en https://resend.com/domains.');
         } else if (resendError?.statusCode === 403) {
           console.log('   ⚠️  Error 403 de Resend - revisa la API key y la configuración en https://resend.com');
-        } else {
-          console.log('   ⚠️  Email no fue enviado');
         }
       }
     } else {
-      console.log('   ⚠️  API key no configurada - email en modo simulación');
-      console.log('   📝 Para enviar emails reales, obtén una clave en https://resend.com y úsala en .env');
+      console.warn('   ⚠️  RESEND_API_KEY no configurada - email en modo simulación');
     }
 
     return true;

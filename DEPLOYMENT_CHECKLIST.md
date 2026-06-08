@@ -109,8 +109,8 @@ Check that all variables are set correctly in `.env` (dev) and platform (product
 - [ ] `SUPABASE_SERVICE_ROLE_KEY` - Server-side key (for `/api/check-email-exists`)
 
 #### Email Configuration (Required for Task 5 & 1i)
-- [ ] `SENDGRID_API_KEY` - SendGrid API key (for password reset emails)
-- [ ] `EMAIL_FROM_ADDRESS` - From address (e.g., noreply@makwin.com)
+- [ ] `RESEND_API_KEY` - Resend API key for all transactional email
+- [ ] `RESEND_FROM` - Verified sender address, typically `no-reply@makwin.art`
 
 #### Cloudinary (Optional - for image storage)
 - [ ] `VITE_CLOUDINARY_CLOUD_NAME` - Cloudinary cloud name
@@ -126,7 +126,7 @@ Check that all variables are set correctly in `.env` (dev) and platform (product
 **Verification**:
 ```bash
 # Check development environment
-cat .env | grep -E "VITE_|SUPABASE_|SENDGRID_|CLOUDINARY_|GOOGLE_"
+cat .env | grep -E "VITE_|SUPABASE_|RESEND_|CLOUDINARY_|GOOGLE_"
 
 # Check Vercel dashboard for all secrets
 # Settings → Environment Variables → Verify all listed above

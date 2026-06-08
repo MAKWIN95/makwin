@@ -58,7 +58,7 @@ const BeatsPage = () => (
   <div className="w-full h-screen bg-black">
     <iframe
       title="MKWN Beats"
-      src="/beats/"
+      src="/public/beats/index.html"
       className="w-full h-screen border-none"
     />
   </div>
