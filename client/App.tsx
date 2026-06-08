@@ -54,15 +54,28 @@ const isComingSoonDomain = (): boolean => {
   return isMakwinDomain && !pathname.startsWith("/beats");
 };
 
-const BeatsPage = () => (
-  <div className="w-full h-screen bg-black">
-    <iframe
-      title="MKWN Beats"
-      src="/public/beats/index.html"
-      className="w-full h-screen border-none"
-    />
-  </div>
-);
+const BeatsPage = () => {
+  const [hash, setHash] = useState(window.location.hash);
+
+  useEffect(() => {
+    const handleHashChange = () => {
+      setHash(window.location.hash);
+    };
+    
+    window.addEventListener("hashchange", handleHashChange);
+    return () => window.removeEventListener("hashchange", handleHashChange);
+  }, []);
+
+  return (
+    <div className="w-full h-screen bg-black">
+      <iframe
+        title="MKWN Beats"
+        src={`/public/beats/index.html${hash}`}
+        className="w-full h-screen border-none"
+      />
+    </div>
+  );
+};
 
 // Wrapper that waits for auth to be ready
 // Global app layout with NavMenu and overlay at viewport root
