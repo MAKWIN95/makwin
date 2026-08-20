@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Navigate, Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { supabase, Work } from '@/lib/supabase';
 import { useAuth } from '@/lib/AuthContext';
+import { useRequireAuth } from '@/hooks/useRequireAuth';
 import { useWorks } from '@/lib/WorksContext';
 import { useI18n } from '@/lib/i18n';
 import { useStarsBackground } from '@/hooks/use-stars-background';
@@ -11,15 +12,11 @@ import WorkCard from '@/components/WorkCard';
 import { Loader2, Bookmark } from 'lucide-react';
 
 export default function Saved() {
+  useRequireAuth();
   const { user } = useAuth();
   const worksContext = useWorks();
   const { language } = useI18n();
   const es = language === 'es';
-
-  // Initialize stars background animation
-  useStarsBackground('saved-stars-background');
-
-  if (!user) return <Navigate to="/login" replace />;
 
   const [works, setWorks] = useState<Work[]>([]);
   const [loading, setLoading] = useState(true);

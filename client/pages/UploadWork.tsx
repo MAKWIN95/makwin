@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { useNavigate, Navigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/AuthContext';
 import { useI18n } from '@/lib/i18n';
+import { useRequireAuth } from '@/hooks/useRequireAuth';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { Switch } from '@/components/ui/switch';
@@ -30,18 +31,13 @@ type UploadProgress = 'idle' | 'uploading_file' | 'uploading_cover' | 'saving' |
 
 export default function UploadWork() {
   console.log('[UploadWork] 🚀 Component loaded at:', new Date().toISOString());
+  useRequireAuth();
   const { user, profile } = useAuth();
   const { language } = useI18n();
   const navigate = useNavigate();
   const es = language === 'es';
 
   console.log('[UploadWork] User:', user?.id, 'Language:', language);
-
-  // Redirect to login if not authenticated
-  if (!user) {
-    console.log('[UploadWork] ⛔ Redirecting to login - no user');
-    return <Navigate to="/login" replace />;
-  }
 
   const workTypes = es ? WORK_TYPES_ES : WORK_TYPES_EN;
   const typesWithoutImage = ['poema', 'cancion'];

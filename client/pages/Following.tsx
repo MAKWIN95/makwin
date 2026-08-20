@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase, Work } from '@/lib/supabase';
 import { useAuth } from '@/lib/AuthContext';
+import { useRequireAuth } from '@/hooks/useRequireAuth';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import WorkCard from '@/components/WorkCard';
@@ -11,6 +12,7 @@ import { useStarsBackground } from '@/hooks/use-stars-background';
 const PAGE_SIZE = 40;
 
 export default function Following() {
+  useRequireAuth();
   const { user } = useAuth();
   const { language: currentLang, t } = useI18n();
   const [works, setWorks] = useState<Work[]>([]);

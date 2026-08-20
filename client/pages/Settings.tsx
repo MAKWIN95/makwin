@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/lib/AuthContext';
+import { useRequireAuth } from '@/hooks/useRequireAuth';
 import Header from '@/components/Header';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,6 +9,7 @@ import { AlertCircle, CheckCircle2, Loader2, LogOut, Trash2, X } from 'lucide-re
 import { supabase } from '@/lib/supabase';
 
 export default function Settings() {
+  useRequireAuth();
   const navigate = useNavigate();
   const { user, signOut, resetPassword } = useAuth();
   
