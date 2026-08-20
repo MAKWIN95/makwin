@@ -122,6 +122,21 @@
                          "source": "/marketplace/:slug",
                          "destination": "/index.html"
                      },
+                     {                         "source": "/api/(.*)",
+                         "destination": "/api/$1"
+                     },
+                     {
+                         "source": "/beats",
+                         "destination": "/beats/index.html"
+                     },
+                     {
+                         "source": "/beats/",
+                         "destination": "/beats/index.html"
+                     },
+                     {
+                         "source": "/beats/:path*",
+                         "destination": "/beats/:path*"
+                     },
                      {
                          "destination":  "/index.html",
                          "source":  "/(.*)"

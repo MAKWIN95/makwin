@@ -1,4 +1,6 @@
-import "dotenv/config";
+import dotenv from "dotenv";
+dotenv.config({ path: ".env.local" });
+dotenv.config();
 import express from "express";
 import path from "path";
 import cors from "cors";
@@ -66,8 +68,47 @@ export function createServer() {
     }
   });
 
+  // Gemini proxy endpoint to avoid browser CORS issues
+  app.post("/api/analyze", async (req, res) => {
+    const { prompt } = req.body;
+
+    if (!prompt || typeof prompt !== "string") {
+      return res.status(400).json({ error: "Missing prompt" });
+    }
+
+    if (!process.env.GEMINI_API_KEY) {
+      console.error("[API /api/analyze] Missing GEMINI_API_KEY");
+      return res.status(500).json({ error: "Gemini API key not configured" });
+    }
+
+    try {
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: "gemini-2.5-flash",
+            contents: [{ parts: [{ text: prompt }] }],
+            generationConfig: { temperature: 0.7, maxOutputTokens: 1000 },
+          }),
+        }
+      );
+
+      const data = await response.json();
+      const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+      return res.status(response.status).json({ text, details: data });
+    } catch (error) {
+      console.error("[API /api/analyze] Error forwarding request", error);
+      return res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
   // Delete user account and associated data
   app.post("/api/delete-account", handleDeleteAccount);
 
   return app;
 }
+

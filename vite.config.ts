@@ -12,7 +12,7 @@ function beatsStaticPlugin(): Plugin {
     name: "beats-static-copy",
     closeBundle() {
       const src = path.join(__dirname, "mkwn-beats.html");
-      const destDir = path.join(__dirname, "dist/spa/public/beats");
+      const destDir = path.join(__dirname, "dist/spa/beats");
       
       // Only copy if the source file exists
       if (!fs.existsSync(src)) {

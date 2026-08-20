@@ -144,6 +144,14 @@ const RoutesWrapper = () => {
   );
 };
 
+const MaybeLanguagePrompt = () => {
+  const location = useLocation();
+  if (location.pathname.startsWith("/beats")) {
+    return null;
+  }
+  return <LanguagePrompt />;
+};
+
 const App = () => {
   // If we're on makwin.art, show Coming Soon page without providers
   if (isComingSoonDomain()) {
@@ -162,10 +170,10 @@ const App = () => {
                   <AttuneProvider>
                     <Toaster />
                     <Sonner />
-                    <LanguagePrompt />
-                    <GoogleSignupModal />
                     <BrowserRouter>
                       <GlobalStars />
+                      <MaybeLanguagePrompt />
+                      <GoogleSignupModal />
                       <AppLayout />
                     </BrowserRouter>
                   </AttuneProvider>
