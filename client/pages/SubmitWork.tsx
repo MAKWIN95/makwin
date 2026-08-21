@@ -10,6 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { useI18n } from '@/lib/i18n';
+import { normalizeHashtags } from '@/lib/utils';
 
 const workTypes = [
   { value: 'pintura', label: 'Pintura' },
@@ -212,10 +213,7 @@ export default function SubmitWork() {
 
       // Enviar metadata y URL al backend
       // preparar hashtags array
-      const tagsArray = formData.hashtags
-        .split(/[,\s]+/)
-        .map(s => s.replace(/^#/, '').trim())
-        .filter(Boolean);
+      const tagsArray = normalizeHashtags(formData.hashtags);
 
       const payload = {
         artistName: formData.artistName,

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { X, Loader2 } from 'lucide-react';
 import { supabase, Work } from '@/lib/supabase';
 import { useI18n } from '@/lib/i18n';
+import { normalizeHashtags, formatHashtagsForInput } from '@/lib/utils';
 
 interface Props {
   isOpen: boolean;
@@ -14,13 +15,6 @@ export default function EditWorkModal({ isOpen, onClose, work, onSuccess }: Prop
   const { language } = useI18n();
   const es = language === 'es';
   
-  // Keep hashtags as a single string for the input, but normalize on save
-  const formatHashtagsForInput = (h: any) => {
-    if (!h) return '';
-    if (Array.isArray(h)) return h.map((t) => (t?.startsWith('#') ? t : `#${t}`)).join(' ');
-    return String(h);
-  };
-
   const [form, setForm] = useState({
     title: work.title || '',
     description: work.description || '',
@@ -33,21 +27,6 @@ export default function EditWorkModal({ isOpen, onClose, work, onSuccess }: Prop
     e.preventDefault();
     setError('');
     setLoading(true);
-
-    // Normalize hashtags into an array that matches DB schema (string[])
-    const normalizeHashtags = (input: string | string[]) => {
-      if (!input) return [] as string[];
-      if (Array.isArray(input)) {
-        return Array.from(new Set(input.flatMap(i => String(i).split(/[,\s]+/)).map(s => s.replace(/^#/, '').trim().toLowerCase()).filter(Boolean)));
-      }
-      // Replace commas with spaces, split, remove hashes, trim, lowercase, unique
-      const tokens = String(input)
-        .replace(/,/g, ' ')
-        .split(/\s+/)
-        .map(t => t.replace(/^#/, '').trim().toLowerCase())
-        .filter(Boolean);
-      return Array.from(new Set(tokens));
-    };
 
     const tagsArray = normalizeHashtags(form.hashtags);
 

@@ -38,7 +38,6 @@ import GoogleOnboardingPage from '@/pages/GoogleOnboarding';
 import { AuthProvider, useAuth } from "@/lib/AuthContext";
 import { WorksProvider } from "@/lib/WorksContext";
 import { SidebarProvider } from "@/lib/SidebarContext";
-import { AttuneProvider } from "@/lib/AttuneContext";
 import { FollowProvider } from "@/lib/FollowContext";
 
 const queryClient = new QueryClient();
@@ -181,15 +180,13 @@ const App = () => {
             <SidebarProvider>
               <FollowProvider>
                 <WorksProvider>
-                  <AttuneProvider>
-                    <Toaster />
-                    <Sonner />
-                    <BrowserRouter>
-                      <GlobalStars />
-                      <MaybeLanguagePrompt />
-                      <AppLayout />
-                    </BrowserRouter>
-                  </AttuneProvider>
+                  <Toaster />
+                  <Sonner />
+                  <BrowserRouter>
+                    <GlobalStars />
+                    <MaybeLanguagePrompt />
+                    <AppLayout />
+                  </BrowserRouter>
                 </WorksProvider>
               </FollowProvider>
             </SidebarProvider>
