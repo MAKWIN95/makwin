@@ -363,22 +363,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const completeGoogleSignUp = async (username: string, password: string, displayName: string) => {
-    // Use ephemeral onboardingUser or current user (shouldn't happen, but fallback)
     const effectiveUser = user ?? onboardingUser;
     if (!effectiveUser) return { error: 'No hay sesión activa.' };
 
+    const uname = String(username || '').toLowerCase().trim();
+
     try {
-      // Check username uniqueness
-      const { data: existing } = await supabase
+      // First, quick check if username is already taken by another account
+      const { data: taken } = await supabase
         .from('profiles')
         .select('id')
-        .eq('username', username.toLowerCase())
+        .eq('username', uname)
         .maybeSingle();
 
-      if (existing) return { error: 'Este nombre de usuario ya está en uso.' };
+      if (taken && taken.id !== effectiveUser.id) {
+        return { error: 'Este nombre de usuario ya está en uso.' };
+      }
 
-      // Try to set a password for the OAuth user
-      // (This works if the session is active; for Google OAuth it may be optional)
+      // Try to set password for the OAuth user (best-effort)
       try {
         const { error: passwordError } = await supabase.auth.updateUser({ password });
         if (passwordError) {
@@ -386,42 +388,74 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       } catch (err) {
         console.warn('[AuthContext] Failed to set password:', err);
-        // Non-fatal; continue with profile update
       }
 
-      // Update or create profile with username
-      const { error: profileError } = await supabase
+      // Attempt to INSERT a new profile row. If a profile with this id already exists, we'll handle it.
+      const { data: insertData, error: insertError } = await supabase
         .from('profiles')
-        .upsert(
-          {
-            id: effectiveUser.id,
-            username: username.toLowerCase(),
-            display_name: displayName,
-            google_setup_completed: true,
-            updated_at: new Date().toISOString(),
-          },
-          { onConflict: 'id' }
-        );
+        .insert([{ id: effectiveUser.id, username: uname, display_name: displayName, google_setup_completed: true, updated_at: new Date().toISOString() }])
+        .select()
+        .maybeSingle();
 
-      if (profileError) return { error: profileError.message };
-
-      // Onboarding complete: session is already valid from OAuth, just update state
-      setNeedsUsernameSetup(false);
-      setOnboardingUser(null);
-
-      // Fetch the refreshed profile to populate app state
-      await fetchProfile(effectiveUser.id);
-
-      // Clear the sessionStorage flag
-      try {
-        if (typeof window !== 'undefined') {
-          window.sessionStorage.removeItem('makwin-onboarding-incomplete');
-        }
-      } catch (err) {
-        console.warn('[AuthContext] Error clearing sessionStorage:', err);
+      if (!insertError) {
+        // Insert succeeded — onboarding complete
+        setNeedsUsernameSetup(false);
+        setOnboardingUser(null);
+        await fetchProfile(effectiveUser.id);
+        try { if (typeof window !== 'undefined') window.sessionStorage.removeItem('makwin-onboarding-incomplete'); } catch (e) {}
+        return { error: null };
       }
 
-      return { error: null };
+      // If insertError, determine cause
+      const msg = String(insertError.message || '');
+      if (msg.toLowerCase().includes('duplicate') || msg.toLowerCase().includes('already exists')) {
+        // Likely username or id conflict. Re-check username owner.
+        const { data: owner } = await supabase.from('profiles').select('id').eq('username', uname).maybeSingle();
+        if (owner && owner.id !== effectiveUser.id) {
+          return { error: 'Este nombre de usuario ya está en uso.' };
+        }
+      }
+
+      // If insert failed because a row with this id already exists, update it carefully
+      const { data: existingProfile } = await supabase.from('profiles').select('id,username').eq('id', effectiveUser.id).maybeSingle();
+      if (existingProfile) {
+        // If username already set and it's not empty and different, keep it and just update other fields
+        if (existingProfile.username && existingProfile.username.trim().length > 0 && existingProfile.username !== uname) {
+          // update other profile fields but do not overwrite username
+          const { error: updateErr } = await supabase.from('profiles').update({ display_name: displayName, google_setup_completed: true, updated_at: new Date().toISOString() }).eq('id', effectiveUser.id);
+          if (updateErr) return { error: updateErr.message };
+          await fetchProfile(effectiveUser.id);
+          setNeedsUsernameSetup(false);
+          setOnboardingUser(null);
+          try { if (typeof window !== 'undefined') window.sessionStorage.removeItem('makwin-onboarding-incomplete'); } catch (e) {}
+          return { error: null };
+        }
+
+        // else the profile exists but username is empty — attempt to set it only if still available
+        const { data: conflict } = await supabase.from('profiles').select('id').eq('username', uname).maybeSingle();
+        if (conflict && conflict.id !== effectiveUser.id) {
+          return { error: 'Este nombre de usuario ya está en uso.' };
+        }
+
+        const { error: finalUpdateErr } = await supabase.from('profiles').update({ username: uname, display_name: displayName, google_setup_completed: true, updated_at: new Date().toISOString() }).eq('id', effectiveUser.id);
+        if (finalUpdateErr) {
+          // If DB complains about duplication, surface friendly message
+          const ferr = String(finalUpdateErr.message || '');
+          if (ferr.toLowerCase().includes('duplicate') || ferr.toLowerCase().includes('already exists')) {
+            return { error: 'Este nombre de usuario ya está en uso.' };
+          }
+          return { error: finalUpdateErr.message };
+        }
+
+        await fetchProfile(effectiveUser.id);
+        setNeedsUsernameSetup(false);
+        setOnboardingUser(null);
+        try { if (typeof window !== 'undefined') window.sessionStorage.removeItem('makwin-onboarding-incomplete'); } catch (e) {}
+        return { error: null };
+      }
+
+      // Unknown insert error
+      return { error: insertError.message };
     } catch (err: any) {
       return { error: err.message || 'Error completando la configuración' };
     }

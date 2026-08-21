@@ -103,6 +103,11 @@ export default function GoogleOnboardingPage() {
     setLoading(false);
 
     if (res.error) {
+      // If username conflict, reflect in availability and guide user
+      const lower = String(res.error).toLowerCase();
+      if (lower.includes('usuario') || lower.includes('nombre de usuario') || lower.includes('already')) {
+        setAvailable(false);
+      }
       setError(res.error);
       return;
     }
