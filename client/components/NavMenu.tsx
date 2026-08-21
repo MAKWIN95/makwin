@@ -28,11 +28,6 @@ export default function NavMenu() {
       description: es ? 'Explora merchandising exclusivo de MAKWIN' : 'Explore exclusive MAKWIN merchandise',
       path: '/merch' 
     },
-    { 
-      label: es ? 'ATTUNED' : 'ATTUNED', 
-      description: es ? 'Laboratorio de percepción sensorial. Entrena tu agudeza artística.' : 'Sensory perception laboratory. Train your artistic acuity.',
-      path: '/attuned' 
-    },
   ];
 
   return (

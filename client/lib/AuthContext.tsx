@@ -56,12 +56,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const isGoogleAuthSession = useCallback((session: Session | null) => {
     if (!session?.user) return false;
-    const hasGoogleIdentity = session.user.identities?.some((identity) => identity.provider === 'google');
-    return Boolean(
-      hasGoogleIdentity ||
-      session.user.app_metadata?.provider === 'google' ||
-      session.user.user_metadata?.provider === 'google'
-    );
+    const user = session.user as any;
+
+    // Check session-level provider (supabase may populate this on OAuth redirects)
+    if ((session as any).provider === 'google') return true;
+
+    // identities array (present in some Supabase setups)
+    if (Array.isArray(user.identities) && user.identities.some((identity: any) => identity.provider === 'google')) return true;
+
+    // app_metadata can be either a string provider or an array 'providers'
+    if (user.app_metadata?.provider === 'google') return true;
+    if (Array.isArray(user.app_metadata?.providers) && user.app_metadata.providers.includes('google')) return true;
+
+    // user_metadata sometimes carries provider information
+    if (user.user_metadata?.provider === 'google') return true;
+
+    return false;
   }, []);
 
   const refreshProfile = useCallback(async () => {
