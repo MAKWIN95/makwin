@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
+import { useLocation } from 'react-router-dom';
 import { supabase, Work } from '@/lib/supabase';
 import { useAuth } from '@/lib/AuthContext';
 import { useWorks } from '@/lib/WorksContext';
@@ -13,6 +14,7 @@ const PAGE_SIZE = 40;
 
 export default function Gallery() {
   const { user } = useAuth();
+  const location = useLocation();
   const worksContext = useWorks();
   const { language: currentLang, t } = useI18n();
   const [works, setWorks] = useState<Work[]>([]);
@@ -129,17 +131,37 @@ export default function Gallery() {
     return () => observer.disconnect();
   }, [hasMore, loadingMore, loadingInitial, page, fetchWorks]);
 
-  // ── Search debounce ───────────────────────────────────────────────────────
+  // ── Search debounce + URL sync ─────────────────────────────────────────────
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const rawQuery = params.get('search') ?? '';
+    const normalizedQuery = rawQuery.replace(/^#/, '').trim();
+    if (normalizedQuery !== searchTerm) {
+      setSearchTerm(normalizedQuery);
+    }
+  }, [location.search, searchTerm]);
+
   useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(searchTerm), 400);
     return () => clearTimeout(t);
   }, [searchTerm]);
 
   useEffect(() => {
-    const onUpdate = (e: Event) => setSearchTerm((e as CustomEvent).detail?.searchTerm ?? '');
+    const onUpdate = (e: Event) => {
+      const nextSearch = (e as CustomEvent).detail?.searchTerm ?? '';
+      setSearchTerm(nextSearch);
+      const params = new URLSearchParams(location.search);
+      if (nextSearch.trim()) {
+        params.set('search', nextSearch.trim().replace(/^#/, ''));
+      } else {
+        params.delete('search');
+      }
+      const nextUrl = `${location.pathname}${params.toString() ? `?${params.toString()}` : ''}`;
+      window.history.replaceState({}, '', nextUrl);
+    };
     document.addEventListener('updateSearchTerm', onUpdate as EventListener);
     return () => document.removeEventListener('updateSearchTerm', onUpdate as EventListener);
-  }, []);
+  }, [location.pathname, location.search]);
 
   // ── Filter popup positioning ──────────────────────────────────────────────
   useEffect(() => {

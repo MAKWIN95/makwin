@@ -109,10 +109,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (!error && data) {
         const usernameExists = !!(data.username && String(data.username).trim().length > 0);
         const displayNameExists = !!(data.display_name && String(data.display_name).trim().length > 0);
-        const profileComplete = usernameExists && displayNameExists;
+        const googleCompleted = data.google_setup_completed === true;
+        const profileComplete = googleCompleted || (usernameExists && displayNameExists);
 
         if (isGoogleAuthSession(session) && !profileComplete) {
-          // Partial profile row exists, but onboarding is still incomplete.
           setProfile(null);
           setNeedsUsernameSetup(true);
           setOnboardingUser(session.user);
@@ -213,11 +213,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, [handleSession]);
 
+  const getAppBaseUrl = useCallback(() => {
+    if (typeof window !== 'undefined' && window.location?.origin) {
+      return window.location.origin;
+    }
+    if (typeof import.meta !== 'undefined' && import.meta.env?.VITE_PUBLIC_SITE_URL) {
+      return import.meta.env.VITE_PUBLIC_SITE_URL as string;
+    }
+    if (typeof import.meta !== 'undefined' && import.meta.env?.VITE_APP_URL) {
+      return import.meta.env.VITE_APP_URL as string;
+    }
+    return 'https://makwin.art';
+  }, []);
+
   const signInWithGoogle = async () => {
-    const redirectTo =
-      typeof window !== 'undefined'
-        ? `${window.location.origin}/galeria`
-        : 'https://www.makwin.art/galeria';
+    const redirectTo = `${getAppBaseUrl()}/galeria`;
 
     await supabase.auth.signInWithOAuth({
       provider: 'google',
@@ -280,10 +290,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     if (existing) return { error: 'Este nombre de usuario ya está en uso.' };
 
-    const redirectTo =
-      typeof window !== 'undefined'
-        ? `${window.location.origin}/login`
-        : 'https://www.makwin.art/login';
+    const redirectTo = `${getAppBaseUrl()}/login`;
 
     const { data, error } = await supabase.auth.signUp({
       email,
@@ -326,10 +333,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const resetPassword = async (email: string) => {
-    const redirectTo =
-      typeof window !== 'undefined'
-        ? `${window.location.origin}/reset-password`
-        : 'https://www.makwin.art/reset-password';
+    const redirectTo = `${getAppBaseUrl()}/reset-password`;
 
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo,

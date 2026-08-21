@@ -89,7 +89,7 @@ const AppLayout = () => {
 };
 
 const RoutesWrapper = () => {
-  const { loading, needsUsernameSetup } = useAuth();
+  const { loading, needsUsernameSetup, user, profile } = useAuth();
   const location = useLocation();
 
   // Track last page for redirect after settings changes
@@ -102,8 +102,10 @@ const RoutesWrapper = () => {
     }
   }, [location.pathname]);
   
-  // Show a friendly loading state while auth initialises (avoid a blank black screen)
-  if (loading) {
+  // Show a friendly loading state while auth initializes or while profile hydration is still resolving.
+  // This prevents the app from rendering a blank/black state during F5 or auth transitions.
+  const authHydrating = loading || (Boolean(user) && !profile && !needsUsernameSetup);
+  if (authHydrating) {
     return (
       <div className="w-screen h-screen bg-black flex items-center justify-center">
         <div className="text-center">

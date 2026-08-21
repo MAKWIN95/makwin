@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
+import { Eye, EyeOff } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/AuthContext';
@@ -7,8 +8,7 @@ import { useI18n } from '@/lib/i18n';
 function parseSuggestedUsername(email?: string) {
   if (!email) return '';
   const local = email.split('@')[0] || '';
-  // keep only allowed chars and lowercase
-  return local.replace(/[^a-z0-9_.]/gi, '').toLowerCase();
+  return local.replace(/[^a-z0-9_.]/gi, '').replace(/^[._]+|[._]+$/g, '').toLowerCase();
 }
 
 function validateUsername(username: string) {
@@ -22,7 +22,33 @@ function strengthScore(pw: string) {
   if (/[A-Z]/.test(pw)) score += 1;
   if (/[0-9]/.test(pw)) score += 1;
   if (/[^A-Za-z0-9]/.test(pw)) score += 1;
-  return score; // 0..4
+  return score;
+}
+
+async function findAvailableUsername(base: string): Promise<string> {
+  const sanitized = (base || 'makwin').replace(/[^a-z0-9_.]/gi, '').replace(/^[._]+|[._]+$/g, '').toLowerCase();
+  const candidates = sanitized ? [sanitized, `${sanitized}1`, `${sanitized}_1`, `${sanitized}art`, `${sanitized}.art`] : ['makwin', 'makwin1'];
+
+  for (const candidate of candidates) {
+    if (!candidate || !validateUsername(candidate)) continue;
+    const { data } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('username', candidate)
+      .maybeSingle();
+
+    if (!data) return candidate;
+  }
+
+  let index = 2;
+  while (index < 1000) {
+    const candidate = `${sanitized || 'makwin'}${index}`;
+    const { data } = await supabase.from('profiles').select('id').eq('username', candidate).maybeSingle();
+    if (!data) return candidate;
+    index += 1;
+  }
+
+  return sanitized || 'makwin';
 }
 
 export default function GoogleOnboardingPage() {
@@ -33,7 +59,7 @@ export default function GoogleOnboardingPage() {
 
   const suggested = useMemo(() => parseSuggestedUsername(user?.email), [user?.email]);
 
-  const [username, setUsername] = useState<string>(suggested);
+  const [username, setUsername] = useState<string>('');
   const [displayName, setDisplayName] = useState<string>(user?.user_metadata?.full_name || user?.user_metadata?.name || '');
   const [password, setPassword] = useState<string>('');
   const [confirm, setConfirm] = useState<string>('');
@@ -44,12 +70,26 @@ export default function GoogleOnboardingPage() {
   const [available, setAvailable] = useState<boolean | null>(null);
 
   useEffect(() => {
-    setUsername(suggested);
-  }, [suggested]);
+    let isMounted = true;
+
+    const prepareSuggestedUsername = async () => {
+      const base = parseSuggestedUsername(user?.email);
+      if (!base) {
+        setUsername('');
+        return;
+      }
+      const availableUsername = await findAvailableUsername(base);
+      if (isMounted) {
+        setUsername(availableUsername);
+      }
+    };
+
+    prepareSuggestedUsername();
+    return () => { isMounted = false; };
+  }, [user?.email]);
 
   useEffect(() => {
     if (!needsUsernameSetup) {
-      // If onboarding is not needed, go to gallery
       navigate('/galeria', { replace: true });
     }
   }, [needsUsernameSetup, navigate]);
@@ -78,18 +118,25 @@ export default function GoogleOnboardingPage() {
     e.preventDefault();
     setError('');
 
-    if (!username.trim() || !displayName.trim() || !password.trim() || !confirm.trim()) {
+    const finalUsername = username.trim();
+
+    if (!finalUsername || !displayName.trim() || !password.trim() || !confirm.trim()) {
       setError(es ? 'Todos los campos son obligatorios.' : 'All fields are required.');
       return;
     }
 
-    if (!validateUsername(username)) {
+    if (!validateUsername(finalUsername)) {
       setError(es ? 'Nombre de usuario inválido.' : 'Invalid username.');
       return;
     }
 
-    if (password.length < 6) {
-      setError(es ? 'La contraseña debe tener al menos 6 caracteres.' : 'Password must be at least 6 characters.');
+    if (available === false) {
+      setError(es ? 'Este nombre de usuario ya está en uso.' : 'This username is already in use.');
+      return;
+    }
+
+    if (password.length < 8) {
+      setError(es ? 'La contraseña debe tener al menos 8 caracteres.' : 'Password must be at least 8 characters long.');
       return;
     }
 
@@ -99,11 +146,10 @@ export default function GoogleOnboardingPage() {
     }
 
     setLoading(true);
-    const res = await completeGoogleSignUp(username.toLowerCase(), password, displayName);
+    const res = await completeGoogleSignUp(finalUsername.toLowerCase(), password, displayName.trim());
     setLoading(false);
 
     if (res.error) {
-      // If username conflict, reflect in availability and guide user
       const lower = String(res.error).toLowerCase();
       if (lower.includes('usuario') || lower.includes('nombre de usuario') || lower.includes('already')) {
         setAvailable(false);
@@ -112,58 +158,79 @@ export default function GoogleOnboardingPage() {
       return;
     }
 
-    // On success, navigate to gallery
     navigate('/galeria', { replace: true });
   };
 
   const score = strengthScore(password);
+  const strengthLabel = score <= 1 ? (es ? 'Débil' : 'Weak') : score === 2 ? (es ? 'Media' : 'Fair') : (es ? 'Fuerte' : 'Strong');
 
   return (
-    <div className="min-h-screen bg-black flex items-center justify-center">
-      {/* Background keeps stars and aesthetic through existing GlobalStars in App */}
-      <div className="max-w-md w-full mx-4">
-        <div className="bg-[hsl(var(--popover))] rounded-2xl p-6 border border-[hsl(var(--border))] shadow-2xl">
-          <h1 className="text-xl font-semibold mb-2">{es ? 'Completa tu cuenta' : 'Complete your account'}</h1>
-          <p className="text-sm text-[hsl(var(--muted-foreground))] mb-4">{es ? 'Para continuar, elige un nombre de usuario y una contraseña.' : 'To continue, choose a username and a password.'}</p>
+    <div className="min-h-screen bg-black flex items-center justify-center px-4 py-10">
+      <div className="w-full max-w-lg">
+        <div className="rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--popover))]/90 p-6 shadow-[0_0_40px_rgba(255,255,255,0.05)] backdrop-blur-sm">
+          <div className="mb-6 text-center">
+            <h1 className="text-2xl font-semibold tracking-tight text-[hsl(var(--foreground))]">{es ? 'Completa tu cuenta' : 'Complete your account'}</h1>
+            <p className="mt-2 text-sm text-[hsl(var(--muted-foreground))]">{es ? 'Tu acceso a MAKWIN está casi listo.' : 'Your MAKWIN access is almost ready.'}</p>
+          </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label className="block text-sm font-medium mb-1">{es ? 'Nombre de usuario' : 'Username'}</label>
-              <div className="text-xs text-[hsl(var(--muted-foreground))] mb-1">@{username || suggested}</div>
-              <input value={username} onChange={(e) => setUsername(e.target.value.toLowerCase())} className="w-full px-3 py-2 rounded-lg border bg-[hsl(var(--input))]" />
-              {available === false && <div className="text-xs text-red-500 mt-1">{es ? 'Nombre de usuario no disponible' : 'Username not available'}</div>}
-              {available === true && <div className="text-xs text-green-500 mt-1">{es ? 'Nombre de usuario disponible' : 'Username available'}</div>}
+              <label className="mb-2 block text-sm font-medium text-[hsl(var(--foreground))]">{es ? 'Username' : 'Username'}</label>
+              <div className="mb-2 inline-flex items-center rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--input))] px-2.5 py-1.5 text-xs text-[hsl(var(--muted-foreground))]">
+                @
+                <span className="ml-1">{username || suggested || 'usuario'}</span>
+              </div>
+              <input
+                value={username}
+                onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_.]/g, ''))}
+                className="w-full rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--input))] px-3 py-2.5 text-sm outline-none ring-0 transition focus:border-[hsl(var(--ring))]"
+                placeholder={es ? 'tu_usuario' : 'your_handle'}
+              />
+              {available === false && <div className="mt-2 text-xs text-red-500">{es ? 'Este username ya está ocupado.' : 'This username is already taken.'}</div>}
+              {available === true && <div className="mt-2 text-xs text-emerald-400">{es ? 'Username disponible.' : 'Username available.'}</div>}
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-1">{es ? 'Nombre a mostrar' : 'Display name'}</label>
-              <input value={displayName} onChange={(e) => setDisplayName(e.target.value)} className="w-full px-3 py-2 rounded-lg border bg-[hsl(var(--input))]" />
+              <label className="mb-2 block text-sm font-medium text-[hsl(var(--foreground))]">{es ? 'Nombre a mostrar' : 'Display name'}</label>
+              <input value={displayName} onChange={(e) => setDisplayName(e.target.value)} className="w-full rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--input))] px-3 py-2.5 text-sm outline-none transition focus:border-[hsl(var(--ring))]" placeholder={es ? 'Tu nombre' : 'Your name'} />
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-1">{es ? 'Contraseña' : 'Password'}</label>
+              <label className="mb-2 block text-sm font-medium text-[hsl(var(--foreground))]">{es ? 'Establece una contraseña' : 'Set a password'}</label>
               <div className="relative">
-                <input type={showPw ? 'text' : 'password'} value={password} onChange={(e) => setPassword(e.target.value)} className="w-full px-3 py-2 rounded-lg border bg-[hsl(var(--input))]" />
-                <button type="button" onClick={() => setShowPw(s => !s)} className="absolute right-2 top-2 text-sm">{showPw ? (es ? 'Ocultar' : 'Hide') : (es ? 'Mostrar' : 'Show')}</button>
+                <input type={showPw ? 'text' : 'password'} value={password} onChange={(e) => setPassword(e.target.value)} className="w-full rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--input))] px-3 py-2.5 pr-10 text-sm outline-none transition focus:border-[hsl(var(--ring))]" placeholder={es ? '••••••••' : '••••••••'} />
+                <button type="button" aria-label={showPw ? 'Ocultar contraseña' : 'Mostrar contraseña'} onClick={() => setShowPw(s => !s)} className="absolute inset-y-0 right-3 flex items-center text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))]">
+                  {showPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
               </div>
-              <div className="h-2 bg-[hsl(var(--input))] rounded mt-2 overflow-hidden">
-                <div style={{ width: `${(score / 4) * 100}%` }} className={`h-2 ${score <= 1 ? 'bg-red-500' : score === 2 ? 'bg-yellow-400' : 'bg-green-400'}`} />
+
+              <div className="mt-3 flex items-center gap-2">
+                <div className="h-2 flex-1 overflow-hidden rounded-full bg-[hsl(var(--muted))]">
+                  <div className={`h-full rounded-full transition-all ${score <= 1 ? 'bg-red-500' : score === 2 ? 'bg-yellow-400' : 'bg-emerald-400'}`} style={{ width: `${(score / 4) * 100}%` }} />
+                </div>
+                <span className="text-[10px] uppercase tracking-[0.12em] text-[hsl(var(--muted-foreground))]">{strengthLabel}</span>
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-1">{es ? 'Confirmar contraseña' : 'Confirm password'}</label>
+              <label className="mb-2 block text-sm font-medium text-[hsl(var(--foreground))]">{es ? 'Repite la contraseña' : 'Confirm password'}</label>
               <div className="relative">
-                <input type={showConfirm ? 'text' : 'password'} value={confirm} onChange={(e) => setConfirm(e.target.value)} className="w-full px-3 py-2 rounded-lg border bg-[hsl(var(--input))]" />
-                <button type="button" onClick={() => setShowConfirm(s => !s)} className="absolute right-2 top-2 text-sm">{showConfirm ? (es ? 'Ocultar' : 'Hide') : (es ? 'Mostrar' : 'Show')}</button>
+                <input type={showConfirm ? 'text' : 'password'} value={confirm} onChange={(e) => setConfirm(e.target.value)} className="w-full rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--input))] px-3 py-2.5 pr-10 text-sm outline-none transition focus:border-[hsl(var(--ring))]" placeholder={es ? '••••••••' : '••••••••'} />
+                <button type="button" aria-label={showConfirm ? 'Ocultar confirmación' : 'Mostrar confirmación'} onClick={() => setShowConfirm(s => !s)} className="absolute inset-y-0 right-3 flex items-center text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))]">
+                  {showConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
               </div>
             </div>
 
-            {error && <div className="text-sm text-red-500">{error}</div>}
+            {error && <div className="rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-300">{error}</div>}
 
-            <div>
-              <button disabled={loading} type="submit" className="w-full py-2 rounded-lg bg-[hsl(var(--foreground))] text-[hsl(var(--background))] font-medium">{loading ? '…' : (es ? 'Continuar' : 'Continue')}</button>
-            </div>
+            <button
+              type="submit"
+              disabled={loading || available === false || !username || !displayName.trim() || !password || !confirm}
+              className="w-full rounded-xl bg-[hsl(var(--foreground))] px-4 py-3 text-sm font-medium text-[hsl(var(--background))] transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {loading ? (es ? 'Guardando...' : 'Saving...') : (es ? 'Continuar' : 'Continue')}
+            </button>
           </form>
         </div>
       </div>

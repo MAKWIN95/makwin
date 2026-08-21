@@ -35,6 +35,7 @@ export default function WorkCard({ work, onLikeToggle, onSaveToggle, isOwnProfil
   const [likeAnimating, setLikeAnimating] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [authModalAction, setAuthModalAction] = useState<'like' | 'save' | 'report' | null>(null);
   const [showReportModal, setShowReportModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -65,7 +66,8 @@ export default function WorkCard({ work, onLikeToggle, onSaveToggle, isOwnProfil
   const handleLike = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (!user) { 
+    if (!user) {
+      setAuthModalAction('like');
       setShowAuthModal(true);
       return;
     }
@@ -85,7 +87,8 @@ export default function WorkCard({ work, onLikeToggle, onSaveToggle, isOwnProfil
   const handleSave = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (!user) { 
+    if (!user) {
+      setAuthModalAction('save');
       setShowAuthModal(true);
       return;
     }
@@ -102,12 +105,21 @@ export default function WorkCard({ work, onLikeToggle, onSaveToggle, isOwnProfil
   const handleReport = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (!user) { 
+    if (!user) {
+      setAuthModalAction('report');
       setShowAuthModal(true);
       return;
     }
     setShowReportModal(true);
   };
+
+  const authModalTitle = currentLang === 'es'
+    ? (authModalAction === 'like' ? 'Inicia sesión para dar like' : authModalAction === 'save' ? 'Inicia sesión para guardar' : authModalAction === 'report' ? 'Inicia sesión para reportar' : 'Inicia sesión para continuar')
+    : (authModalAction === 'like' ? 'Sign in to like this work.' : authModalAction === 'save' ? 'Sign in to save works to your profile.' : authModalAction === 'report' ? 'Sign in to report a work.' : 'Sign in to continue');
+
+  const authModalDescription = currentLang === 'es'
+    ? (authModalAction === 'like' ? 'Necesitas una cuenta para activar el like.' : authModalAction === 'save' ? 'Necesitas una cuenta para guardar obras en tu perfil.' : authModalAction === 'report' ? 'Necesitas una cuenta para reportar esta obra.' : 'Necesitas una cuenta para hacer esto.')
+    : (authModalAction === 'like' ? 'You need an account to like this work.' : authModalAction === 'save' ? 'You need an account to save works to your profile.' : authModalAction === 'report' ? 'You need an account to report a work.' : 'You need an account to do this.');
 
   const linkPath = `/work/${work.id}`;
 
@@ -232,9 +244,12 @@ export default function WorkCard({ work, onLikeToggle, onSaveToggle, isOwnProfil
     {/* Modals OUTSIDE Link to prevent navigation interference */}
     <AuthModal
       isOpen={showAuthModal}
-      onClose={() => setShowAuthModal(false)}
-      title={currentLang === 'es' ? 'Inicia sesión para continuar' : 'Sign in to continue'}
-      description={currentLang === 'es' ? 'Necesitas una cuenta para hacer esto' : 'You need an account to do this'}
+      onClose={() => {
+        setShowAuthModal(false);
+        setAuthModalAction(null);
+      }}
+      title={authModalTitle}
+      description={authModalDescription}
     />
 
     <ReportModal

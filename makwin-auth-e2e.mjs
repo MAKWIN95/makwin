@@ -9,16 +9,18 @@ if (!url || !anon) {
 const supabase = createClient(url, anon);
 const email = `e2e-test-${Date.now()}@makwin.art`;
 const password = 'Test1234!';
+const siteUrl = process.env.TEST_SITE_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3002');
 console.log('TEST_EMAIL=', email);
+console.log('SITE_URL=', siteUrl.replace(/(:\/\/).*$/, '://***')); // don't print host
 const { data: signupData, error: signupError } = await supabase.auth.signUp({
   email,
   password,
-  options: { emailRedirectTo: 'https://makwin.vercel.app/login', data: { test: true } }
+  options: { emailRedirectTo: `${siteUrl}/login`, data: { test: true } }
 });
 console.log('SIGNUP error=', signupError ? signupError.message : null);
 console.log('SIGNUP data=', JSON.stringify(signupData, null, 2));
 const { data: resetData, error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-  redirectTo: 'https://makwin.vercel.app/reset-password'
+  redirectTo: `${siteUrl}/reset-password`
 });
 console.log('RESET error=', resetError ? resetError.message : null);
 console.log('RESET data=', JSON.stringify(resetData, null, 2));
