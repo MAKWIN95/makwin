@@ -17,7 +17,8 @@ try {
   })
   if (error) throw error
   console.log('User created', user.id, user.email, 'confirmed', user.email_confirmed_at, 'confirmation_sent_at', user.confirmation_sent_at)
-  const resetRes = await client.auth.resetPasswordForEmail(email, { redirectTo: 'https://www.makwin.art/reset-password' })
+  const siteUrl = process.env.TEST_SITE_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3002')
+  const resetRes = await client.auth.resetPasswordForEmail(email, { redirectTo: `${siteUrl}/reset-password` })
   console.log('Reset password response', resetRes)
   const { error: deleteError } = await client.auth.admin.deleteUser(user.id)
   if (deleteError) {

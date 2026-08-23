@@ -20,9 +20,15 @@ export function useRequireAuth() {
     // Skip check while loading
     if (loading) return;
 
-    // Redirect to login if not authenticated or in onboarding
-    if (!user || needsUsernameSetup) {
+      // Redirect to login if not authenticated
+    if (!user) {
       navigate('/login', { replace: true });
+      return;
+    }
+
+    // If the user is in onboarding flow, force onboarding page
+    if (needsUsernameSetup) {
+      navigate('/completar-perfil', { replace: true });
     }
   }, [user, needsUsernameSetup, loading, navigate]);
 }
