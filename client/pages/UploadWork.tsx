@@ -8,6 +8,7 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { Switch } from '@/components/ui/switch';
 import { Loader2, Upload } from 'lucide-react';
+import { normalizeHashtags } from '@/lib/utils';
 
 const WORK_TYPES_ES = [
   { value: 'pintura', label: 'Pintura' },
@@ -189,7 +190,7 @@ export default function UploadWork() {
       console.log('[UploadWork] 💾 Saving to database...');
       setProgress('saving');
 
-      const tags = form.hashtags.split(/[,\s]+/).map(s => s.replace(/^#/, '').trim()).filter(Boolean);
+      const tags = normalizeHashtags(form.hashtags);
 
       const newWorkData = {
         user_id: user.id,

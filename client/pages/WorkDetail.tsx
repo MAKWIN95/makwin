@@ -90,6 +90,7 @@ export default function WorkDetail() {
   const [error, setError] = useState('');
   const [retrying, setRetrying] = useState(0);
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [authModalAction, setAuthModalAction] = useState<'like' | 'save' | 'report' | null>(null);
   const [showReportModal, setShowReportModal] = useState(false);
 
   // Use context as source of truth
@@ -205,6 +206,7 @@ export default function WorkDetail() {
 
   const handleLike = async () => {
     if (!user) {
+      setAuthModalAction('like');
       setShowAuthModal(true);
       return;
     }
@@ -215,6 +217,7 @@ export default function WorkDetail() {
 
   const handleSave = async () => {
     if (!user) {
+      setAuthModalAction('save');
       setShowAuthModal(true);
       return;
     }
@@ -225,12 +228,21 @@ export default function WorkDetail() {
 
   const handleReport = () => {
     if (!user) {
+      setAuthModalAction('report');
       setShowAuthModal(true);
       return;
     }
     if (!work) return;
     setShowReportModal(true);
   };
+
+  const authModalTitle = currentLang === 'es'
+    ? (authModalAction === 'like' ? 'Inicia sesión para dar like' : authModalAction === 'save' ? 'Inicia sesión para guardar' : authModalAction === 'report' ? 'Inicia sesión para reportar' : 'Inicia sesión para continuar')
+    : (authModalAction === 'like' ? 'Sign in to like this work.' : authModalAction === 'save' ? 'Sign in to save works to your profile.' : authModalAction === 'report' ? 'Sign in to report a work.' : 'Sign in to continue');
+
+  const authModalDescription = currentLang === 'es'
+    ? (authModalAction === 'like' ? 'Necesitas una cuenta para activar el like.' : authModalAction === 'save' ? 'Necesitas una cuenta para guardar obras en tu perfil.' : authModalAction === 'report' ? 'Necesitas una cuenta para reportar esta obra.' : 'Necesitas una cuenta para hacer esto.')
+    : (authModalAction === 'like' ? 'You need an account to like this work.' : authModalAction === 'save' ? 'You need an account to save works to your profile.' : authModalAction === 'report' ? 'You need an account to report a work.' : 'You need an account to do this.');
 
   if (loading) {
     return (
@@ -356,15 +368,19 @@ export default function WorkDetail() {
 
             {work.hashtags && work.hashtags.length > 0 && (
               <div className="flex flex-wrap gap-2">
-                {work.hashtags.map((tag) => (
-                  <Link
-                    key={tag}
-                    to={`/galeria?search=%23${encodeURIComponent(tag)}`}
-                    className="text-sm text-[hsl(var(--foreground))] bg-[hsl(var(--muted))] hover:bg-[hsl(var(--muted))]/80 px-3 py-1 rounded-full transition-all duration-200 ease-out cursor-pointer"
-                  >
-                    #{tag}
-                  </Link>
-                ))}
+                {work.hashtags.map((tag) => {
+                  const cleaned = String(tag || '').replace(/^#/, '').trim();
+                  if (!cleaned) return null;
+                  return (
+                    <Link
+                      key={tag}
+                      to={`/galeria?search=${encodeURIComponent(cleaned)}`}
+                      className="text-sm text-[hsl(var(--foreground))] bg-[hsl(var(--muted))] hover:bg-[hsl(var(--muted))]/80 px-3 py-1 rounded-full transition-all duration-200 ease-out cursor-pointer"
+                    >
+                      #{cleaned}
+                    </Link>
+                  );
+                })}
               </div>
             )}
 
@@ -407,9 +423,12 @@ export default function WorkDetail() {
         {/* Auth Modal */}
         <AuthModal
           isOpen={showAuthModal}
-          onClose={() => setShowAuthModal(false)}
-          title={currentLang === 'es' ? 'Inicia sesión para continuar' : 'Sign in to continue'}
-          description={currentLang === 'es' ? 'Necesitas una cuenta para hacer esto' : 'You need an account to do this'}
+          onClose={() => {
+            setShowAuthModal(false);
+            setAuthModalAction(null);
+          }}
+          title={authModalTitle}
+          description={authModalDescription}
         />
 
         {/* Report Modal */}
