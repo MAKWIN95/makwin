@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase, Profile } from './supabase';
 
@@ -27,6 +27,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [needsUsernameSetup, setNeedsUsernameSetup] = useState(false);
   const [onboardingUser, setOnboardingUser] = useState<User | null>(null);
+  const sessionSequenceRef = useRef(0);
 
   // Fetch profile without being a dependency
   const fetchProfile = useCallback(async (userId: string) => {
@@ -74,18 +75,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return false;
   }, []);
 
+  const isProfileCompleteForSession = useCallback((session: Session | null, profileData: any) => {
+    if (!profileData) return false;
+
+    const googleUser = isGoogleAuthSession(session);
+
+    // Google users are never considered complete unless onboarding explicitly marked them complete.
+    // The trigger can automatically create username/display_name/avatar_url from Google metadata,
+    // but those fields are not a valid completion signal for a Google account.
+    if (googleUser) {
+      return profileData.google_setup_completed === true;
+    }
+
+    const usernameExists = !!(profileData.username && String(profileData.username).trim().length > 0);
+    const displayNameExists = !!(profileData.display_name && String(profileData.display_name).trim().length > 0);
+    return usernameExists && displayNameExists;
+  }, [isGoogleAuthSession]);
+
   const refreshProfile = useCallback(async () => {
     if (!user) return;
     await fetchProfile(user.id);
   }, [user, fetchProfile]);
 
   const handleSession = useCallback(async (session: Session | null) => {
-    if (!session?.user) {
-      setSession(null);
-      setUser(null);
-      setProfile(null);
-      setNeedsUsernameSetup(false);
-      setOnboardingUser(null);
+    const sequence = ++sessionSequenceRef.current;
+    const isLatest = () => sequence === sessionSequenceRef.current;
+
+    const clearOnboardingState = () => {
       try {
         if (typeof window !== 'undefined') {
           window.sessionStorage.removeItem('makwin-onboarding-incomplete');
@@ -93,11 +109,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } catch (err) {
         console.warn('[AuthContext] Error clearing sessionStorage:', err);
       }
+    };
+
+    const setIncompleteGoogleState = (currentSession: Session, currentUser: User) => {
+      if (!isLatest()) return;
+      setSession(currentSession);
+      setUser(currentUser);
+      setProfile(null);
+      setNeedsUsernameSetup(true);
+      setOnboardingUser(currentUser);
+      try {
+        if (typeof window !== 'undefined') {
+          window.sessionStorage.setItem('makwin-onboarding-incomplete', currentUser.id);
+        }
+      } catch (err) {
+        console.warn('[AuthContext] Error setting sessionStorage:', err);
+      }
+    };
+
+    if (!session?.user) {
+      if (!isLatest()) return;
+      setSession(null);
+      setUser(null);
+      setProfile(null);
+      setNeedsUsernameSetup(false);
+      setOnboardingUser(null);
+      clearOnboardingState();
       return;
     }
-
-    setSession(session);
-    setUser(session.user);
 
     try {
       const { data, error } = await supabase
@@ -106,74 +145,46 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .eq('id', session.user.id)
         .single();
 
-      if (!error && data) {
-        const usernameExists = !!(data.username && String(data.username).trim().length > 0);
-        const displayNameExists = !!(data.display_name && String(data.display_name).trim().length > 0);
-        const googleCompleted = data.google_setup_completed === true;
-        const profileComplete = googleCompleted || (usernameExists && displayNameExists);
+      if (!isLatest()) return;
 
-        if (isGoogleAuthSession(session) && !profileComplete) {
-          setProfile(null);
-          setNeedsUsernameSetup(true);
-          setOnboardingUser(session.user);
-          try {
-            if (typeof window !== 'undefined') {
-              window.sessionStorage.setItem('makwin-onboarding-incomplete', session.user.id);
-            }
-          } catch (err) {
-            console.warn('[AuthContext] Error setting sessionStorage:', err);
-          }
+      if (!error && data) {
+        const profileComplete = isProfileCompleteForSession(session, data);
+
+        if (!profileComplete) {
+          setIncompleteGoogleState(session, session.user);
           return;
         }
 
+        setSession(session);
+        setUser(session.user);
         setProfile(data as Profile);
         setOnboardingUser(null);
         setNeedsUsernameSetup(false);
-        try {
-          if (typeof window !== 'undefined') {
-            window.sessionStorage.removeItem('makwin-onboarding-incomplete');
-          }
-        } catch (err) {
-          console.warn('[AuthContext] Error clearing sessionStorage:', err);
-        }
+        clearOnboardingState();
         return;
       }
 
-      // Profile doesn't exist
       const isGoogleUser = isGoogleAuthSession(session);
       if (isGoogleUser) {
-        // -- ONBOARDING INCOMPLETE: store ephemerally
-        setProfile(null);
-        setNeedsUsernameSetup(true);
-        setOnboardingUser(session.user);
-        // Mark in sessionStorage that this tab is in onboarding
-        // (sessionStorage auto-clears on tab close; F5 also clears it)
-        try {
-          if (typeof window !== 'undefined') {
-            window.sessionStorage.setItem('makwin-onboarding-incomplete', session.user.id);
-          }
-        } catch (err) {
-          console.warn('[AuthContext] Error setting sessionStorage:', err);
-        }
-        // ** IMPORTANT: Do NOT clear Supabase session from localStorage
-        // ** The OAuth session is valid; we just guard app-level routes via needsUsernameSetup
+        setIncompleteGoogleState(session, session.user);
         return;
       }
 
-      // Non-Google user with no profile: sign out (shouldn't happen, but cleanup)
       await supabase.auth.signOut({ scope: 'local' });
+      if (!isLatest()) return;
       setSession(null);
       setUser(null);
       setProfile(null);
       setNeedsUsernameSetup(false);
       setOnboardingUser(null);
     } catch (err) {
+      if (!isLatest()) return;
       console.error('[AuthContext] Error fetching profile for session:', err);
       setProfile(null);
       setNeedsUsernameSetup(false);
       setOnboardingUser(null);
     }
-  }, [isGoogleAuthSession]);
+  }, [isGoogleAuthSession, isProfileCompleteForSession]);
 
   useEffect(() => {
     let isMounted = true;
@@ -384,14 +395,46 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return { error: 'Este nombre de usuario ya está en uso.' };
       }
 
-      // Try to set password for the OAuth user (best-effort)
+      // Deterministic password set for Google onboarding: use server-side admin endpoint.
       try {
-        const { error: passwordError } = await supabase.auth.updateUser({ password });
-        if (passwordError) {
-          console.warn('[AuthContext] updateUser password (non-fatal):', passwordError.message);
+        const { data: { session } } = await supabase.auth.getSession();
+        const accessToken = session?.access_token || '';
+
+        // Do NOT fallback to client-side supabase.auth.updateUser here — that can rotate the session
+        // and cause writes to fail or trigger provider technical emails. Require a valid access token.
+        if (!accessToken) {
+          return { error: 'No se pudo verificar la sesión del navegador. Actualiza la página e inténtalo de nuevo.' };
+        }
+
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 10000);
+
+        try {
+          const resp = await fetch('/api/admin-set-password', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${accessToken}`,
+            },
+            body: JSON.stringify({ userId: effectiveUser.id, password }),
+            signal: controller.signal,
+          });
+
+          clearTimeout(timeout);
+
+          let json: any = null;
+          try { json = await resp.json(); } catch (e) { json = null; }
+
+          if (!resp.ok) {
+            console.warn('[AuthContext] admin-set-password failed', resp.status, json);
+            return { error: 'No se pudo establecer la contraseña. Vuelve a intentarlo.' };
+          }
+        } finally {
+          clearTimeout(timeout);
         }
       } catch (err) {
-        console.warn('[AuthContext] Failed to set password:', err);
+        console.error('[AuthContext] admin-set-password request failed:', err);
+        return { error: 'No se pudo establecer la contraseña. Vuelve a intentarlo.' };
       }
 
       // Attempt to INSERT a new profile row. If a profile with this id already exists, we'll handle it.

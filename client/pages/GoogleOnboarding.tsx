@@ -89,10 +89,11 @@ export default function GoogleOnboardingPage() {
   }, [user?.email]);
 
   useEffect(() => {
+    if (!user || loading) return;
     if (!needsUsernameSetup) {
       navigate('/galeria', { replace: true });
     }
-  }, [needsUsernameSetup, navigate]);
+  }, [loading, needsUsernameSetup, navigate, user]);
 
   useEffect(() => {
     const id = setTimeout(async () => {
