@@ -49,8 +49,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (profile?.language_preference) {
       localStorage.setItem('language', profile.language_preference);
-      document.dispatchEvent(new CustomEvent('profileLanguageLoaded', { 
-        detail: { language: profile.language_preference } 
+      document.dispatchEvent(new CustomEvent('profileLanguageLoaded', {
+        detail: { language: profile.language_preference }
       }));
     }
   }, [profile?.language_preference]);
@@ -256,7 +256,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signInWithEmail = async (email: string, password: string) => {
     try {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
-      
+
       if (error) {
         // Si falla el login, verificamos si el email existe
         if (error.message.includes('Invalid login credentials')) {
@@ -267,24 +267,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               body: JSON.stringify({ email }),
             });
             const { exists } = await response.json();
-            
+
             if (!exists) {
-              return { 
+              return {
                 error: 'USER_NOT_FOUND'
               };
             }
-            
-            return { 
+
+            return {
               error: 'INVALID_PASSWORD'
             };
           } catch (err) {
             // Si falla la verificación, devolvemos un mensaje genérico
-            return { 
+            return {
               error: 'INVALID_CREDENTIALS'
             };
           }
         }
-        
+
         return { error: error.message };
       }
       return { error: null };
@@ -377,10 +377,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const { error } = await supabase
       .from('profiles')
-      .update({ 
+      .update({
         ...updates,
         username: updates.username ? updates.username.toLowerCase() : undefined,
-        updated_at: new Date().toISOString() 
+        updated_at: new Date().toISOString()
       })
       .eq('id', user.id);
     if (!error) await fetchProfile(user.id);
@@ -411,68 +411,65 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return { error: 'Este nombre de usuario ya existe.' };
       }
 
+      // Do not allow spaces in passwords
+      if (/\s/.test(password)) {
+        return { error: 'Password cannot contain spaces.' };
+      }
+
+      // Prefer setting password via server-side admin endpoint to avoid triggering provider emails
+      // and to ensure a stable admin-side operation. Use the current client access token to validate identity.
       try {
-        // Do not allow spaces in passwords
-        if (/\s/.test(password)) {
-                  return { error: 'Password cannot contain spaces.' };
+        const { data: { session } } = await supabase.auth.getSession();
+        const accessToken = session?.access_token || '';
+
+        if (!accessToken) {
+          throw new Error('No se pudo completar la configuración porque no hay un token de acceso para actualizar la contraseña. Inténtalo otra vez.');
         }
 
-        // Prefer setting password via server-side admin endpoint to avoid triggering provider emails
-        // and to ensure a stable admin-side operation. Use current client access token to validate identity.
-        try {
-          const { data: { session } } = await supabase.auth.getSession();
-          const accessToken = session?.access_token || '';
-          if (accessToken) {
+        const resp = await fetch('/api/admin-set-password', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${accessToken}`,
+          },
+          body: JSON.stringify({ userId: effectiveUser.id, password }),
+        });
+
+        if (!resp.ok) {
+          const payload = await resp.json().catch(() => ({}));
+          const message = payload?.error || payload?.message || 'No se pudo completar la configuración de la contraseña.';
+          throw new Error(message);
+        }
+
+        // After updating password, Supabase may rotate/refresh the session. Wait briefly for the client
+        // session to reflect the current user so subsequent DB writes use a stable auth token.
+        const waitForSessionMatch = async (userId: string, timeoutMs = 5000) => {
+          const start = Date.now();
+          while (Date.now() - start < timeoutMs) {
             try {
-              const resp = await fetch('/api/admin-set-password', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
-                body: JSON.stringify({ userId: effectiveUser.id, password }),
-              });
-
-              if (!resp.ok) {
-                const payload = await resp.json().catch(() => ({}));
-                console.warn('[AuthContext] admin-set-password failed:', resp.status, payload);
-              }
-            } catch (err) {
-              console.warn('[AuthContext] admin-set-password request failed:', err);
+              const { data: { session } } = await supabase.auth.getSession();
+              if (session && session.user && session.user.id === userId) return true;
+            } catch (e) {
+              // ignore and retry
             }
-          } else {
-            // fallback to client-side update if no access token available
-            const { error: passwordError } = await supabase.auth.updateUser({ password });
-            if (passwordError) {
-              console.warn('[AuthContext] updateUser password (non-fatal):', passwordError.message);
-            }
+            // small delay
+            await new Promise((r) => setTimeout(r, 300));
           }
+          return false;
+        };
 
-          // After updating password, Supabase may rotate/refresh the session. Wait briefly for the client
-          // session to reflect the current user so subsequent DB writes use a stable auth token.
-          const waitForSessionMatch = async (userId: string, timeoutMs = 5000) => {
-            const start = Date.now();
-            while (Date.now() - start < timeoutMs) {
-              try {
-                const { data: { session } } = await supabase.auth.getSession();
-                if (session && session.user && session.user.id === userId) return true;
-              } catch (e) {
-                // ignore and retry
-              }
-              // small delay
-              await new Promise((r) => setTimeout(r, 300));
-            }
-            return false;
-          };
-
-          try {
-            await waitForSessionMatch(effectiveUser.id, 5000);
-          } catch (e) {
-            // non-fatal - proceed anyway, we'll handle DB errors below
-            console.warn('[AuthContext] waitForSessionMatch error:', e);
-          }
-        } catch (err) {
-          console.warn('[AuthContext] Failed to set password:', err);
+        try {
+          await waitForSessionMatch(effectiveUser.id, 5000);
+        } catch (e) {
+          // non-fatal - proceed anyway, we'll handle DB errors below
+          console.warn('[AuthContext] waitForSessionMatch error:', e);
         }
+      } catch (err) {
+        console.warn('[AuthContext] Failed to set password:', err);
+        throw err;
+      }
 
-      const profilePayload = {
+            const profilePayload = {
         id: effectiveUser.id,
         username: uname,
         display_name: safeDisplayName,

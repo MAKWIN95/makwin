@@ -7,6 +7,8 @@ if (!supabaseUrl || !supabaseAnonKey) {
   console.warn('[Supabase] Missing VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY env variables.');
 }
 
+export const DEFAULT_USER_AVATAR = 'https://ui-avatars.com/api/?name=MAKWIN&background=0F172A&color=F8FAFC&rounded=true&size=240';
+
 export const supabase = createClient(supabaseUrl ?? '', supabaseAnonKey ?? '', {
   auth: {
     persistSession: true,
