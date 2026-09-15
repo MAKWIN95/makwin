@@ -121,7 +121,7 @@ export default function ComingSoon() {
                 TikTok
               </a>
               <a
-                href="https://www.instagram.com/ig.makwin"
+                href="https://www.instagram.com/1makwin"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-sm md:text-base font-light hover:opacity-100 opacity-60 transition-opacity duration-300 hover:underline"

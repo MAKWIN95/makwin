@@ -58,28 +58,6 @@ export default function Home() {
       ]
     },
     {
-      id: 'attuned',
-      title: 'ATTUNED',
-      description: es
-        ? 'Entrena tu percepción sensorial con experiencias interactivas innovadoras. ATTUNED es una serie de juegos que desafían tu vista, oído y sentido del tiempo. Mejora tu precisión sensorial y compite en las leaderboards globales.'
-        : 'Train your sensory perception with innovative interactive experiences. ATTUNED is a series of games that challenge your sight, hearing, and sense of time. Improve your sensory accuracy and compete on global leaderboards.',
-      link: '/attuned',
-      faqs: [
-        {
-          q: es ? '¿Cómo funciona ATTUNED?' : 'How does ATTUNED work?',
-          a: es
-            ? 'Cada experiencia (ColorResonance, TonalRecognition, TemporalCalibration) te desafía a afinar un aspecto diferente de tu percepción. Selecciona el número de rondas y comienza.'
-            : 'Each experience (ColorResonance, TonalRecognition, TemporalCalibration) challenges you to refine a different aspect of your perception. Select the number of rounds and begin.'
-        },
-        {
-          q: es ? '¿Hay competencia?' : 'Is there competition?',
-          a: es
-            ? 'Sí, tus scores se registran en las leaderboards globales. Compite con artistas de todo el mundo y mejora tu ranking.'
-            : 'Yes, your scores are recorded on global leaderboards. Compete with artists worldwide and improve your ranking.'
-        }
-      ]
-    },
-    {
       id: 'marketplace',
       title: es ? 'Marketplace' : 'Marketplace',
       description: es

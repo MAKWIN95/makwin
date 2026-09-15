@@ -119,7 +119,7 @@ export default function Header({ showSearch = true, showSearchCentered = false, 
                 />
                 <button
                   id="filter-btn"
-                  className="ml-2 p-2 border border-[rgba(120,120,120,0.25)] rounded-lg hover:bg-[hsl(var(--muted))] transition-colors duration-200"
+                                  className="ml-2 p-2 hidden sm:inline-flex border border-[rgba(120,120,120,0.25)] rounded-lg hover:bg-[hsl(var(--muted))] transition-colors duration-200"
                   onClick={() => document.dispatchEvent(new Event('toggleFilterPopup'))}
                 >
                   <Filter size={16} className="text-[hsl(var(--muted-foreground))]" />
@@ -153,7 +153,7 @@ export default function Header({ showSearch = true, showSearchCentered = false, 
 
             {/* Upload shortcut */}
             {user && (
-              <Link to="/subir-obra" className="p-2 rounded-lg hover:bg-[hsl(var(--muted))] transition-colors" aria-label="Subir obra">
+              <Link to="/subir-obra" className="hidden sm:inline-flex p-2 rounded-lg hover:bg-[hsl(var(--muted))] transition-colors" aria-label="Subir obra">
                 <Upload className="w-4 h-4 text-[hsl(var(--muted-foreground))]" />
               </Link>
             )}

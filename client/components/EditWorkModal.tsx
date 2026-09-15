@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { X, Loader2 } from 'lucide-react';
 import { supabase, Work } from '@/lib/supabase';
 import { useI18n } from '@/lib/i18n';
+import { normalizeHashtags, formatHashtagsForInput } from '@/lib/utils';
 
 interface Props {
   isOpen: boolean;
@@ -17,7 +18,7 @@ export default function EditWorkModal({ isOpen, onClose, work, onSuccess }: Prop
   const [form, setForm] = useState({
     title: work.title || '',
     description: work.description || '',
-    hashtags: work.hashtags || '',
+    hashtags: formatHashtagsForInput(work.hashtags),
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -27,12 +28,14 @@ export default function EditWorkModal({ isOpen, onClose, work, onSuccess }: Prop
     setError('');
     setLoading(true);
 
+    const tagsArray = normalizeHashtags(form.hashtags);
+
     const { error: updateError } = await supabase
       .from('works')
       .update({
         title: form.title,
         description: form.description,
-        hashtags: form.hashtags,
+        hashtags: tagsArray,
       })
       .eq('id', work.id);
 

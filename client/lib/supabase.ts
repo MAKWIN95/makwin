@@ -28,6 +28,7 @@ export interface Profile {
   website: string | null;
   instagram_url: string | null;
   tiktok_url: string | null;
+  google_setup_completed?: boolean | null;
   is_verified: boolean;
   is_banned: boolean;
   language_preference: 'es' | 'en';

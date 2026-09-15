@@ -18,7 +18,6 @@ import Home from "./pages/Home";
 import Gallery from "./pages/Gallery";
 import Merch from "./pages/Merch";
 import Marketplace from "./pages/Marketplace";
-import Attuned from "./pages/Attuned";
 import WorkDetail from "./pages/WorkDetail";
 import UploadWork from "./pages/UploadWork";
 import UserProfile from "./pages/UserProfile";
@@ -35,11 +34,10 @@ import ComingSoon from "./pages/ComingSoon";
 import { I18nProvider } from "@/lib/i18n";
 import LanguagePrompt from '@/components/LanguagePrompt';
 import Onboarding from '@/components/Onboarding';
-import GoogleSignupModal from '@/components/GoogleSignupModal';
+import GoogleOnboardingPage from '@/pages/GoogleOnboarding';
 import { AuthProvider, useAuth } from "@/lib/AuthContext";
 import { WorksProvider } from "@/lib/WorksContext";
 import { SidebarProvider } from "@/lib/SidebarContext";
-import { AttuneProvider } from "@/lib/AttuneContext";
 import { FollowProvider } from "@/lib/FollowContext";
 
 const queryClient = new QueryClient();
@@ -91,7 +89,7 @@ const AppLayout = () => {
 };
 
 const RoutesWrapper = () => {
-  const { loading } = useAuth();
+  const { loading, needsUsernameSetup, user, profile } = useAuth();
   const location = useLocation();
 
   // Track last page for redirect after settings changes
@@ -104,9 +102,23 @@ const RoutesWrapper = () => {
     }
   }, [location.pathname]);
   
-  // Show nothing while loading auth
-  if (loading) {
-    return <div className="w-screen h-screen bg-black" />;
+  // Show a friendly loading state while auth initializes or while profile hydration is still resolving.
+  // This prevents the app from rendering a blank/black state during F5 or auth transitions.
+  const authHydrating = loading || (Boolean(user) && !profile && !needsUsernameSetup);
+  if (authHydrating) {
+    return (
+      <div className="w-screen h-screen bg-black flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-white text-sm mb-4">Loading authentication…</div>
+          <div className="w-12 h-12 border-4 border-white/20 border-t-white rounded-full animate-spin mx-auto" />
+        </div>
+      </div>
+    );
+  }
+
+  // If the user needs to complete onboarding, force the onboarding page
+  if (needsUsernameSetup && !location.pathname.startsWith('/completar-perfil')) {
+    return <Navigate to="/completar-perfil" replace />;
   }
 
   return (
@@ -117,7 +129,10 @@ const RoutesWrapper = () => {
       <Route path="/galeria" element={<Gallery />} />
       <Route path="/merch" element={<Merch />} />
       <Route path="/marketplace" element={<Marketplace />} />
-      <Route path="/attuned" element={<Attuned />} />
+
+      {/* Onboarding for Google users */}
+      <Route path="/completar-perfil" element={<GoogleOnboardingPage />} />
+
       <Route path="/work/:id" element={<WorkDetail />} />
 
       {/* Auth */}
@@ -167,16 +182,13 @@ const App = () => {
             <SidebarProvider>
               <FollowProvider>
                 <WorksProvider>
-                  <AttuneProvider>
-                    <Toaster />
-                    <Sonner />
-                    <BrowserRouter>
-                      <GlobalStars />
-                      <MaybeLanguagePrompt />
-                      <GoogleSignupModal />
-                      <AppLayout />
-                    </BrowserRouter>
-                  </AttuneProvider>
+                  <Toaster />
+                  <Sonner />
+                  <BrowserRouter>
+                    <GlobalStars />
+                    <MaybeLanguagePrompt />
+                    <AppLayout />
+                  </BrowserRouter>
                 </WorksProvider>
               </FollowProvider>
             </SidebarProvider>
