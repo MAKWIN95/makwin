@@ -417,37 +417,60 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                   return { error: 'Password cannot contain spaces.' };
         }
 
-        const { error: passwordError } = await supabase.auth.updateUser({ password });
-        if (passwordError) {
-          console.warn('[AuthContext] updateUser password (non-fatal):', passwordError.message);
-        }
-
-        // After updating password, Supabase may rotate/refresh the session. Wait briefly for the client
-        // session to reflect the current user so subsequent DB writes use a stable auth token.
-        const waitForSessionMatch = async (userId: string, timeoutMs = 5000) => {
-          const start = Date.now();
-          while (Date.now() - start < timeoutMs) {
-            try {
-              const { data: { session } } = await supabase.auth.getSession();
-              if (session && session.user && session.user.id === userId) return true;
-            } catch (e) {
-              // ignore and retry
-            }
-            // small delay
-            await new Promise((r) => setTimeout(r, 300));
-          }
-          return false;
-        };
-
+        // Prefer setting password via server-side admin endpoint to avoid triggering provider emails
+        // and to ensure a stable admin-side operation. Use current client access token to validate identity.
         try {
-          await waitForSessionMatch(effectiveUser.id, 5000);
-        } catch (e) {
-          // non-fatal - proceed anyway, we'll handle DB errors below
-          console.warn('[AuthContext] waitForSessionMatch error:', e);
+          const { data: { session } } = await supabase.auth.getSession();
+          const accessToken = session?.access_token || '';
+          if (accessToken) {
+            try {
+              const resp = await fetch('/api/admin-set-password', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
+                body: JSON.stringify({ userId: effectiveUser.id, password }),
+              });
+
+              if (!resp.ok) {
+                const payload = await resp.json().catch(() => ({}));
+                console.warn('[AuthContext] admin-set-password failed:', resp.status, payload);
+              }
+            } catch (err) {
+              console.warn('[AuthContext] admin-set-password request failed:', err);
+            }
+          } else {
+            // fallback to client-side update if no access token available
+            const { error: passwordError } = await supabase.auth.updateUser({ password });
+            if (passwordError) {
+              console.warn('[AuthContext] updateUser password (non-fatal):', passwordError.message);
+            }
+          }
+
+          // After updating password, Supabase may rotate/refresh the session. Wait briefly for the client
+          // session to reflect the current user so subsequent DB writes use a stable auth token.
+          const waitForSessionMatch = async (userId: string, timeoutMs = 5000) => {
+            const start = Date.now();
+            while (Date.now() - start < timeoutMs) {
+              try {
+                const { data: { session } } = await supabase.auth.getSession();
+                if (session && session.user && session.user.id === userId) return true;
+              } catch (e) {
+                // ignore and retry
+              }
+              // small delay
+              await new Promise((r) => setTimeout(r, 300));
+            }
+            return false;
+          };
+
+          try {
+            await waitForSessionMatch(effectiveUser.id, 5000);
+          } catch (e) {
+            // non-fatal - proceed anyway, we'll handle DB errors below
+            console.warn('[AuthContext] waitForSessionMatch error:', e);
+          }
+        } catch (err) {
+          console.warn('[AuthContext] Failed to set password:', err);
         }
-      } catch (err) {
-        console.warn('[AuthContext] Failed to set password:', err);
-      }
 
       const profilePayload = {
         id: effectiveUser.id,
