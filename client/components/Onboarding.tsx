@@ -39,10 +39,6 @@ export default function Onboarding() {
     };
     // run on mount
     checkAndShow();
-    // also keep listening to languageSelected as fallback
-    const handler = () => checkAndShow();
-    window.addEventListener('languageSelected', handler);
-    return () => window.removeEventListener('languageSelected', handler);
   }, []);
 
   useEffect(() => {

@@ -32,7 +32,6 @@ import ComingSoon from "./pages/ComingSoon";
 
 // Global UI
 import { I18nProvider } from "@/lib/i18n";
-import LanguagePrompt from '@/components/LanguagePrompt';
 import Onboarding from '@/components/Onboarding';
 import GoogleOnboardingPage from '@/pages/GoogleOnboarding';
 import { AuthProvider, useAuth } from "@/lib/AuthContext";
@@ -159,14 +158,6 @@ const RoutesWrapper = () => {
   );
 };
 
-const MaybeLanguagePrompt = () => {
-  const location = useLocation();
-  if (location.pathname.startsWith("/beats")) {
-    return null;
-  }
-  return <LanguagePrompt />;
-};
-
 const App = () => {
   // If we're on makwin.art, show Coming Soon page without providers
   if (isComingSoonDomain()) {
@@ -186,7 +177,6 @@ const App = () => {
                   <Sonner />
                   <BrowserRouter>
                     <GlobalStars />
-                    <MaybeLanguagePrompt />
                     <AppLayout />
                   </BrowserRouter>
                 </WorksProvider>

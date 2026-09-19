@@ -70,120 +70,68 @@ export default function Admin() {
     }
   };
 
-  const handlePublish = async (submissionId: string) => {
+  const handleWorkAction = async (
+    action: 'publish' | 'reject' | 'archive' | 'delete' | 'republish',
+    submissionId: string,
+    reason?: string
+  ) => {
     try {
       setProcessing((prev) => ({ ...prev, [submissionId]: true }));
-      const response = await fetch('/api/publish-work', {
+      const response = await fetch('/api/work-action', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ submissionId }),
+        body: JSON.stringify({ action, submissionId, reason }),
       });
-      if (response.ok) {
+
+      if (!response.ok) {
+        const errorMessage =
+          action === 'publish'
+            ? 'Error al publicar'
+            : action === 'reject'
+              ? 'Error al denegar'
+              : action === 'archive'
+                ? 'Error al archivar'
+                : action === 'delete'
+                  ? 'Error al eliminar'
+                  : 'Error al republicar';
+        setError(errorMessage);
+        return;
+      }
+
+      if (action === 'publish') {
         setSubmissions((prev) =>
           prev.map((s) =>
             s.submissionId === submissionId ? { ...s, status: 'published' } : s
           )
         );
-      } else {
-        setError('Error al publicar');
       }
-    } catch (err) {
-      setError('Error de conexión');
-      console.error(err);
-    } finally {
-      setProcessing((prev) => ({ ...prev, [submissionId]: false }));
-    }
-  };
 
-  const handleReject = async (submissionId: string) => {
-    try {
-      const reason = window.prompt('Motivo de la denegación (opcional)');
-      setProcessing((prev) => ({ ...prev, [submissionId]: true }));
-      const response = await fetch('/api/reject-work', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ submissionId, reason }),
-      });
-      if (response.ok) {
+      if (action === 'reject') {
         setSubmissions((prev) =>
           prev.map((s) =>
             s.submissionId === submissionId ? { ...s, status: 'rejected' } : s
           )
         );
-      } else {
-        setError('Error al denegar');
       }
-    } catch (err) {
-      setError('Error de conexión');
-      console.error(err);
-    } finally {
-      setProcessing((prev) => ({ ...prev, [submissionId]: false }));
-    }
-  };
 
-  const handleArchive = async (submissionId: string) => {
-    try {
-      setProcessing((prev) => ({ ...prev, [submissionId]: true }));
-      const response = await fetch('/api/archive-work', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ submissionId }),
-      });
-      if (response.ok) {
+      if (action === 'archive') {
         setSubmissions((prev) =>
           prev.map((s) =>
             s.submissionId === submissionId ? { ...s, status: 'archived' } : s
           )
         );
-      } else {
-        setError('Error al archivar');
       }
-    } catch (err) {
-      setError('Error de conexión');
-      console.error(err);
-    } finally {
-      setProcessing((prev) => ({ ...prev, [submissionId]: false }));
-    }
-  };
 
-  const handleDelete = async (submissionId: string) => {
-    if (!window.confirm('¿Eliminar esta obra definitivamente?')) return;
-    try {
-      setProcessing((prev) => ({ ...prev, [submissionId]: true }));
-      const response = await fetch('/api/delete-work', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ submissionId }),
-      });
-      if (response.ok) {
+      if (action === 'delete') {
         setSubmissions((prev) => prev.filter((s) => s.submissionId !== submissionId));
-      } else {
-        setError('Error al eliminar');
       }
-    } catch (err) {
-      setError('Error de conexión');
-      console.error(err);
-    } finally {
-      setProcessing((prev) => ({ ...prev, [submissionId]: false }));
-    }
-  };
 
-  const handleRepublish = async (submissionId: string) => {
-    try {
-      setProcessing((prev) => ({ ...prev, [submissionId]: true }));
-      const response = await fetch('/api/republish-work', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ submissionId }),
-      });
-      if (response.ok) {
+      if (action === 'republish') {
         setSubmissions((prev) =>
           prev.map((s) =>
             s.submissionId === submissionId ? { ...s, status: 'published' } : s
           )
         );
-      } else {
-        setError('Error al republicar');
       }
     } catch (err) {
       setError('Error de conexión');
@@ -191,6 +139,28 @@ export default function Admin() {
     } finally {
       setProcessing((prev) => ({ ...prev, [submissionId]: false }));
     }
+  };
+
+  const handlePublish = async (submissionId: string) => {
+    await handleWorkAction('publish', submissionId);
+  };
+
+  const handleReject = async (submissionId: string) => {
+    const reason = window.prompt('Motivo de la denegación (opcional)');
+    await handleWorkAction('reject', submissionId, reason || undefined);
+  };
+
+  const handleArchive = async (submissionId: string) => {
+    await handleWorkAction('archive', submissionId);
+  };
+
+  const handleDelete = async (submissionId: string) => {
+    if (!window.confirm('¿Eliminar esta obra definitivamente?')) return;
+    await handleWorkAction('delete', submissionId);
+  };
+
+  const handleRepublish = async (submissionId: string) => {
+    await handleWorkAction('republish', submissionId);
   };
 
 
