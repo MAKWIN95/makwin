@@ -16,6 +16,25 @@ function validateUsername(username: string) {
   return usernameRegex.test(username);
 }
 
+async function checkUsernameAvailability(username: string): Promise<boolean> {
+  const normalized = String(username || '').trim().toLowerCase();
+  if (!normalized) return false;
+
+  try {
+    const response = await fetch('/api/check-username-availability', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: normalized }),
+    });
+
+    const payload = await response.json().catch(() => ({ available: true, cleaned: false }));
+    return !!response.ok && payload.available !== false;
+  } catch (err) {
+    console.error('[GoogleOnboarding] Error checking username availability:', err);
+    return false;
+  }
+}
+
 function strengthScore(pw: string) {
   let score = 0;
   if (pw.length >= 8) score += 1;
@@ -31,20 +50,15 @@ async function findAvailableUsername(base: string): Promise<string> {
 
   for (const candidate of candidates) {
     if (!candidate || !validateUsername(candidate)) continue;
-    const { data } = await supabase
-      .from('profiles')
-      .select('id')
-      .eq('username', candidate)
-      .maybeSingle();
-
-    if (!data) return candidate;
+    const isAvailable = await checkUsernameAvailability(candidate);
+    if (isAvailable) return candidate;
   }
 
   let index = 2;
   while (index < 1000) {
     const candidate = `${sanitized || 'makwin'}${index}`;
-    const { data } = await supabase.from('profiles').select('id').eq('username', candidate).maybeSingle();
-    if (!data) return candidate;
+    const isAvailable = await checkUsernameAvailability(candidate);
+    if (isAvailable) return candidate;
     index += 1;
   }
 
@@ -105,8 +119,8 @@ export default function GoogleOnboardingPage() {
         return;
       }
       try {
-        const { data } = await supabase.from('profiles').select('id').eq('username', username.toLowerCase()).maybeSingle();
-        setAvailable(!data);
+        const isAvailable = await checkUsernameAvailability(username);
+        setAvailable(isAvailable);
       } catch (err) {
         setAvailable(null);
       }

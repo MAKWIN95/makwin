@@ -28,6 +28,43 @@ export function getUserIdFromAuthorizationHeader(authHeader?: string | null): st
   return userId;
 }
 
+export async function pruneOrphanedProfileByUsername(username: string): Promise<{ available: boolean; cleaned: boolean }> {
+  const normalized = String(username ?? '').trim().toLowerCase();
+  if (!normalized) {
+    return { available: false, cleaned: false };
+  }
+
+  const { data: profile, error } = await supabaseAdmin
+    .from('profiles')
+    .select('id, username')
+    .eq('username', normalized)
+    .maybeSingle();
+
+  if (error && !(error as any)?.code?.includes?.('PGRST116')) {
+    throw new Error(error.message);
+  }
+
+  if (!profile) {
+    return { available: true, cleaned: false };
+  }
+
+  const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.getUserById(profile.id);
+  if (!authError && authUser?.user) {
+    return { available: false, cleaned: false };
+  }
+
+  const { error: deleteError } = await supabaseAdmin
+    .from('profiles')
+    .delete()
+    .eq('id', profile.id);
+
+  if (deleteError) {
+    throw new Error(`Failed to delete stale profile: ${deleteError.message}`);
+  }
+
+  return { available: true, cleaned: true };
+}
+
 export async function deleteAccountForUser(userId: string): Promise<void> {
   console.log(`[DELETE-ACCOUNT] ============================================`);
   console.log(`[DELETE-ACCOUNT] Starting deletion for user: ${userId}`);
@@ -65,13 +102,25 @@ export async function deleteAccountForUser(userId: string): Promise<void> {
     `[DELETE-ACCOUNT] ✅ Successfully deleted auth user: ${deleteAuthData?.user?.id || userId}`
   );
 
-  // Step 3: Clean up database records
-  console.log(`[DELETE-ACCOUNT] STEP 3: Cleaning up database records...`);
+  // Step 3: Explicitly clear the profile row, since stale profiles can remain when an auth user is deleted from the dashboard or a previous cascade was missed.
+  console.log(`[DELETE-ACCOUNT] STEP 3: Cleaning up profile row...`);
+  const { error: deleteProfileError } = await supabaseAdmin
+    .from('profiles')
+    .delete()
+    .eq('id', userId);
+
+  if (deleteProfileError) {
+    console.warn('[DELETE-ACCOUNT] ⚠️ profile cleanup warning:', deleteProfileError.message);
+  } else {
+    console.log(`[DELETE-ACCOUNT] ✅ Deleted profile row for user: ${userId}`);
+  }
+
+  // Step 4: Clean up database records
+  console.log(`[DELETE-ACCOUNT] STEP 4: Cleaning up database records...`);
   const cleanupTargets = [
     { table: "works", column: "user_id" },
     { table: "likes", column: "user_id" },
     { table: "saves", column: "user_id" },
-    { table: "profiles", column: "id" },
   ];
 
   for (const target of cleanupTargets) {
@@ -86,7 +135,6 @@ export async function deleteAccountForUser(userId: string): Promise<void> {
         `[DELETE-ACCOUNT] ❌ Error deleting ${target.table}:`,
         error
       );
-      // Don't throw here - we already deleted the auth user, so just log the issue
       console.warn(`[DELETE-ACCOUNT] ⚠️  Continuing despite ${target.table} deletion issue`);
     } else {
       console.log(`[DELETE-ACCOUNT] ✅ Deleted ${target.table} for user: ${userId}`);

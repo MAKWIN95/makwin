@@ -100,22 +100,20 @@ export default function Register() {
 
       setCheckingUsername(true);
       try {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('username')
-          .eq('username', form.username.toLowerCase())
-          .single();
+        const response = await fetch('/api/check-username-availability', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: form.username }),
+        });
 
-        if (data) {
+        const payload = await response.json().catch(() => ({ available: true, cleaned: false }));
+        if (!response.ok || payload.available === false) {
           setUsernameError(es ? 'Este @ ya está en uso' : 'This username is taken');
         } else {
           setUsernameError('');
         }
       } catch (err: any) {
-        // If error is 406, it means no row found, which is good
-        if (err.status !== 406) {
-          console.error('[Register] Error checking username:', err);
-        }
+        console.error('[Register] Error checking username:', err);
         setUsernameError('');
       }
       setCheckingUsername(false);

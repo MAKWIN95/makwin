@@ -30,6 +30,7 @@ export default function Header({ showSearch = true, showSearchCentered = false, 
   const location = useLocation();
   const { isDark, toggleTheme } = useTheme();
   const { toggleSidebar } = useSidebar();
+  const MUSIC_FEATURE_ENABLED = false;
 
   const handleMakwinClick = () => navigate('/');
   const handleGoHome = () => navigate('/');
@@ -134,22 +135,24 @@ export default function Header({ showSearch = true, showSearchCentered = false, 
               <LanguageSelector />
             </div>
 
-            <Dialog>
-              <DialogTrigger asChild>
-                <button id="music-btn" className="text-xs font-light text-[hsl(var(--muted-foreground))] tracking-widest uppercase hover:text-[hsl(var(--foreground))] transition-colors whitespace-nowrap hidden sm:block">
-                  Music
-                </button>
-              </DialogTrigger>
-              <DialogContent className="dialog-enter sm:max-w-[920px] w-[92%] flex items-center justify-center">
-                <iframe
-                  style={{ borderRadius: "12px" }}
-                  src="https://open.spotify.com/embed/artist/4VdvO63ngN1eiPqzuXcTUJ?utm_source=generator&theme=0"
-                  width="100%" height="352" frameBorder="0" allowFullScreen
-                  allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-                  loading="lazy"
-                />
-              </DialogContent>
-            </Dialog>
+            {MUSIC_FEATURE_ENABLED && (
+              <Dialog>
+                <DialogTrigger asChild>
+                  <button id="music-btn" className="text-xs font-light text-[hsl(var(--muted-foreground))] tracking-widest uppercase hover:text-[hsl(var(--foreground))] transition-colors whitespace-nowrap hidden sm:block">
+                    Music
+                  </button>
+                </DialogTrigger>
+                <DialogContent className="dialog-enter sm:max-w-[920px] w-[92%] flex items-center justify-center">
+                  <iframe
+                    style={{ borderRadius: "12px" }}
+                    src="https://open.spotify.com/embed/artist/4VdvO63ngN1eiPqzuXcTUJ?utm_source=generator&theme=0"
+                    width="100%" height="352" frameBorder="0" allowFullScreen
+                    allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+                    loading="lazy"
+                  />
+                </DialogContent>
+              </Dialog>
+            )}
 
             {/* Upload shortcut */}
             {user && (
@@ -165,7 +168,7 @@ export default function Header({ showSearch = true, showSearchCentered = false, 
                   onClick={() => setShowUserMenu(p => !p)}
                   className="flex items-center gap-2 p-1 rounded-full hover:bg-[hsl(var(--muted))] transition-colors"
                 >
-                  <div className="w-8 h-8 rounded-full overflow-hidden bg-[hsl(var(--muted))] border border-[rgba(120,120,120,0.25)] flex items-center justify-center text-sm font-medium">
+                  <div className="w-8 h-8 rounded-xl overflow-hidden bg-[hsl(var(--muted))] border border-[rgba(120,120,120,0.25)] flex items-center justify-center text-sm font-medium">
                     {profile?.avatar_url
                       ? <img src={profile.avatar_url} alt={profile.display_name ?? ''} className="w-full h-full object-cover" />
                       : <span>{(profile?.display_name ?? profile?.username ?? 'U').charAt(0).toUpperCase()}</span>

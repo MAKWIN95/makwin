@@ -272,7 +272,7 @@ export default function UserProfile() {
 
           {/* Avatar */}
           <div className="relative shrink-0">
-            <div className="w-24 h-24 rounded-full overflow-hidden bg-[hsl(var(--muted))] border-2 border-[hsl(var(--border))]">
+            <div className="w-24 h-24 rounded-2xl overflow-hidden bg-[hsl(var(--muted))] border-2 border-[hsl(var(--border))]">
               {profile.avatar_url
                 ? <img src={profile.avatar_url} alt={profile.display_name ?? profile.username} className="w-full h-full object-cover" />
                 : <div className="w-full h-full flex items-center justify-center text-3xl font-light text-[hsl(var(--muted-foreground))]">

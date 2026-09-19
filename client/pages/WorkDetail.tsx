@@ -342,7 +342,7 @@ export default function WorkDetail() {
               <div className="border-t border-b border-[rgba(120,120,120,0.25)] py-4">
                 <div className="flex items-center justify-between gap-4">
                   <Link to={`/u/${author.username}`} className="flex items-center gap-3 hover:opacity-70 transition-opacity duration-250 flex-1 min-w-0">
-                    <div className="w-12 h-12 rounded-full overflow-hidden bg-[hsl(var(--muted))] flex-shrink-0">
+                    <div className="w-12 h-12 rounded-xl overflow-hidden bg-[hsl(var(--muted))] flex-shrink-0">
                       {author.avatar_url ? (
                         <img src={author.avatar_url} alt={author.display_name} className="w-full h-full object-cover" />
                       ) : (

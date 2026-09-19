@@ -41,6 +41,42 @@ create trigger on_auth_user_created
   after insert on auth.users
   for each row execute procedure public.handle_new_user();
 
+create or replace function public.cleanup_stale_profile_on_auth_delete()
+returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  delete from public.profiles where id = old.id;
+  return old;
+end;
+$$;
+
+drop trigger if exists on_auth_user_deleted on auth.users;
+create trigger on_auth_user_deleted
+  after delete on auth.users
+  for each row execute procedure public.cleanup_stale_profile_on_auth_delete();
+
+create or replace function public.prune_orphaned_profiles_for_username(p_username text)
+returns boolean language plpgsql security definer set search_path = public as $$
+declare
+  v_profile record;
+begin
+  select * into v_profile
+  from public.profiles
+  where username = lower(trim(p_username))
+  limit 1;
+
+  if v_profile is null then
+    return true;
+  end if;
+
+  if exists (select 1 from auth.users where id = v_profile.id) then
+    return false;
+  end if;
+
+  delete from public.profiles where id = v_profile.id;
+  return true;
+end;
+$$;
+
 -- ─── WORKS ────────────────────────────────────────────────────────────────────
 create table if not exists works (
   id            uuid primary key default gen_random_uuid(),

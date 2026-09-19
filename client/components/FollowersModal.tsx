@@ -123,7 +123,7 @@ export default function FollowersModal({ isOpen, onClose, userId, type, userName
             {users.map(profile => (
               <div key={profile.id} className="flex items-center gap-3 p-3 hover:bg-[hsl(var(--muted))] rounded transition-colors">
                 <Link to={`/u/${profile.username}`} onClick={onClose} className="flex-1 flex items-center gap-3 min-w-0">
-                  <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0 bg-[hsl(var(--muted))]">
+                  <div className="w-10 h-10 rounded-xl overflow-hidden flex-shrink-0 bg-[hsl(var(--muted))]">
                     {profile.avatar_url ? (
                       <img src={profile.avatar_url} alt={profile.username} className="w-full h-full object-cover" />
                     ) : (
