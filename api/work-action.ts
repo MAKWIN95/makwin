@@ -1,5 +1,5 @@
 import { VercelRequest, VercelResponse } from "@vercel/node";
-import { Redis } from "@upstash/redis";
+import { redis } from "../server/lib/redis";
 
 interface PublishedWork {
   submissionId: string;
@@ -17,18 +17,10 @@ interface PublishedWork {
 
 type WorkAction = "publish" | "reject" | "archive" | "delete" | "republish";
 
-function getRedisClient() {
-  return new Redis({
-    url: process.env.UPSTASH_REDIS_REST_URL || "",
-    token: process.env.UPSTASH_REDIS_REST_TOKEN || "",
-  });
-}
-
 async function publishSubmission(
   submissionId: string
-): Promise<{ success: boolean; work?: PublishedWork; error?: string }> {
+): Promise<{ success: boolean; work?: PublishedWork; error?: string; serviceUnavailable?: boolean }> {
   try {
-    const redis = getRedisClient();
     const data = await redis.get(submissionId);
 
     if (!data) {
@@ -48,7 +40,7 @@ async function publishSubmission(
     return { success: true, work: publishedWork };
   } catch (error: any) {
     console.error("[PUBLISH] ❌ Error:", error.message);
-    return { success: false, error: error.message };
+    return { success: false, error: "Servicio temporalmente no disponible", serviceUnavailable: true };
   }
 }
 
@@ -227,8 +219,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return;
     }
 
-    const redis = getRedisClient();
-
     if (action === "delete") {
       await redis.del(submissionId);
       console.log(`[DELETE] ✅ Obra eliminada: ${submissionId}`);
@@ -311,7 +301,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const publishResult = await publishSubmission(submissionId);
     if (!publishResult.success) {
-      res.status(400).json({ error: publishResult.error });
+      res.status(publishResult.serviceUnavailable ? 503 : 400).json({ error: publishResult.error });
       return;
     }
 
@@ -324,9 +314,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     });
   } catch (error: any) {
     console.error("[WORK_ACTION] Error:", error.message);
-    res.status(500).json({
-      error: "Error al procesar la acción",
-      details: error.message,
-    });
+    res.status(503).json({ error: "Servicio temporalmente no disponible" });
   }
 }

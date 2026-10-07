@@ -1,5 +1,5 @@
 import { VercelRequest, VercelResponse } from "@vercel/node";
-import { Redis } from "@upstash/redis";
+import { redis } from "../server/lib/redis";
 
 function generateSubmissionId(): string {
   const year = new Date().getFullYear();
@@ -227,15 +227,11 @@ export default async function handler(
 
     // Guardar en Upstash Redis (persistencia real)
     try {
-      const redis = new Redis({
-        url: process.env.UPSTASH_REDIS_REST_URL || "",
-        token: process.env.UPSTASH_REDIS_REST_TOKEN || "",
-      });
-
       await redis.set(submissionId, JSON.stringify(submission));
       console.log(`[SUBMIT] ✅ Envío guardado en Upstash: ${submissionId}`);
     } catch (e: any) {
-      console.error('[SUBMIT] ⚠️ Error al guardar en Upstash:', e?.message || e);
+      console.error('[SUBMIT] Error al guardar en Upstash:', e?.name || 'Redis error');
+      return res.status(503).json({ error: 'No se pudo guardar el envío. Inténtalo de nuevo.' });
     }
 
     // Enviar email de confirmación al artista
@@ -252,10 +248,7 @@ export default async function handler(
     });
   } catch (error: any) {
     console.error("[API] Error:", error.message);
-    res.status(500).json({
-      error: "Error al enviar la obra",
-      details: error.message,
-    });
+    res.status(500).json({ error: "No se pudo procesar el envío" });
   }
 }
 

@@ -1,5 +1,5 @@
 import { VercelRequest, VercelResponse } from "@vercel/node";
-import { Redis } from "@upstash/redis";
+import { redis } from "../server/lib/redis";
 
 export default async function handler(
   req: VercelRequest,
@@ -28,13 +28,8 @@ export default async function handler(
   }
 
   try {
-    const redis = new Redis({
-      url: process.env.UPSTASH_REDIS_REST_URL || "",
-      token: process.env.UPSTASH_REDIS_REST_TOKEN || "",
-    });
-
-    // Obtener todas las claves que empiezan con "2025-"
-    const keys = await redis.keys("2025-*");
+    const keys = (await redis.keys("*-obra-*"))
+      .filter((key) => /^\d{4}-obra-\d+$/.test(key));
     console.log(`[GET-SUBMISSIONS] Found ${keys.length} submissions`);
 
     if (!keys || keys.length === 0) {
@@ -69,11 +64,7 @@ export default async function handler(
 
     res.status(200).json({ submissions });
   } catch (error: any) {
-    console.error("[API] Error al leer Redis:", error?.message || error);
-    res.status(200).json({
-      submissions: [],
-      warning: "REDIS_NOT_AVAILABLE",
-      details: error?.message || String(error),
-    });
+    console.error("[API] Error al leer Redis:", error?.name || "Redis error");
+    res.status(503).json({ error: "Servicio temporalmente no disponible" });
   }
 }
