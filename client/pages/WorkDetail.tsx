@@ -166,7 +166,9 @@ export default function WorkDetail() {
         console.log('[WorkDetail] Work loaded:', workData.id);
         setWork(workData as unknown as Work);
         // Update context with like count
-        worksContext.updateLikeCount(workData.id, workData.like_count || 0);
+        const authoritativeLikeCount = workData.like_count || 0;
+        if (!user) worksContext.clearInteractions();
+        worksContext.updateLikeCount(workData.id, authoritativeLikeCount);
 
         // ISSUE 1 FIX: Fetch profile SEPARATELY in a second query
         const { data: profileData, error: profileError } = await supabase
@@ -184,7 +186,11 @@ export default function WorkDetail() {
 
         // Check if user liked/saved this work (load into context)
         if (user && workData.id) {
-          await worksContext.loadUserInteractions([workData.id], user.id);
+          await worksContext.loadUserInteractions(
+            [workData.id],
+            user.id,
+            { [workData.id]: authoritativeLikeCount }
+          );
         }
       } catch (err: any) {
         console.error('[WorkDetail] Error:', err);

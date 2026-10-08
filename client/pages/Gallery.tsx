@@ -89,10 +89,16 @@ export default function Gallery() {
         saved_by_me: item.saved_by_me || false,
       })) as Work[];
 
-      // Update context with counts from RPC
+      const authoritativeLikeCounts = Object.fromEntries(
+        fetched.map(work => [work.id, work.like_count || 0])
+      );
+      if (!user) worksContext.clearInteractions();
+      worksContext.syncLikeCounts(authoritativeLikeCounts);
+
+      // Load per-user state separately. Global counts come from works.like_count.
       if (user && fetched.length > 0 && pageNum === 0) {
         const workIds = fetched.map(w => w.id);
-        await worksContext.loadUserInteractions(workIds, user.id);
+        await worksContext.loadUserInteractions(workIds, user.id, authoritativeLikeCounts);
       }
 
       // THEN update gallery state after context is ready
@@ -106,7 +112,7 @@ export default function Gallery() {
       setLoadingMore(false);
       setTimeout(() => setShowItems(true), 100);
     }
-  }, [user?.id]);
+  }, [user?.id, worksContext.clearInteractions, worksContext.syncLikeCounts, worksContext.loadUserInteractions]);
 
   useEffect(() => { fetchWorks(0, true); }, [fetchWorks]);
 

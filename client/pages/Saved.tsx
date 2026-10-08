@@ -22,17 +22,28 @@ export default function Saved() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!user) {
+      setWorks([]);
+      setLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    const userId = user.id;
+
     const load = async () => {
       setLoading(true);
       try {
         // Get saved works with full details
-        const { data: savesData } = await supabase
+        const { data: savesData, error: savesError } = await supabase
           .from('saves')
           .select('work_id')
-          .eq('user_id', user.id)
+          .eq('user_id', userId)
           .order('created_at', { ascending: false });
 
-        if (!savesData || savesData.length === 0) {
+        if (savesError) throw savesError;
+
+        if (cancelled || !savesData || savesData.length === 0) {
           setWorks([]);
           setLoading(false);
           return;
@@ -41,7 +52,7 @@ export default function Saved() {
         const workIds = savesData.map(s => s.work_id);
 
         // Get works with profiles and counts
-        const { data: worksData } = await supabase
+        const { data: worksData, error: worksError } = await supabase
           .from('works')
           .select(`
             id,
@@ -60,17 +71,29 @@ export default function Saved() {
             view_count,
             language,
             created_at,
-            updated_at,
-            profiles!user_id(id, username, display_name, avatar_url, bio, website, instagram_url, tiktok_url, is_verified, is_banned)
+            updated_at
           `)
           .in('id', workIds)
           .order('created_at', { ascending: false });
 
-        if (!worksData || worksData.length === 0) {
+        if (worksError) throw worksError;
+
+        if (cancelled || !worksData || worksData.length === 0) {
           setWorks([]);
           setLoading(false);
           return;
         }
+
+        const authorIds = [...new Set(worksData.map((work: any) => work.user_id))];
+        const { data: profilesData, error: profilesError } = await supabase
+          .from('profiles')
+          .select('id, username, display_name, avatar_url, bio, website, instagram_url, tiktok_url, is_verified, is_banned')
+          .in('id', authorIds);
+
+        if (profilesError) {
+          console.warn('[Saved] Profiles could not be loaded; showing saved works without profile metadata:', profilesError);
+        }
+        const profilesById = new Map((profilesData || []).map(profile => [profile.id, profile]));
 
         // Transform data and load interactions into context
         const transformed = worksData.map((work: any) => ({
@@ -91,16 +114,21 @@ export default function Saved() {
           language: work.language,
           created_at: work.created_at,
           updated_at: work.updated_at,
-          profiles: work.profiles,
+          profiles: profilesById.get(work.user_id),
           liked_by_me: false,
           saved_by_me: true,
         })) as Work[];
 
+        if (cancelled) return;
         setWorks(transformed);
 
         // Load interactions into context
         if (transformed.length > 0) {
-          await worksContext.loadUserInteractions(transformed.map(w => w.id), user.id);
+          await worksContext.loadUserInteractions(
+            transformed.map(w => w.id),
+            userId,
+            Object.fromEntries(transformed.map(work => [work.id, work.like_count || 0]))
+          );
         }
       } catch (err) {
         console.error('[Saved] Error loading saved works:', err);
@@ -111,7 +139,10 @@ export default function Saved() {
     };
 
     load();
-  }, [user.id]);
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id, worksContext.loadUserInteractions]);
 
   const handleSaveToggle = (workId: string, saved: boolean) => {
     // Optimistic update: remove from local state when unsaved

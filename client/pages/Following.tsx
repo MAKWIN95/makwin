@@ -8,12 +8,14 @@ import WorkCard from '@/components/WorkCard';
 import { Loader2, Heart } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
 import { useStarsBackground } from '@/hooks/use-stars-background';
+import { useWorks } from '@/lib/WorksContext';
 
 const PAGE_SIZE = 40;
 
 export default function Following() {
   useRequireAuth();
   const { user } = useAuth();
+  const worksContext = useWorks();
   const { language: currentLang, t } = useI18n();
   const [works, setWorks] = useState<Work[]>([]);
   const [page, setPage] = useState(0);
@@ -106,6 +108,12 @@ export default function Following() {
         liked_by_me: likedWorkIds.has(work.id),
         saved_by_me: savedWorkIds.has(work.id),
       })) as Work[];
+      worksContext.syncLikeCounts(Object.fromEntries(fetched.map(work => [work.id, work.like_count || 0])));
+      await worksContext.loadUserInteractions(
+        fetched.map(work => work.id),
+        user.id,
+        Object.fromEntries(fetched.map(work => [work.id, work.like_count || 0]))
+      );
       setWorks(prev => replace ? fetched : [...prev, ...fetched]);
       setHasMore(fetched.length === PAGE_SIZE);
       setPage(pageNum);
@@ -116,7 +124,7 @@ export default function Following() {
       setLoadingMore(false);
       setTimeout(() => setShowItems(true), 100);
     }
-  }, [user]);
+  }, [user, worksContext.loadUserInteractions, worksContext.syncLikeCounts]);
 
   useEffect(() => {
     fetchFollowingFeed(0, true);

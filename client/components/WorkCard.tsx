@@ -78,8 +78,8 @@ export default function WorkCard({ work, onLikeToggle, onSaveToggle, isOwnProfil
     setLikeAnimating(true);
     setTimeout(() => setLikeAnimating(false), 400);
 
-    await worksContext.toggleLike(work.id, user.id);
-    onLikeToggle?.(work.id, worksContext.isLiked(work.id));
+    const result = await worksContext.toggleLike(work.id, user.id);
+    onLikeToggle?.(work.id, result.liked);
   };
 
   const handleSave = async (e: React.MouseEvent) => {
@@ -95,8 +95,8 @@ export default function WorkCard({ work, onLikeToggle, onSaveToggle, isOwnProfil
       return;
     }
 
-    await worksContext.toggleSave(work.id, user.id);
-    onSaveToggle?.(work.id, worksContext.isSaved(work.id));
+    const saved = await worksContext.toggleSave(work.id, user.id);
+    onSaveToggle?.(work.id, saved);
   };
 
   const handleReport = (e: React.MouseEvent) => {
