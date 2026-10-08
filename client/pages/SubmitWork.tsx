@@ -12,19 +12,18 @@ import { Switch } from '@/components/ui/switch';
 import { useI18n } from '@/lib/i18n';
 import { normalizeHashtags } from '@/lib/utils';
 
-const workTypes = [
-  { value: 'pintura', label: 'Pintura' },
-  { value: 'fotografia', label: 'Fotografía' },
-  { value: 'poema', label: 'Poema' },
-  { value: 'cancion', label: 'Canción' },
-];
-
 const typesWithoutImage = ['poema', 'cancion', 'texto'];
 
 export default function SubmitWork() {
   console.log('[SubmitWork] ✅ Component loaded - v1.0.13 [timestamp:', new Date().toISOString(), ']');
   const { t, language } = useI18n();
   const es = language === 'es';
+  const workTypes = [
+    { value: 'pintura', label: es ? 'Pintura' : 'Painting' },
+    { value: 'fotografia', label: es ? 'Fotografía' : 'Photography' },
+    { value: 'poema', label: es ? 'Poema' : 'Poem' },
+    { value: 'cancion', label: es ? 'Canción' : 'Song' },
+  ];
   const navigate = useNavigate();
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
@@ -95,12 +94,14 @@ export default function SubmitWork() {
 
       if (!formData.artistName || !formData.email || !formData.workType || !formData.title || !formData.description) {
         const missing = [];
-        if (!formData.artistName) missing.push('artistName');
-        if (!formData.email) missing.push('email');
-        if (!formData.workType) missing.push('workType');
-        if (!formData.title) missing.push('title');
-        if (!formData.description) missing.push('description');
-        const errorMsg = `Por favor completa todos los campos (faltan: ${missing.join(', ')})`;
+        if (!formData.artistName) missing.push(es ? 'nombre del artista' : 'artist name');
+        if (!formData.email) missing.push(es ? 'correo electrónico' : 'email');
+        if (!formData.workType) missing.push(es ? 'tipo de obra' : 'work type');
+        if (!formData.title) missing.push(es ? 'título' : 'title');
+        if (!formData.description) missing.push(es ? 'descripción' : 'description');
+        const errorMsg = es
+          ? `Completa todos los campos obligatorios. Faltan: ${missing.join(', ')}.`
+          : `Complete all required fields. Missing: ${missing.join(', ')}.`;
         console.error('[SubmitWork] Validation failed:', errorMsg);
         setError(errorMsg);
         setLoading(false);
@@ -115,7 +116,7 @@ export default function SubmitWork() {
 
       // If song, ensure lyrics provided
       if (formData.workType === 'cancion' && !formData.lyrics) {
-        setError('Por favor incluye la letra de la canción');
+        setError(es ? 'Añade la letra de la canción.' : 'Please add the song lyrics.');
         setLoading(false);
         return;
       }
@@ -123,7 +124,7 @@ export default function SubmitWork() {
       // Si tiene portada habilitada, validar que la imagen esté presente
       const isNonImageWork = typesWithoutImage.includes(formData.workType);
       if (isNonImageWork && formData.addCover && !formData.coverImage) {
-        setError('Por favor sube una imagen para la portada');
+        setError(es ? 'Sube una imagen para la portada.' : 'Please upload a cover image.');
         setLoading(false);
         return;
       }
@@ -131,7 +132,9 @@ export default function SubmitWork() {
       // Validaciones por tipo de archivo
       const isImageWork = ['pintura', 'fotografia'].includes(formData.workType);
       if (isImageWork && !formData.file) {
-        const errorMsg = 'Para pinturas y fotografías es obligatorio subir un archivo';
+        const errorMsg = es
+          ? 'Debes subir un archivo para pinturas y fotografías.'
+          : 'You must upload a file for paintings and photographs.';
         console.error('[SubmitWork] File validation failed:', errorMsg);
         setError(errorMsg);
         setLoading(false);
@@ -145,7 +148,9 @@ export default function SubmitWork() {
           // permitir solo audio
           const allowed = ft.startsWith('audio/') || name.endsWith('.mp3') || name.endsWith('.wav') || name.endsWith('.flac');
           if (!allowed) {
-            setError('Para canciones solo se permiten archivos de audio (mp3, wav, flac)');
+            setError(es
+              ? 'Para canciones solo se permiten archivos de audio (MP3, WAV o FLAC).'
+              : 'Songs only support audio files (MP3, WAV, or FLAC).');
             setLoading(false);
             return;
           }
@@ -153,7 +158,9 @@ export default function SubmitWork() {
         if (formData.workType === 'pintura' || formData.workType === 'fotografia') {
           const allowed = ft.startsWith('image/') || name.match(/\.(jpg|jpeg|png|gif|webp)$/);
           if (!allowed) {
-            setError('Para pinturas y fotografías solo se permiten imágenes');
+            setError(es
+              ? 'Para pinturas y fotografías solo se permiten imágenes.'
+              : 'Paintings and photographs only support image files.');
             setLoading(false);
             return;
           }
@@ -171,7 +178,9 @@ export default function SubmitWork() {
         console.log('Cloudinary config:', { cloudName, uploadPreset });
         
         if (!cloudName || !uploadPreset) {
-          setError('Error: Variables de Cloudinary no configuradas. Contacta al administrador.');
+          setError(es
+            ? 'La carga de archivos no está disponible. Contacta con el equipo de soporte.'
+            : 'File uploads are currently unavailable. Please contact support.');
           setLoading(false);
           return;
         }
@@ -184,7 +193,7 @@ export default function SubmitWork() {
         });
         const cloudinaryResult = await res.json();
         if (!res.ok || !cloudinaryResult.secure_url) {
-          setError('Error al subir el archivo a Cloudinary: ' + (cloudinaryResult.error?.message || 'Error desconocido'));
+          setError(es ? 'No se pudo subir el archivo. Inténtalo de nuevo.' : 'The file could not be uploaded. Please try again.');
           setLoading(false);
           return;
         }
@@ -205,7 +214,7 @@ export default function SubmitWork() {
         });
         const cloudinaryResult = await res.json();
         if (!res.ok || !cloudinaryResult.secure_url) {
-          setError('Error al subir la portada a Cloudinary');
+          setError(es ? 'No se pudo subir la portada. Inténtalo de nuevo.' : 'The cover image could not be uploaded. Please try again.');
           setLoading(false);
           return;
         }
@@ -241,17 +250,15 @@ export default function SubmitWork() {
         body: JSON.stringify(payload),
       });
 
-      const data = await response.json();
-
       if (!response.ok) {
-        throw new Error(data.error || 'Error al enviar la obra');
+        throw new Error(es ? 'No se pudo enviar la obra. Inténtalo de nuevo.' : 'The work could not be submitted. Please try again.');
       }
 
       // IMPORTANTE: Guardar en Supabase PRIMERO (de forma síncrona) para que aparezca en la galería
       const workId = `${new Date().getFullYear()}-obra-${Math.floor(Math.random() * 10000)}`;
       
       if (!user) {
-        throw new Error('Usuario no autenticado');
+        throw new Error(es ? 'Inicia sesión para enviar una obra.' : 'Please sign in to submit a work.');
       }
 
       console.log('[SubmitWork] Inserting work:', { workId, userId: user.id, title: formData.title });
@@ -279,7 +286,7 @@ export default function SubmitWork() {
 
       if (insertError) {
         console.error('[SubmitWork] Error saving to Supabase:', insertError);
-        setError(`Error guardando en galería: ${insertError.message}`);
+        setError(es ? 'No se pudo guardar la obra en la galería.' : 'The work could not be saved to the gallery.');
         setLoading(false);
         return;
       }
@@ -307,7 +314,9 @@ export default function SubmitWork() {
         navigate('/galeria?newWork=true');
       }, 500);
     } catch (err) {
-      const errorMsg = err instanceof Error ? err.message : 'Error desconocido al enviar la obra';
+      const errorMsg = es
+        ? 'No se pudo enviar la obra. Inténtalo de nuevo.'
+        : 'The work could not be submitted. Please try again.';
       setError(errorMsg);
       console.error('Error:', err);
     } finally {
@@ -324,14 +333,16 @@ export default function SubmitWork() {
             <div className="mb-8">
               <div className="flex items-center gap-3 mb-4">
                 <h1 className="text-3xl sm:text-4xl font-light tracking-tight text-[hsl(var(--foreground))]">
-                  Enviar obra
+                  {es ? 'Enviar obra' : 'Submit a work'}
                 </h1>
                 <span className="inline-block px-2 py-1 text-xs font-mono bg-green-500/10 border border-green-500/30 text-green-600 rounded">
                   v1.0.13 ✓
                 </span>
               </div>
               <p className="text-sm text-[hsl(var(--muted-foreground))]">
-                Comparte tu obra con nuestra comunidad de artistas emergentes
+                {es
+                  ? 'Comparte tu obra con nuestra comunidad de artistas emergentes.'
+                  : 'Share your work with our community of emerging artists.'}
               </p>
             </div>
 

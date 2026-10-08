@@ -88,10 +88,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  const isGoogleSession = useCallback((currentSession: Session | null) => {
+    const pendingOAuthFlow = isGoogleOAuthFlow();
+    const appMetadata = currentSession?.user?.app_metadata;
+    const provider = appMetadata?.provider;
+    const providers = Array.isArray(appMetadata?.providers) ? appMetadata.providers : [];
+
+    if (provider === 'google' || providers.includes('google')) return true;
+    // Do not let a stale OAuth marker classify an explicitly email-authenticated
+    // session as Google. The marker is only a fallback for missing provider data.
+    if (provider === 'email' || providers.includes('email')) return false;
+    return pendingOAuthFlow;
+  }, [isGoogleOAuthFlow]);
+
   const isProfileCompleteForSession = useCallback((session: Session | null, profileData: any) => {
     if (!profileData) return false;
 
-    const googleUser = isGoogleOAuthFlow();
+    const googleUser = isGoogleSession(session);
 
     // For Google sessions the profile is only complete after the user finishes onboarding explicitly.
     // The DB trigger may create a row and populate username/display_name/avatar_url automatically,
@@ -103,7 +116,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const usernameExists = !!(profileData.username && String(profileData.username).trim().length > 0);
     const displayNameExists = !!(profileData.display_name && String(profileData.display_name).trim().length > 0);
     return usernameExists && displayNameExists;
-  }, [isGoogleOAuthFlow]);
+  }, [isGoogleSession]);
 
   const refreshProfile = useCallback(async () => {
     if (!user) return;
@@ -114,6 +127,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       if (typeof window !== 'undefined') {
         window.sessionStorage.removeItem('makwin-onboarding-incomplete');
+        window.sessionStorage.removeItem(googleOAuthPendingKey);
       }
     } catch (err) {
       console.warn('[AuthContext] Error clearing sessionStorage:', err);
@@ -170,7 +184,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (!isLatest()) return;
 
-      const isGoogleUser = isGoogleOAuthFlow();
+      const isGoogleUser = isGoogleSession(session);
 
       if (!error && data) {
         const profileComplete = isProfileCompleteForSession(session, data);
@@ -206,16 +220,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // A profile read failure is not proof of an incomplete account. Keep
       // the valid Auth session and let profile-specific screens retry.
     }
-  }, [clearOnboardingState, isGoogleOAuthFlow, isProfileCompleteForSession, setIncompleteGoogleState]);
+  }, [clearOnboardingState, isGoogleSession, isProfileCompleteForSession, setIncompleteGoogleState]);
 
   useEffect(() => {
     let isMounted = true;
     let authEventReceived = false;
-    // Safety valve only releases the splash; it never clears a session. The
-    // Auth event subscription remains active and can hydrate late restoration.
-    const bootstrapFallback = window.setTimeout(() => {
-      if (isMounted) setLoading(false);
-    }, 8000);
 
     // Subscribe first so a sign-in/sign-out during getSession cannot be lost.
     // Defer async profile work outside Supabase's auth callback/lock.
@@ -223,7 +232,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (!isMounted) return;
       authEventReceived = true;
       authEventSequenceRef.current += 1;
-      window.clearTimeout(bootstrapFallback);
       queueMicrotask(() => {
         if (!isMounted) return;
         const hydration = handleSession(nextSession);
@@ -240,7 +248,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const { data: { session }, error } = await supabase.auth.getSession();
         if (error) throw error;
         if (!isMounted || sequenceAtStart !== authEventSequenceRef.current) return;
-        window.clearTimeout(bootstrapFallback);
         const hydration = handleSession(session);
         // Authentication is known from Supabase now; do not make profile I/O
         // hold the whole application behind its auth splash.
@@ -257,7 +264,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     return () => {
       isMounted = false;
-      window.clearTimeout(bootstrapFallback);
       subscription?.unsubscribe();
     };
   }, [handleSession]);

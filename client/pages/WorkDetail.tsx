@@ -104,7 +104,7 @@ export default function WorkDetail() {
       console.log('[WorkDetail] initialWorkData:', initialWorkData);
       
       if (!id) {
-        setError('No work ID provided');
+        setError(currentLang === 'es' ? 'No se ha indicado una obra.' : 'No work was specified.');
         setLoading(false);
         return;
       }
@@ -159,7 +159,7 @@ export default function WorkDetail() {
             return;
           }
           
-          setError('Obra no encontrada');
+          setError(currentLang === 'es' ? 'No se ha encontrado la obra.' : 'Work not found.');
           setLoading(false);
           return;
         }
@@ -193,7 +193,7 @@ export default function WorkDetail() {
         }
       } catch (err: any) {
         console.error('[WorkDetail] Error:', err);
-        setError(err?.message || 'Error al cargar la obra');
+        setError(currentLang === 'es' ? 'No se pudo cargar la obra. Inténtalo de nuevo.' : 'The work could not be loaded. Please try again.');
       } finally {
         setLoading(false);
       }
