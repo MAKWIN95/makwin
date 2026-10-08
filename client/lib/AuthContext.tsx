@@ -47,15 +47,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  // Update language preference when profile updates
+  // Prefer the established profile setting, and use Auth metadata as the
+  // persisted fallback for deployments where profiles has no language column.
   useEffect(() => {
-    if (profile?.language_preference) {
-      localStorage.setItem('language', profile.language_preference);
+    const profileLanguage = profile?.language_preference;
+    const metadataLanguage = user?.user_metadata?.language_preference;
+    const preferredLanguage = profileLanguage === 'en' || profileLanguage === 'es'
+      ? profileLanguage
+      : metadataLanguage === 'en' || metadataLanguage === 'es'
+        ? metadataLanguage
+        : null;
+
+    if (preferredLanguage) {
+      localStorage.setItem('language', preferredLanguage);
       document.dispatchEvent(new CustomEvent('profileLanguageLoaded', {
-        detail: { language: profile.language_preference }
+        detail: { language: preferredLanguage }
       }));
     }
-  }, [profile?.language_preference]);
+  }, [profile?.language_preference, user?.user_metadata?.language_preference]);
 
   const isGoogleOAuthFlow = useCallback(() => {
     try {

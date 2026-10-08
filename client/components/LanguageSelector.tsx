@@ -1,4 +1,3 @@
-import { useEffect } from 'react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,17 +14,36 @@ export default function LanguageSelector() {
   const { user, profile } = useAuth();
 
   const handleLanguageChange = async (newLang: 'es' | 'en') => {
+    const previousLanguage = language;
     setLanguage(newLang);
-    
-    // Save to Supabase if logged in
-    if (user && profile) {
+
+    if (user) {
       try {
-        await supabase
-          .from('profiles')
-          .update({ language_preference: newLang })
-          .eq('id', user.id);
+        // Keep the existing profile preference when that column exists, but do not
+        // issue a PostgREST update against deployments whose schema lacks it.
+        if (profile && Object.prototype.hasOwnProperty.call(profile, 'language_preference')) {
+          const { error: profileError } = await supabase
+            .from('profiles')
+            .update({ language_preference: newLang })
+            .eq('id', user.id);
+
+          if (profileError) throw profileError;
+        }
+
+        // Supabase Auth templates receive user_metadata as .Data. Persist the
+        // selected locale there so notification templates use the same choice.
+        const { error: authError } = await supabase.auth.updateUser({
+          data: {
+            ...user.user_metadata,
+            language_preference: newLang,
+          },
+        });
+
+        if (authError) throw authError;
       } catch (err) {
         console.error('[LanguageSelector] Error saving language preference:', err);
+        setLanguage(previousLanguage);
+        return;
       }
     }
 
