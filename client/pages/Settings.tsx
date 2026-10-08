@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/lib/AuthContext';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { AlertCircle, CheckCircle2, Loader2, LogOut, Trash2, X } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { getPasswordPolicyError, getPasswordStrengthScore } from '@/lib/passwordPolicy';
+import { getPasswordUpdateErrorMessage } from '@/lib/passwordUpdateError';
 
 export default function Settings() {
   useRequireAuth();
@@ -20,6 +21,7 @@ export default function Settings() {
   const [passwordLoading, setPasswordLoading] = useState(false);
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [passwordSuccess, setPasswordSuccess] = useState<string | null>(null);
+  const passwordUpdateInFlightRef = useRef(false);
   const passwordPolicyError = getPasswordPolicyError(newPassword);
   const passwordStrength = getPasswordStrengthScore(newPassword);
   
@@ -46,6 +48,7 @@ export default function Settings() {
 
   const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (passwordUpdateInFlightRef.current) return;
     setPasswordError(null);
     setPasswordSuccess(null);
 
@@ -64,21 +67,23 @@ export default function Settings() {
       return;
     }
 
+    passwordUpdateInFlightRef.current = true;
     setPasswordLoading(true);
 
     try {
       const { error } = await supabase.auth.updateUser({ password: newPassword });
 
       if (error) {
-        setPasswordError(error.message);
+        setPasswordError(getPasswordUpdateErrorMessage(error));
       } else {
         setPasswordSuccess('Contraseña actualizada correctamente.');
         setNewPassword('');
         setConfirmPassword('');
       }
     } catch (err: any) {
-      setPasswordError(err?.message || 'Error al cambiar la contraseña.');
+      setPasswordError(getPasswordUpdateErrorMessage(err));
     } finally {
+      passwordUpdateInFlightRef.current = false;
       setPasswordLoading(false);
     }
   };
