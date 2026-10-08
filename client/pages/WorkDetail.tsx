@@ -419,7 +419,7 @@ export default function WorkDetail() {
 
         {work.lyrics && work.work_type === 'cancion' && (
           <div className="mt-12 bg-[hsl(var(--card))] border border-[hsl(var(--border))] rounded-lg p-6">
-            <h2 className="text-xl font-semibold text-[hsl(var(--foreground))] mb-4">Letras</h2>
+            <h2 className="text-xl font-semibold text-[hsl(var(--foreground))] mb-4">{currentLang === 'es' ? 'Letra' : 'Lyrics'}</h2>
             <p className="text-[hsl(var(--muted-foreground))] whitespace-pre-wrap">{work.lyrics}</p>
           </div>
         )}

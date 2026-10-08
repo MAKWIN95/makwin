@@ -4,8 +4,11 @@ import Footer from '@/components/Footer';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 import { useStarsBackground } from '@/hooks/use-stars-background';
+import { useI18n } from '@/lib/i18n';
 
 export default function Marketplace() {
+  const { language } = useI18n();
+  const es = language === 'es';
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showFilters, setShowFilters] = useState(false);
@@ -55,13 +58,13 @@ export default function Marketplace() {
         <div className="max-w-6xl mx-auto">
           <div className="flex justify-between items-center mb-8">
             <div>
-              <h1 className="text-4xl font-light mb-4">MAKWIN Marketplace</h1>
-              <p className="text-sm text-[hsl(var(--muted-foreground))]">Piezas disponibles para compra. Contacta con el artista para cerrar la operación.</p>
+              <h1 className="text-4xl font-light mb-4">MakwinPlace</h1>
+              <p className="text-sm text-[hsl(var(--muted-foreground))]">{es ? 'Piezas disponibles para comprar. Contacta con el artista para cerrar la operación.' : 'Works available to purchase. Contact the artist to complete the transaction.'}</p>
             </div>
             <button
               onClick={() => setShowFilters(!showFilters)}
               className="p-2 rounded border border-[hsl(var(--border))] hover:bg-[hsl(var(--muted))] transition-colors"
-              title="Filtros"
+              title={es ? 'Filtros' : 'Filters'}
             >
               ⊙
             </button>
@@ -75,20 +78,20 @@ export default function Marketplace() {
                 onChange={(e) => setFilters({ ...filters, workType: e.target.value })}
                 className="w-full md:w-48 px-2 py-2 border border-[hsl(var(--border))] rounded bg-[hsl(var(--input))] text-sm focus:outline-none focus:ring-0"
               >
-                <option value="">Todos los tipos</option>
-                <option value="pintura">Pintura</option>
-                <option value="fotografia">Fotografía</option>
-                <option value="poema">Poema</option>
-                <option value="cancion">Canción</option>
-                <option value="video">Video</option>
+                <option value="">{es ? 'Todos los tipos' : 'All types'}</option>
+                <option value="pintura">{es ? 'Pintura' : 'Painting'}</option>
+                <option value="fotografia">{es ? 'Fotografía' : 'Photography'}</option>
+                <option value="poema">{es ? 'Poema' : 'Poem'}</option>
+                <option value="cancion">{es ? 'Canción' : 'Song'}</option>
+                <option value="video">{es ? 'Vídeo' : 'Video'}</option>
               </select>
             </div>
           )}
 
           {loading ? (
-            <div className="py-12 text-center">Cargando...</div>
+            <div className="py-12 text-center">{es ? 'Cargando...' : 'Loading...'}</div>
           ) : items.length === 0 ? (
-            <div className="py-12 text-center text-[hsl(var(--muted-foreground))]">No hay obras en venta ahora mismo.</div>
+            <div className="py-12 text-center text-[hsl(var(--muted-foreground))]">{es ? 'No hay obras en venta ahora mismo.' : 'There are no works for sale right now.'}</div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {items
@@ -107,8 +110,8 @@ export default function Marketplace() {
                     <p className="text-xs text-[hsl(var(--muted-foreground))]">{item.artistName}</p>
                     <p className="text-sm font-semibold mt-2">€{item.price}</p>
                     <div className="mt-4 flex gap-2">
-                      <a href={`mailto:${item.email}?subject=Interesado en ${encodeURIComponent(item.title)}`} className="btn">Contactar</a>
-                      <Link to={`/work/${item.submissionId}`} className="btn">Ver</Link>
+                      <a href={`mailto:${item.email}?subject=${encodeURIComponent(es ? `Interesado en ${item.title}` : `Interested in ${item.title}`)}`} className="btn">{es ? 'Contactar' : 'Contact'}</a>
+                      <Link to={`/work/${item.submissionId}`} className="btn">{es ? 'Ver' : 'View'}</Link>
                     </div>
                   </div>
                 </article>

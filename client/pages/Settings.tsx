@@ -17,6 +17,7 @@ export default function Settings() {
   const navigate = useNavigate();
   const { user, signOut, resetPassword } = useAuth();
   const { language } = useI18n();
+  const es = language === 'es';
   
   // Password change state
   const [newPassword, setNewPassword] = useState('');
@@ -56,7 +57,7 @@ export default function Settings() {
     setPasswordSuccess(null);
 
     if (!newPassword || !confirmPassword) {
-      setPasswordError('Los campos de nueva contraseña son requeridos.');
+      setPasswordError(es ? 'Los campos de nueva contraseña son obligatorios.' : 'New password fields are required.');
       return;
     }
 
@@ -66,7 +67,7 @@ export default function Settings() {
     }
 
     if (newPassword !== confirmPassword) {
-      setPasswordError('Las contraseñas no coinciden.');
+      setPasswordError(es ? 'Las contraseñas no coinciden.' : 'Passwords do not match.');
       return;
     }
 
@@ -82,7 +83,7 @@ export default function Settings() {
       if (error) {
         setPasswordError(getPasswordUpdateErrorMessage(error));
       } else {
-        setPasswordSuccess('Contraseña actualizada correctamente.');
+        setPasswordSuccess(es ? 'Contraseña actualizada correctamente.' : 'Password updated successfully.');
         setNewPassword('');
         setConfirmPassword('');
       }
@@ -104,13 +105,13 @@ export default function Settings() {
       const { error } = await resetPassword(user.email);
 
       if (error) {
-        alert('Error: ' + error);
+        alert((es ? 'Error: ' : 'Error: ') + error);
       } else {
         setEmailSuccess(true);
         setTimeout(() => setEmailSuccess(false), 3000);
       }
     } catch (err: any) {
-      alert(err?.message || 'Error al enviar email.');
+        alert(err?.message || (es ? 'Error al enviar el correo.' : 'Unable to send the email.'));
     } finally {
       setEmailLoading(false);
     }
@@ -124,7 +125,7 @@ export default function Settings() {
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
       
       if (sessionError || !session?.access_token) {
-        alert('Error: No hay sesión activa. Intenta iniciar sesión de nuevo.');
+        alert(es ? 'Error: No hay una sesión activa. Inicia sesión de nuevo.' : 'Error: No active session. Please sign in again.');
         setDeleteLoading(false);
         return;
       }
@@ -140,7 +141,7 @@ export default function Settings() {
 
       if (!deleteResponse.ok) {
         const errorData = await deleteResponse.json();
-        alert('Error: ' + (errorData.error || 'No se pudo eliminar la cuenta'));
+        alert('Error: ' + (errorData.error || (es ? 'No se pudo eliminar la cuenta.' : 'Could not delete the account.')));
         setDeleteLoading(false);
         return;
       }
@@ -167,7 +168,7 @@ export default function Settings() {
       navigate('/');
     } catch (err: any) {
       console.error('[Settings] Error deleting account:', err);
-      alert(err?.message || 'Error al eliminar cuenta. Intenta más tarde.');
+      alert(err?.message || (es ? 'Error al eliminar la cuenta. Inténtalo más tarde.' : 'Could not delete the account. Please try again later.'));
       setDeleteLoading(false);
     }
   };
@@ -183,13 +184,13 @@ export default function Settings() {
 
       <div className="w-full max-w-2xl mx-auto px-4 py-12 page-enter">
         <h1 className="text-3xl font-bold text-[hsl(var(--foreground))] mb-8">
-          Configuración de Cuenta
+          {es ? 'Configuración de cuenta' : 'Account settings'}
         </h1>
 
         {/* Email Info */}
         <div className="bg-[hsl(var(--card))] border border-[hsl(var(--border))] rounded-lg p-6 mb-8">
           <h2 className="text-lg font-semibold text-[hsl(var(--foreground))] mb-4">
-            Email
+            {es ? 'Correo electrónico' : 'Email'}
           </h2>
           <p className="text-[hsl(var(--muted-foreground))] break-all">{user?.email}</p>
         </div>
@@ -197,7 +198,7 @@ export default function Settings() {
         {/* Change Password */}
         <div className="bg-[hsl(var(--card))] border border-[hsl(var(--border))] rounded-lg p-6 mb-8">
           <h2 className="text-lg font-semibold text-[hsl(var(--foreground))] mb-4">
-            Cambiar Contraseña
+            {es ? 'Cambiar contraseña' : 'Change password'}
           </h2>
 
           {/* Error/Success for password change - positioned right below title */}
@@ -218,46 +219,46 @@ export default function Settings() {
           <form onSubmit={handleChangePassword} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-[hsl(var(--foreground))] mb-2">
-                Nueva Contraseña
+                {es ? 'Nueva contraseña' : 'New password'}
               </label>
               <Input
                 type="password"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
-                placeholder="Mínimo 8 caracteres, sin espacios"
+                placeholder={es ? 'Mínimo 8 caracteres, sin espacios' : 'At least 8 characters, no spaces'}
                 disabled={passwordLoading}
               />
               <div className="mt-3 flex items-center gap-2">
                 <div className="h-2 flex-1 overflow-hidden rounded-full bg-[hsl(var(--muted))]">
                   <div className={`h-full rounded-full transition-all ${passwordStrength <= 1 ? 'bg-red-500' : passwordStrength === 2 ? 'bg-yellow-400' : 'bg-emerald-400'}`} style={{ width: `${(passwordStrength / 4) * 100}%` }} />
                 </div>
-                <span className="text-[10px] uppercase tracking-[0.12em] text-[hsl(var(--muted-foreground))]">{passwordStrength <= 1 ? 'Débil' : passwordStrength === 2 ? 'Media' : 'Fuerte'}</span>
+                <span className="text-[10px] uppercase tracking-[0.12em] text-[hsl(var(--muted-foreground))]">{passwordStrength <= 1 ? (es ? 'Débil' : 'Weak') : passwordStrength === 2 ? (es ? 'Media' : 'Fair') : (es ? 'Fuerte' : 'Strong')}</span>
               </div>
-              <p className={`mt-2 text-xs ${passwordPolicyError ? 'text-amber-500' : 'text-[hsl(var(--muted-foreground))]'}`}>{passwordPolicyError || 'Mínimo 8 caracteres y sin espacios.'}</p>
+              <p className={`mt-2 text-xs ${passwordPolicyError ? 'text-amber-500' : 'text-[hsl(var(--muted-foreground))]'}`}>{passwordPolicyError || (es ? 'Mínimo 8 caracteres y sin espacios.' : 'At least 8 characters and no spaces.')}</p>
             </div>
 
             <div>
               <label className="block text-sm font-medium text-[hsl(var(--foreground))] mb-2">
-                Confirmar Contraseña
+                {es ? 'Confirmar contraseña' : 'Confirm password'}
               </label>
               <Input
                 type="password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="Confirma la nueva contraseña"
+                placeholder={es ? 'Confirma la nueva contraseña' : 'Confirm your new password'}
                 disabled={passwordLoading}
               />
-              {confirmPassword && newPassword !== confirmPassword && <p className="mt-2 text-xs text-red-500">Las contraseñas no coinciden.</p>}
+              {confirmPassword && newPassword !== confirmPassword && <p className="mt-2 text-xs text-red-500">{es ? 'Las contraseñas no coinciden.' : 'Passwords do not match.'}</p>}
             </div>
 
             <Button type="submit" disabled={passwordLoading || !!passwordPolicyError || !newPassword || !confirmPassword || newPassword !== confirmPassword} className="w-full transition-all duration-200 hover:scale-[1.02] hover:shadow-lg active:scale-[0.98]">
               {passwordLoading ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Actualizando...
+                  {es ? 'Actualizando...' : 'Updating...'}
                 </>
               ) : (
-                'Cambiar Contraseña'
+                es ? 'Cambiar contraseña' : 'Change password'
               )}
             </Button>
           </form>
@@ -266,16 +267,16 @@ export default function Settings() {
         {/* Reset via Email */}
         <div className="bg-[hsl(var(--card))] border border-[hsl(var(--border))] rounded-lg p-6 mb-8">
           <h2 className="text-lg font-semibold text-[hsl(var(--foreground))] mb-4">
-            Resetear vía Email
+            {es ? 'Restablecer por correo' : 'Reset via email'}
           </h2>
           <p className="text-sm text-[hsl(var(--muted-foreground))] mb-4">
-            Recibe un link por email para resetear tu contraseña
+            {es ? 'Recibe un enlace por correo para restablecer tu contraseña' : 'Receive an email link to reset your password'}
           </p>
 
           {emailSuccess && (
             <div className="flex items-center gap-3 p-3 bg-green-500/10 border border-green-500/20 rounded-lg mb-4">
               <CheckCircle2 className="w-4 h-4 text-green-500 shrink-0" />
-              <p className="text-xs text-green-500">Email de reseteo enviado. Revisa tu bandeja.</p>
+              <p className="text-xs text-green-500">{es ? 'Correo de restablecimiento enviado. Revisa tu bandeja.' : 'Password reset email sent. Check your inbox.'}</p>
             </div>
           )}
 
@@ -288,10 +289,10 @@ export default function Settings() {
             {emailLoading ? (
               <>
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Enviando...
+                {es ? 'Enviando...' : 'Sending...'}
               </>
             ) : (
-              'Enviar Email de Reset'
+              es ? 'Enviar correo de restablecimiento' : 'Send password reset email'
             )}
           </Button>
         </div>
@@ -308,7 +309,7 @@ export default function Settings() {
             className="w-full transition-all duration-200 hover:scale-[1.02] hover:shadow-lg active:scale-[0.98]"
           >
             <LogOut className="w-4 h-4 mr-2" />
-            Cerrar Sesión
+            {es ? 'Cerrar sesión' : 'Sign out'}
           </Button>
         </div>
 
@@ -316,11 +317,11 @@ export default function Settings() {
         <div className="bg-red-500/5 border border-red-500/20 rounded-lg p-6">
           <h2 className="text-lg font-semibold text-red-500 mb-4 flex items-center gap-2">
             <Trash2 className="w-5 h-5" />
-            Zona de Peligro
+            {es ? 'Zona de peligro' : 'Danger zone'}
           </h2>
 
           <p className="text-sm text-[hsl(var(--muted-foreground))] mb-4">
-            Eliminar tu cuenta es IRREVERSIBLE. Se borrarán todos tus datos, obras y historial.
+            {es ? 'Eliminar tu cuenta es IRREVERSIBLE. Se borrarán todos tus datos, obras e historial.' : 'Deleting your account is IRREVERSIBLE. All your data, works, and history will be deleted.'}
           </p>
 
           <Button
@@ -331,7 +332,7 @@ export default function Settings() {
             variant="destructive"
             className="w-full transition-all duration-200 hover:scale-[1.02] hover:shadow-lg active:scale-[0.98]"
           >
-            Eliminar Cuenta
+            {es ? 'Eliminar cuenta' : 'Delete account'}
           </Button>
         </div>
       </div>
@@ -350,24 +351,24 @@ export default function Settings() {
 
             {/* Title */}
             <h3 className="text-xl font-bold text-red-500 mb-3">
-              Eliminar Cuenta
+              {es ? 'Eliminar cuenta' : 'Delete account'}
             </h3>
 
             {/* Warning text */}
             <p className="text-sm text-[hsl(var(--muted-foreground))] mb-6">
-              Esta acción es <strong>IRREVERSIBLE</strong>. Se eliminarán permanentemente:
+              {es ? <>Esta acción es <strong>IRREVERSIBLE</strong>. Se eliminarán permanentemente:</> : <>This action is <strong>IRREVERSIBLE</strong>. The following will be permanently deleted:</>}
             </p>
 
             <ul className="text-xs text-[hsl(var(--muted-foreground))] space-y-1 mb-6 pl-4">
-              <li>✗ Tu perfil de usuario</li>
-              <li>✗ Todas tus obras publicadas</li>
-              <li>✗ Tu historial completo</li>
-              <li>✗ Todos tus datos personales</li>
+              <li>✗ {es ? 'Tu perfil de usuario' : 'Your user profile'}</li>
+              <li>✗ {es ? 'Todas tus obras publicadas' : 'All your published works'}</li>
+              <li>✗ {es ? 'Tu historial completo' : 'Your complete history'}</li>
+              <li>✗ {es ? 'Todos tus datos personales' : 'All your personal data'}</li>
             </ul>
 
             {/* Countdown */}
             <p className="text-sm font-semibold text-[hsl(var(--foreground))] mb-6">
-              Podrás eliminar la cuenta en:{' '}
+              {es ? 'Podrás eliminar la cuenta en:' : 'You can delete your account in:'}{' '}
               <span className="text-red-500">{deleteCountdown}s</span>
             </p>
 
@@ -379,7 +380,7 @@ export default function Settings() {
                 className="flex-1"
                 disabled={deleteLoading}
               >
-                Cancelar
+                {es ? 'Cancelar' : 'Cancel'}
               </Button>
 
               <Button
@@ -391,10 +392,10 @@ export default function Settings() {
                 {deleteLoading ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Eliminando...
+                    {es ? 'Eliminando...' : 'Deleting...'}
                   </>
                 ) : (
-                  'Eliminar Cuenta'
+                  es ? 'Eliminar cuenta' : 'Delete account'
                 )}
               </Button>
             </div>

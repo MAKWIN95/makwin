@@ -24,6 +24,7 @@ const typesWithoutImage = ['poema', 'cancion', 'texto'];
 export default function SubmitWork() {
   console.log('[SubmitWork] ✅ Component loaded - v1.0.13 [timestamp:', new Date().toISOString(), ']');
   const { t, language } = useI18n();
+  const es = language === 'es';
   const navigate = useNavigate();
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
@@ -347,14 +348,14 @@ export default function SubmitWork() {
               {/* Artist Name */}
               <div className="space-y-2">
                 <label className="text-sm font-medium text-[hsl(var(--foreground))]">
-                  Nombre del artista
+                  {es ? 'Nombre del artista' : 'Artist name'}
                 </label>
                 <Input
                   type="text"
                   name="artistName"
                   value={formData.artistName}
                   onChange={handleChange}
-                  placeholder="Tu nombre"
+                  placeholder={es ? 'Tu nombre' : 'Your name'}
                   className="bg-[hsl(var(--input))] border border-[hsl(var(--border))] text-[hsl(var(--foreground))] placeholder:text-[hsl(var(--muted-foreground))]"
                 />
               </div>
@@ -362,27 +363,27 @@ export default function SubmitWork() {
               {/* Email */}
               <div className="space-y-2">
                 <label className="text-sm font-medium text-[hsl(var(--foreground))]">
-                  Email
+                  {es ? 'Correo electrónico' : 'Email'}
                 </label>
                 <Input
                   type="email"
                   name="email"
                   value={formData.email}
                   onChange={handleChange}
-                  placeholder="tu@email.com"
+                  placeholder="you@email.com"
                   className="bg-[hsl(var(--input))] border border-[hsl(var(--border))] text-[hsl(var(--foreground))] placeholder:text-[hsl(var(--muted-foreground))]"
                 />
-                  <p className="text-xs text-[hsl(var(--muted-foreground))] mt-1">El correo que facilites será publicado junto a tu obra para que otras personas puedan contactarte. También usaremos este correo para avisarte si tu obra es aceptada o denegada.</p>
+                  <p className="text-xs text-[hsl(var(--muted-foreground))] mt-1">{es ? 'El correo que facilites se publicará junto a tu obra para que otras personas puedan contactarte. También lo usaremos para informarte si aceptamos o rechazamos tu obra.' : 'The email you provide will be published with your work so others can contact you. We will also use it to let you know whether your work is accepted or declined.'}</p>
               </div>
 
               {/* Work Type */}
               <div className="space-y-2">
                 <label className="text-sm font-medium text-[hsl(var(--foreground))]">
-                  Tipo de obra
+                  {es ? 'Tipo de obra' : 'Work type'}
                 </label>
                 <Select value={formData.workType} onValueChange={handleSelectChange}>
                   <SelectTrigger className="bg-[hsl(var(--input))] border border-[hsl(var(--border))] text-[hsl(var(--foreground))]">
-                    <SelectValue placeholder="Selecciona un tipo" />
+                    <SelectValue placeholder={es ? 'Selecciona un tipo' : 'Select a type'} />
                   </SelectTrigger>
                   <SelectContent className="bg-[hsl(var(--popover))] border border-[hsl(var(--border))]">
                     {workTypes.map(type => (
@@ -400,10 +401,10 @@ export default function SubmitWork() {
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
                       <label className="text-sm font-medium text-[hsl(var(--foreground))] cursor-pointer">
-                        Añadir portada
+                        {es ? 'Añadir portada' : 'Add a cover'}
                       </label>
                       <p className="text-xs text-[hsl(var(--muted-foreground))] mt-1">
-                        Sube una imagen como portada para dar más visibilidad a tu obra en el feed principal
+                        {es ? 'Añade una imagen de portada para destacar tu obra en la galería.' : 'Add a cover image to feature your work in the main feed.'}
                       </p>
                     </div>
                     <Switch
@@ -417,7 +418,7 @@ export default function SubmitWork() {
                   {formData.addCover && (
                     <div className="mt-4 pt-4 border-t border-[hsl(var(--border))]">
                       <label className="text-sm font-medium text-[hsl(var(--foreground))] block mb-2">
-                        Imagen de portada
+                        {es ? 'Imagen de portada' : 'Cover image'}
                       </label>
                       <input
                         type="file"
@@ -427,11 +428,11 @@ export default function SubmitWork() {
                       />
                       {formData.coverImage && (
                         <p className="text-xs text-[hsl(var(--muted-foreground))] mt-2">
-                          Portada seleccionada: {formData.coverImage.name}
+                          {es ? 'Portada seleccionada:' : 'Selected cover:'} {formData.coverImage.name}
                         </p>
                       )}
                       <p className="text-xs text-[hsl(var(--muted-foreground))] mt-2">
-                        La imagen debe ser cuadrada (se recortará para adaptarse)
+                        {es ? 'La imagen debe ser cuadrada; se recortará para ajustarla.' : 'The image should be square; it will be cropped to fit.'}
                       </p>
                     </div>
                   )}
@@ -441,14 +442,14 @@ export default function SubmitWork() {
               {/* Title */}
               <div className="space-y-2">
                 <label className="text-sm font-medium text-[hsl(var(--foreground))]">
-                  Título de la obra
+                  {es ? 'Título de la obra' : 'Work title'}
                 </label>
                 <Input
                   type="text"
                   name="title"
                   value={formData.title}
                   onChange={handleChange}
-                  placeholder="Título"
+                  placeholder={es ? 'Título' : 'Title'}
                   className="bg-[hsl(var(--input))] border border-[hsl(var(--border))] text-[hsl(var(--foreground))] placeholder:text-[hsl(var(--muted-foreground))]"
                 />
               </div>
@@ -456,13 +457,13 @@ export default function SubmitWork() {
               {/* Description */}
               <div className="space-y-2">
                 <label className="text-sm font-medium text-[hsl(var(--foreground))]">
-                  Descripción
+                  {es ? 'Descripción' : 'Description'}
                 </label>
                 <Textarea
                   name="description"
                   value={formData.description}
                   onChange={handleChange}
-                  placeholder="Describe tu obra..."
+                  placeholder={es ? 'Describe tu obra...' : 'Describe your work...'}
                   rows={5}
                   className="bg-[hsl(var(--input))] border border-[hsl(var(--border))] text-[hsl(var(--foreground))] placeholder:text-[hsl(var(--muted-foreground))] resize-none"
                 />
@@ -471,12 +472,12 @@ export default function SubmitWork() {
               {/* Lyrics (only for songs) */}
               {formData.workType === 'cancion' && (
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-[hsl(var(--foreground))]">Letra de la canción</label>
+                  <label className="text-sm font-medium text-[hsl(var(--foreground))]">{es ? 'Letra de la canción' : 'Song lyrics'}</label>
                   <Textarea
                     name="lyrics"
                     value={formData.lyrics}
                     onChange={handleChange}
-                    placeholder="Pega la letra aquí..."
+                    placeholder={es ? 'Pega la letra aquí...' : 'Paste the lyrics here...'}
                     rows={6}
                     className="bg-[hsl(var(--input))] border border-[hsl(var(--border))] text-[hsl(var(--foreground))] placeholder:text-[hsl(var(--muted-foreground))] resize-none"
                   />
@@ -494,19 +495,19 @@ export default function SubmitWork() {
                   placeholder="#paisaje, #poesia, #blues"
                   className="bg-[hsl(var(--input))] border border-[hsl(var(--border))] text-[hsl(var(--foreground))] placeholder:text-[hsl(var(--muted-foreground))]"
                 />
-                <p className="text-xs text-[hsl(var(--muted-foreground))] mt-1">Escribe hashtags separados por comas o espacios. Ej: #poesia #amor</p>
+                <p className="text-xs text-[hsl(var(--muted-foreground))] mt-1">{es ? 'Separa los hashtags con comas o espacios. Ej.: #poesia #amor' : 'Separate hashtags with commas or spaces. E.g. #poetry #love'}</p>
               </div>
 
               {/* Marketplace options */}
               <div className="space-y-2">
-                <label className="text-sm font-medium text-[hsl(var(--foreground))]">¿Publicar también en MakwinPlace?</label>
+                <label className="text-sm font-medium text-[hsl(var(--foreground))]">{es ? '¿Publicar también en MakwinPlace?' : 'Also list this work on MakwinPlace?'}</label>
                 <div className="flex items-center gap-3">
                   <input type="checkbox" name="isForSale" checked={formData.isForSale} onChange={handleCheckboxChange} />
-                  <span className="text-xs text-[hsl(var(--muted-foreground))]">Marcar para vender la obra en MakwinPlace</span>
+                  <span className="text-xs text-[hsl(var(--muted-foreground))]">{es ? 'Marcar para vender la obra en MakwinPlace' : 'List this work for sale on MakwinPlace'}</span>
                 </div>
                 {formData.isForSale && (
                   <div className="mt-2">
-                    <label className="text-sm font-medium text-[hsl(var(--foreground))]">Precio (€)</label>
+                    <label className="text-sm font-medium text-[hsl(var(--foreground))]">{es ? 'Precio (€)' : 'Price (€)'}</label>
                     <Input type="number" name="price" value={formData.price} onChange={handleChange} placeholder="0" className="bg-[hsl(var(--input))] border border-[hsl(var(--border))]" />
                   </div>
                 )}
@@ -515,7 +516,7 @@ export default function SubmitWork() {
               {/* File Upload */}
               <div className="space-y-2">
                 <label className="text-sm font-medium text-[hsl(var(--foreground))]">
-                  Archivo (imagen, documento, audio, etc.)
+                  {es ? 'Archivo (imagen, documento, audio, etc.)' : 'File (image, document, audio, etc.)'}
                 </label>
                 <input
                   type="file"
@@ -525,7 +526,7 @@ export default function SubmitWork() {
                 />
                 {formData.file && (
                   <p className="text-xs text-[hsl(var(--muted-foreground))]">
-                    Archivo seleccionado: {formData.file.name}
+                    {es ? 'Archivo seleccionado:' : 'Selected file:'} {formData.file.name}
                   </p>
                 )}
               </div>
@@ -538,7 +539,7 @@ export default function SubmitWork() {
                   onClick={() => console.log('[SubmitWork] Button clicked! User:', user?.id, 'Loading:', loading)}
                   className="w-full bg-black text-white hover:bg-black/90 transition-colors duration-200 active:scale-95"
                 >
-                  {loading ? 'Enviando...' : 'Enviar obra'}
+                  {loading ? (es ? 'Enviando...' : 'Submitting...') : (es ? 'Enviar obra' : 'Submit work')}
                 </Button>
               </div>
             </form>

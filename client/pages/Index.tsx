@@ -205,16 +205,16 @@ export default function Index() {
           {filteredAndSorted.length === 0 && debouncedSearch ? (
             <div className="w-full py-16 text-center">
               <p className="text-[hsl(var(--muted-foreground))] text-lg mb-4">
-                No hay resultados para <span className="font-semibold text-[hsl(var(--foreground))]">"{debouncedSearch}"</span>
+                {currentLang === 'es' ? 'No hay resultados para' : 'No results for'} <span className="font-semibold text-[hsl(var(--foreground))]">"{debouncedSearch}"</span>
               </p>
               <p className="text-sm text-[hsl(var(--muted-foreground))]">
-                Intenta con otro término de búsqueda
+                {currentLang === 'es' ? 'Intenta con otro término de búsqueda' : 'Try another search term'}
               </p>
               <button
                 onClick={() => { setSearchTerm(''); setDebouncedSearch(''); }}
                 className="mt-4 px-4 py-2 border border-[hsl(var(--border))] rounded-lg text-sm hover:bg-[hsl(var(--muted))] transition-colors"
               >
-                Limpiar búsqueda
+                {currentLang === 'es' ? 'Limpiar búsqueda' : 'Clear search'}
               </button>
             </div>
           ) : (
@@ -312,4 +312,3 @@ function getWorkGradient(workType: string): string {
   if (type.includes('poesia') || type.includes('poema') || type.includes('texto')) return 'from-pink-600 to-pink-900';
   return 'from-gray-600 to-gray-800';
 }
-

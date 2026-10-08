@@ -2,9 +2,12 @@ import React, { useEffect } from 'react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { Link } from 'react-router-dom';
+import { useI18n } from '@/lib/i18n';
 import { useStarsBackground } from '@/hooks/use-stars-background';
 
 export default function Merch() {
+  const { language } = useI18n();
+  const es = language === 'es';
   // Initialize stars background
   useStarsBackground('merch-stars-background');
 
@@ -26,8 +29,8 @@ export default function Merch() {
         <Header showSearchCentered={true} hideSearch={true} />
         <main className="px-4 sm:px-8 py-12 page-enter">
           <div className="max-w-6xl mx-auto">
-            <h1 className="text-4xl font-light mb-4">MAKWIN Merch</h1>
-            <p className="text-sm text-[hsl(var(--muted-foreground))] mb-8">Colección minimalista de ropa MAKWIN — placeholder.</p>
+            <h1 className="text-4xl font-light mb-4">{es ? 'Tienda MAKWIN' : 'MAKWIN Merch'}</h1>
+            <p className="text-sm text-[hsl(var(--muted-foreground))] mb-8">{es ? 'Colección minimalista de ropa de MAKWIN — próximamente.' : 'A minimal MAKWIN apparel collection — coming soon.'}</p>
 
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-6">
               {dummy.map(p => (
@@ -39,8 +42,8 @@ export default function Merch() {
                     <h3 className="text-sm font-medium">{p.name}</h3>
                     <p className="text-xs text-[hsl(var(--muted-foreground))]">€{p.price}</p>
                     <div className="mt-4 flex gap-2">
-                      <Link to="#" className="btn">Ver</Link>
-                      <Link to="#" className="btn">Comprar</Link>
+                      <Link to="#" className="btn">{es ? 'Ver' : 'View'}</Link>
+                      <Link to="#" className="btn">{es ? 'Comprar' : 'Buy'}</Link>
                     </div>
                   </div>
                 </article>

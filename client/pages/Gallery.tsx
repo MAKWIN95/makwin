@@ -302,7 +302,7 @@ export default function Gallery() {
               <div className="columns-2 sm:columns-3 lg:columns-4 xl:columns-5 2xl:columns-6 gap-4" style={{ columnFill: 'balance' }}>
                 {filtered.map((item: any) => (
                   <div key={item.id}
-                    className={`inline-block w-full mb-4 break-inside-avoid transition-all duration-300 ${showItems ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}`}>
+                    className={`inline-block w-full mb-4 break-inside-avoid transition-opacity duration-300 ${showItems ? 'opacity-100' : 'opacity-0'}`}>
                     <WorkCard work={item as Work} />
                   </div>
                 ))}

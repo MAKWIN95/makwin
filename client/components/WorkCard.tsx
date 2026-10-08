@@ -127,13 +127,13 @@ export default function WorkCard({ work, onLikeToggle, onSaveToggle, isOwnProfil
     <>
     <Link to={linkPath} state={{ from: 'gallery' }} className="group block">
       {/* Image/Media area */}
-      <div className="relative overflow-hidden rounded-2xl glass-effect transition-all duration-300 ease-out transform will-change-transform group-hover:scale-[1.02] group-hover:shadow-xl bg-[hsl(var(--muted))]">
+      <div className="relative overflow-hidden rounded-2xl glass-effect transition-shadow duration-300 ease-out group-hover:shadow-xl bg-[hsl(var(--muted))]">
 
         {/* Save button — top right */}
         <button
           onClick={handleSave}
           className="absolute top-2 right-2 z-10 w-7 h-7 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:bg-black/60"
-          aria-label="Guardar"
+          aria-label={currentLang === 'es' ? 'Guardar' : 'Save'}
         >
           <Bookmark
             className={`w-3.5 h-3.5 transition-all duration-200 ${saved ? 'fill-white stroke-white' : 'stroke-white'}`}
@@ -177,7 +177,7 @@ export default function WorkCard({ work, onLikeToggle, onSaveToggle, isOwnProfil
               @{work.profiles.username}
             </Link>
           ) : (
-            <span className="text-xs text-[hsl(var(--muted-foreground))]">Usuario no encontrado</span>
+            <span className="text-xs text-[hsl(var(--muted-foreground))]">{currentLang === 'es' ? 'Usuario no encontrado' : 'User not found'}</span>
           )}
           <span className="text-xs text-[hsl(var(--muted-foreground))]">{formatDate(work.created_at)}</span>
         </div>
@@ -217,7 +217,7 @@ export default function WorkCard({ work, onLikeToggle, onSaveToggle, isOwnProfil
               onClick={handleLike}
               disabled={isPendingLike}
               className={`flex items-center gap-1 text-xs transition-all duration-200 ease-out ${liked ? 'text-rose-500' : 'text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))]'} ${isPendingLike ? 'opacity-50' : ''}`}
-              aria-label="Me gusta"
+              aria-label={currentLang === 'es' ? 'Me gusta' : 'Like'}
             >
               <Heart
                 className={`w-3.5 h-3.5 transition-all duration-200 ${likeAnimating ? 'scale-125' : 'scale-100'} ${liked ? 'fill-current stroke-current' : ''}`}

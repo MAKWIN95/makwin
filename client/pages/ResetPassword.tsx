@@ -13,6 +13,7 @@ export default function ResetPassword() {
   const navigate = useNavigate();
   const { user, resetPassword } = useAuth();
   const { t, language } = useI18n();
+  const es = language === 'es';
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -66,17 +67,17 @@ export default function ResetPassword() {
 
     // Validations
     if (!newPassword || !confirmPassword) {
-      setError('Ambos campos son requeridos.');
+      setError(es ? 'Ambos campos son obligatorios.' : 'Both fields are required.');
       return;
     }
 
     if (newPassword.length < 6) {
-      setError('La contraseña debe tener al menos 6 caracteres.');
+      setError(es ? 'La contraseña debe tener al menos 8 caracteres.' : 'Password must be at least 8 characters.');
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      setError('Las contraseñas no coinciden.');
+      setError(es ? 'Las contraseñas no coinciden.' : 'Passwords do not match.');
       return;
     }
 
@@ -101,7 +102,7 @@ export default function ResetPassword() {
         }, 2000);
       }
     } catch (err: any) {
-      setError(err?.message || 'Error al resetear la contraseña.');
+      setError(err?.message || (es ? 'Error al restablecer la contraseña.' : 'Unable to reset the password.'));
     } finally {
       setLoading(false);
     }
@@ -117,10 +118,10 @@ export default function ResetPassword() {
       if (error) {
         alert('Error: ' + error);
       } else {
-        alert('Email de reseteo enviado. Revisa tu bandeja.');
+        alert(es ? 'Correo de restablecimiento enviado. Revisa tu bandeja.' : 'Password reset email sent. Check your inbox.');
       }
     } catch (err: any) {
-      alert(err?.message || 'Error al enviar email.');
+      alert(err?.message || (es ? 'Error al enviar el correo.' : 'Unable to send the email.'));
     } finally {
       setSendingReset(false);
     }
@@ -132,7 +133,7 @@ export default function ResetPassword() {
         <Header hideSearch />
         <div className="w-full max-w-md mx-auto px-4 py-16 text-center">
           <Loader2 className="mx-auto mb-4 h-8 w-8 animate-spin text-[hsl(var(--foreground))]" />
-          <p className="text-sm text-[hsl(var(--muted-foreground))]">Validando enlace de reseteo…</p>
+          <p className="text-sm text-[hsl(var(--muted-foreground))]">{es ? 'Validando el enlace de restablecimiento…' : 'Validating reset link…'}</p>
         </div>
       </div>
     );
@@ -145,10 +146,10 @@ export default function ResetPassword() {
       <div className="w-full max-w-md mx-auto px-4 py-16">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-[hsl(var(--foreground))] mb-2">
-            Resetear Contraseña
+            {es ? 'Restablecer contraseña' : 'Reset password'}
           </h1>
           <p className="text-[hsl(var(--muted-foreground))]">
-            {linkExpired ? 'El enlace ha expirado' : 'Ingresa tu nueva contraseña'}
+            {linkExpired ? (es ? 'El enlace ha caducado' : 'This link has expired') : (es ? 'Introduce tu nueva contraseña' : 'Enter your new password')}
           </p>
         </div>
 
@@ -158,19 +159,19 @@ export default function ResetPassword() {
             <div className="flex items-center gap-3 p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
               <AlertCircle className="w-5 h-5 text-yellow-500 shrink-0" />
               <p className="text-sm text-yellow-500">
-                Este enlace ya ha sido usado o ha expirado. Los enlaces son de un solo uso y expiran en 24 horas.
+                {es ? 'Este enlace ya se ha usado o ha caducado. Los enlaces son de un solo uso y caducan en 24 horas.' : 'This link has already been used or has expired. Links can only be used once and expire after 24 hours.'}
               </p>
             </div>
 
             <p className="text-center text-sm text-[hsl(var(--muted-foreground))]">
-              Solicita un nuevo enlace de reseteo en tu página de login.
+              {es ? 'Solicita un nuevo enlace de restablecimiento desde la página de inicio de sesión.' : 'Request a new reset link from the sign-in page.'}
             </p>
 
             <Button
               onClick={() => navigate('/login')}
               className="w-full"
             >
-              Ir a Login
+              {es ? 'Ir a inicio de sesión' : 'Go to sign in'}
             </Button>
 
             {user?.email && (
@@ -181,7 +182,7 @@ export default function ResetPassword() {
                   </div>
                   <div className="relative flex justify-center text-xs uppercase">
                     <span className="bg-[hsl(var(--background))] px-2 text-[hsl(var(--muted-foreground))]">
-                      O
+                      {es ? 'O' : 'OR'}
                     </span>
                   </div>
                 </div>
@@ -195,12 +196,12 @@ export default function ResetPassword() {
                   {sendingReset ? (
                     <>
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Enviando...
+                      {es ? 'Enviando...' : 'Sending...'}
                     </>
                   ) : (
                     <>
                       <Mail className="w-4 h-4 mr-2" />
-                      Reenviar Email a {user.email}
+                      {es ? 'Reenviar correo a' : 'Resend email to'} {user.email}
                     </>
                   )}
                 </Button>
@@ -221,20 +222,20 @@ export default function ResetPassword() {
               <div className="flex items-center gap-3 p-4 bg-green-500/10 border border-green-500/20 rounded-lg">
                 <CheckCircle2 className="w-5 h-5 text-green-500 shrink-0" />
                 <p className="text-sm text-green-500">
-                  ¡Contraseña actualizada! Redirigiendo...
+                  {es ? '¡Contraseña actualizada! Redirigiendo...' : 'Password updated! Redirecting...'}
                 </p>
               </div>
             )}
 
             <div>
               <label className="block text-sm font-medium text-[hsl(var(--foreground))] mb-2">
-                Nueva Contraseña
+                {es ? 'Nueva contraseña' : 'New password'}
               </label>
               <Input
                 type="password"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
-                placeholder="Mínimo 6 caracteres"
+                placeholder={es ? 'Mínimo 8 caracteres' : 'At least 8 characters'}
                 disabled={loading || success}
                 className="w-full"
               />
@@ -242,13 +243,13 @@ export default function ResetPassword() {
 
             <div>
               <label className="block text-sm font-medium text-[hsl(var(--foreground))] mb-2">
-                Confirmar Contraseña
+                {es ? 'Confirmar contraseña' : 'Confirm password'}
               </label>
               <Input
                 type="password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="Repite tu contraseña"
+                placeholder={es ? 'Repite tu contraseña' : 'Re-enter your password'}
                 disabled={loading || success}
                 className="w-full"
               />
@@ -262,17 +263,17 @@ export default function ResetPassword() {
               {loading ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Resetear...
+                  {es ? 'Restableciendo...' : 'Resetting...'}
                 </>
               ) : (
-                'Resetear Contraseña'
+                es ? 'Restablecer contraseña' : 'Reset password'
               )}
             </Button>
           </form>
         )}
 
         <p className="text-center text-sm text-[hsl(var(--muted-foreground))] mt-6">
-          ¿Ya tienes contraseña?{' '}
+          {es ? '¿Ya tienes contraseña?' : 'Already have a password?'}{' '}
           <button
             onClick={() => navigate('/login')}
             className="text-[hsl(var(--foreground))] hover:underline font-medium"

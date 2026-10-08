@@ -87,10 +87,10 @@ export default function Header({ showSearch = true, showSearchCentered = false, 
 
           {/* Left: navigation + logo */}
           <div className={`${isHomePage ? 'hidden' : 'col-span-1'} flex items-center gap-1 sm:gap-2 min-w-0 relative`}>
-            <button onClick={toggleSidebar} className="p-0 w-10 h-10 rounded-lg transition-all duration-200 ease-out flex items-center justify-center shrink-0 hover:scale-105 hover:bg-[hsl(var(--muted))] active:scale-95" aria-label="Menu">
+            <button onClick={toggleSidebar} className="p-0 w-10 h-10 rounded-lg transition-all duration-200 ease-out flex items-center justify-center shrink-0 hover:scale-105 hover:bg-[hsl(var(--muted))] active:scale-95" aria-label={es ? 'Menú' : 'Menu'}>
               <Menu className="w-5 h-5 text-[hsl(var(--muted-foreground))] transition-colors duration-300" />
             </button>
-            <button onClick={handleGoBack} className="p-0 w-10 h-10 rounded-lg transition-all duration-200 ease-out flex items-center justify-center shrink-0 hover:scale-105 hover:bg-[hsl(var(--muted))] active:scale-95" aria-label="Atrás">
+            <button onClick={handleGoBack} className="p-0 w-10 h-10 rounded-lg transition-all duration-200 ease-out flex items-center justify-center shrink-0 hover:scale-105 hover:bg-[hsl(var(--muted))] active:scale-95" aria-label={es ? 'Atrás' : 'Back'}>
               <ArrowLeft className="w-5 h-5 text-[hsl(var(--muted-foreground))] transition-colors duration-300" />
             </button>
             <div onClick={handleMakwinClick} className="cursor-pointer flex items-center gap-2 ml-1 min-w-0">
@@ -139,7 +139,7 @@ export default function Header({ showSearch = true, showSearchCentered = false, 
               <Dialog>
                 <DialogTrigger asChild>
                   <button id="music-btn" className="text-xs font-light text-[hsl(var(--muted-foreground))] tracking-widest uppercase hover:text-[hsl(var(--foreground))] transition-colors whitespace-nowrap hidden sm:block">
-                    Music
+                  {es ? 'Música' : 'Music'}
                   </button>
                 </DialogTrigger>
                 <DialogContent className="dialog-enter sm:max-w-[920px] w-[92%] flex items-center justify-center">
@@ -156,7 +156,7 @@ export default function Header({ showSearch = true, showSearchCentered = false, 
 
             {/* Upload shortcut */}
             {user && (
-              <Link to="/subir-obra" className="hidden sm:inline-flex p-2 rounded-lg hover:bg-[hsl(var(--muted))] transition-colors" aria-label="Subir obra">
+              <Link to="/subir-obra" className="hidden sm:inline-flex p-2 rounded-lg hover:bg-[hsl(var(--muted))] transition-colors" aria-label={es ? 'Subir obra' : 'Upload work'}>
                 <Upload className="w-4 h-4 text-[hsl(var(--muted-foreground))]" />
               </Link>
             )}
@@ -166,7 +166,7 @@ export default function Header({ showSearch = true, showSearchCentered = false, 
               <div className="relative" ref={userMenuRef}>
                 <button
                   onClick={() => setShowUserMenu(p => !p)}
-                  className="flex items-center gap-2 p-1 rounded-full hover:bg-[hsl(var(--muted))] transition-colors"
+                  className="flex items-center gap-2 p-1 rounded-xl hover:bg-[hsl(var(--muted))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))] transition-colors"
                 >
                   <div className="w-8 h-8 rounded-xl overflow-hidden bg-[hsl(var(--muted))] border border-[rgba(120,120,120,0.25)] flex items-center justify-center text-sm font-medium">
                     {profile?.avatar_url

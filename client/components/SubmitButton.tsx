@@ -1,9 +1,11 @@
 import { Link, useLocation } from 'react-router-dom';
 import { Upload } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { useI18n } from '@/lib/i18n';
 
 export default function SubmitButton() {
   const location = useLocation();
+  const { language } = useI18n();
 
   // Only show submit button on gallery or marketplace related pages
   const path = location.pathname || '';
@@ -36,7 +38,7 @@ export default function SubmitButton() {
         </div>
       </TooltipTrigger>
       <TooltipContent side="right" className="bg-black text-white border border-[hsl(var(--border))]">
-        <p className="text-xs sm:text-sm">Enviar obra</p>
+        <p className="text-xs sm:text-sm">{language === 'es' ? 'Enviar obra' : 'Submit work'}</p>
       </TooltipContent>
     </Tooltip>
   );

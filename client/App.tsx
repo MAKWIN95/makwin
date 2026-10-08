@@ -31,7 +31,7 @@ import NotFound from "./pages/NotFound";
 import ComingSoon from "./pages/ComingSoon";
 
 // Global UI
-import { I18nProvider } from "@/lib/i18n";
+import { I18nProvider, useI18n } from "@/lib/i18n";
 import Onboarding from '@/components/Onboarding';
 import GoogleOnboardingPage from '@/pages/GoogleOnboarding';
 import { AuthProvider, useAuth } from "@/lib/AuthContext";
@@ -88,7 +88,8 @@ const AppLayout = () => {
 };
 
 const RoutesWrapper = () => {
-  const { loading, needsUsernameSetup, user, profile } = useAuth();
+  const { loading, needsUsernameSetup } = useAuth();
+  const { language } = useI18n();
   const location = useLocation();
 
   // Track last page for redirect after settings changes
@@ -103,12 +104,15 @@ const RoutesWrapper = () => {
   
   // Show a friendly loading state while auth initializes or while profile hydration is still resolving.
   // This prevents the app from rendering a blank/black state during F5 or auth transitions.
-  const authHydrating = loading || (Boolean(user) && !profile && !needsUsernameSetup);
+  // Only Supabase Auth bootstrap should block the entire app. Profile data is
+  // hydrated independently; a slow/missing profile must not look like logout
+  // or strand an otherwise valid session on an auth splash forever.
+  const authHydrating = loading;
   if (authHydrating) {
     return (
       <div className="w-screen h-screen bg-black flex items-center justify-center">
         <div className="text-center">
-          <div className="text-white text-sm mb-4">Loading authentication…</div>
+          <div className="text-white text-sm mb-4">{language === 'es' ? 'Cargando autenticación…' : 'Loading authentication…'}</div>
           <div className="w-12 h-12 border-4 border-white/20 border-t-white rounded-full animate-spin mx-auto" />
         </div>
       </div>
@@ -190,4 +194,3 @@ const App = () => {
 };
 
 createRoot(document.getElementById("root")!).render(<App />);
-

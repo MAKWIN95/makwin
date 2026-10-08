@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import Header from '@/components/Header';
 import { CheckCircle2, AlertCircle } from 'lucide-react';
+import { useI18n } from '@/lib/i18n';
 
 interface Submission {
   id: string;
@@ -12,6 +13,8 @@ interface Submission {
 }
 
 export default function SubmittedWorks() {
+  const { language } = useI18n();
+  const es = language === 'es';
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [loading, setLoading] = useState(true);
   const [successMessage, setSuccessMessage] = useState('');
@@ -25,7 +28,7 @@ export default function SubmittedWorks() {
     const submissionId = urlParams.get('id');
 
     if (justSubmitted && submissionId) {
-      setSuccessMessage(`¡Obra enviada exitosamente! (ID: ${submissionId})`);
+      setSuccessMessage(es ? `¡Obra enviada correctamente! (ID: ${submissionId})` : `Work submitted successfully! (ID: ${submissionId})`);
       // Clear message after 5 seconds
       setNotifLeaving(false);
       // start hide sequence after 4s
@@ -58,7 +61,7 @@ export default function SubmittedWorks() {
                   <div>
                     <p className="text-green-600 font-medium">{successMessage}</p>
                     <p className="text-xs text-green-600/70 mt-1">
-                      Te notificaremos cuando el equipo MAKWIN revise tu obra.
+                      {es ? 'Te avisaremos cuando el equipo de MAKWIN revise tu obra.' : 'We will notify you when the MAKWIN team reviews your work.'}
                     </p>
                   </div>
                 </div>
@@ -75,10 +78,10 @@ export default function SubmittedWorks() {
 
             <div className="mb-8">
               <h1 className="text-3xl sm:text-4xl font-light tracking-tight text-[hsl(var(--foreground))] mb-2">
-                Obras enviadas
+                {es ? 'Obras enviadas' : 'Submitted works'}
               </h1>
               <p className="text-sm text-[hsl(var(--muted-foreground))]">
-                Aquí puedes ver el historial de tus obras enviadas a MAKWIN
+                {es ? 'Aquí puedes consultar el historial de tus obras enviadas a MAKWIN.' : 'Here you can view the history of works you submitted to MAKWIN.'}
               </p>
             </div>
 
@@ -86,7 +89,7 @@ export default function SubmittedWorks() {
             {loading && (
               <div className="text-center py-12">
                 <div className="inline-block w-6 h-6 border-2 border-[hsl(var(--muted-foreground))] border-t-[hsl(var(--foreground))] rounded-full animate-spin"></div>
-                <p className="mt-4 text-[hsl(var(--muted-foreground))]">Cargando obras...</p>
+                <p className="mt-4 text-[hsl(var(--muted-foreground))]">{es ? 'Cargando obras...' : 'Loading works...'}</p>
               </div>
             )}
 
@@ -95,10 +98,10 @@ export default function SubmittedWorks() {
               <div className="text-center py-12 border border-dashed border-[hsl(var(--border))] rounded-lg">
                 <div className="text-4xl mb-3">📮</div>
                 <p className="text-[hsl(var(--foreground))] font-medium mb-2">
-                  Aún no has enviado ninguna obra
+                  {es ? 'Aún no has enviado ninguna obra' : 'You have not submitted any works yet'}
                 </p>
                 <p className="text-sm text-[hsl(var(--muted-foreground))]">
-                  Haz clic en el botón flotante para enviar tu primera obra a MAKWIN
+                  {es ? 'Usa el botón flotante para enviar tu primera obra a MAKWIN.' : 'Use the floating button to submit your first work to MAKWIN.'}
                 </p>
               </div>
             )}
@@ -117,7 +120,7 @@ export default function SubmittedWorks() {
                           {submission.title}
                         </h3>
                         <p className="text-sm text-[hsl(var(--muted-foreground))] mt-1">
-                          por {submission.artistName}
+                          {es ? 'por' : 'by'} {submission.artistName}
                         </p>
                         <p className="text-xs text-[hsl(var(--muted-foreground))] mt-2">
                           <span className="inline-block bg-[hsl(var(--secondary))] px-2 py-1 rounded">
@@ -125,7 +128,7 @@ export default function SubmittedWorks() {
                           </span>
                         </p>
                         <p className="text-xs text-[hsl(var(--muted-foreground))] mt-3">
-                          Enviado: {new Date(submission.timestamp).toLocaleDateString('es-ES')}
+                          {es ? 'Enviado:' : 'Submitted:'} {new Date(submission.timestamp).toLocaleDateString(es ? 'es-ES' : 'en-US')}
                         </p>
                       </div>
                       <div className="text-right text-xs text-[hsl(var(--muted-foreground))]">

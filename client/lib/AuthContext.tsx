@@ -29,6 +29,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [needsUsernameSetup, setNeedsUsernameSetup] = useState(false);
   const [onboardingUser, setOnboardingUser] = useState<User | null>(null);
   const sessionSequenceRef = useRef(0);
+  const authEventSequenceRef = useRef(0);
   const googleOAuthPendingKey = 'makwin-google-oauth-pending';
 
   // Fetch profile without being a dependency
@@ -152,6 +153,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
+    // Auth owns authentication. Publish a valid Supabase session immediately;
+    // profile hydration must never invalidate or sign out that session.
+    setSession(session);
+    setUser(session.user);
+    setProfile((current) => current?.id === session.user.id ? current : null);
+    setNeedsUsernameSetup(false);
+    setOnboardingUser(null);
+
     try {
       const { data, error } = await supabase
         .from('profiles')
@@ -180,71 +189,75 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return;
       }
 
-      if (isGoogleUser) {
+      if (!error && isGoogleUser) {
         setIncompleteGoogleState(session, session.user);
         return;
       }
-
-      await supabase.auth.signOut({ scope: 'local' });
-      if (!isLatest()) return;
-      setSession(null);
-      setUser(null);
-      setProfile(null);
-      setNeedsUsernameSetup(false);
-      setOnboardingUser(null);
-      clearOnboardingState();
+      // A missing row or transient PostgREST/RLS failure is not evidence that
+      // the Auth session is invalid. Keep the authenticated user and retry via
+      // refreshProfile instead of destroying the local session.
+      if (error) console.error('[AuthContext] Profile hydration failed; keeping valid Auth session:', error);
     } catch (err) {
       if (!isLatest()) return;
       console.error('[AuthContext] Error fetching profile for session:', err);
       setProfile(null);
       setNeedsUsernameSetup(false);
       setOnboardingUser(null);
-      const isGoogleUser = isGoogleOAuthFlow();
-      if (isGoogleUser) {
-        setIncompleteGoogleState(session, session.user);
-      }
+      // A profile read failure is not proof of an incomplete account. Keep
+      // the valid Auth session and let profile-specific screens retry.
     }
   }, [clearOnboardingState, isGoogleOAuthFlow, isProfileCompleteForSession, setIncompleteGoogleState]);
 
   useEffect(() => {
     let isMounted = true;
-    let timeoutId: NodeJS.Timeout;
+    let authEventReceived = false;
+    // Safety valve only releases the splash; it never clears a session. The
+    // Auth event subscription remains active and can hydrate late restoration.
+    const bootstrapFallback = window.setTimeout(() => {
+      if (isMounted) setLoading(false);
+    }, 8000);
+
+    // Subscribe first so a sign-in/sign-out during getSession cannot be lost.
+    // Defer async profile work outside Supabase's auth callback/lock.
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      if (!isMounted) return;
+      authEventReceived = true;
+      authEventSequenceRef.current += 1;
+      window.clearTimeout(bootstrapFallback);
+      queueMicrotask(() => {
+        if (!isMounted) return;
+        const hydration = handleSession(nextSession);
+        // INITIAL_SESSION is a reliable Supabase bootstrap signal and avoids
+        // blocking first render on a second getSession/profile round trip.
+        setLoading(false);
+        void hydration.catch((error) => console.error('[AuthContext] Error handling auth state change:', error));
+      });
+    });
 
     const initAuth = async () => {
+      const sequenceAtStart = authEventSequenceRef.current;
       try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!isMounted) return;
-        await handleSession(session);
-      } catch (error) {
-        console.error('[AuthContext] Error initializing auth:', error);
-      } finally {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        if (error) throw error;
+        if (!isMounted || sequenceAtStart !== authEventSequenceRef.current) return;
+        window.clearTimeout(bootstrapFallback);
+        const hydration = handleSession(session);
+        // Authentication is known from Supabase now; do not make profile I/O
+        // hold the whole application behind its auth splash.
         if (isMounted) setLoading(false);
+        await hydration;
+      } catch (error) {
+        if (isMounted) console.error('[AuthContext] Error initializing auth:', error);
+      } finally {
+        if (isMounted && !authEventReceived) setLoading(false);
       }
     };
 
-    initAuth();
-
-    timeoutId = setTimeout(() => {
-      if (isMounted) {
-        console.warn('[AuthContext] Auth initialization timeout, setting loading=false');
-        setLoading(false);
-      }
-    }, 10000);
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (!isMounted) return;
-      void handleSession(session)
-        .catch((error) => {
-          console.error('[AuthContext] Error handling auth state change:', error);
-        })
-        .finally(() => {
-          if (isMounted) setLoading(false);
-        });
-    });
+    void initAuth();
 
     return () => {
       isMounted = false;
-      clearTimeout(timeoutId);
+      window.clearTimeout(bootstrapFallback);
       subscription?.unsubscribe();
     };
   }, [handleSession]);

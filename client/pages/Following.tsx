@@ -132,7 +132,7 @@ export default function Following() {
       <div className="min-h-screen bg-[hsl(var(--background))]">
         <Header hideSearch />
         <div className="w-full h-96 flex items-center justify-center">
-          <p className="text-[hsl(var(--muted-foreground))]">Debes iniciar sesión para ver este feed.</p>
+          <p className="text-[hsl(var(--muted-foreground))]">{currentLang === 'es' ? 'Inicia sesión para ver este contenido.' : 'Sign in to view this feed.'}</p>
         </div>
       </div>
     );
@@ -142,14 +142,14 @@ export default function Following() {
     <div className="min-h-screen bg-[hsl(var(--background))]">
       <canvas id="following-stars-background" className="fixed inset-0 pointer-events-none z-0" />
 
-      <Header showSearch showSearchCentered breadcrumb="Siguiendo" />
+        <Header showSearch showSearchCentered breadcrumb={currentLang === 'es' ? 'Siguiendo' : 'Following'} />
 
       <main className="relative z-10 w-full max-w-7xl mx-auto px-4 py-8">
         {loading && (
           <div className="h-96 flex items-center justify-center">
             <div className="flex flex-col items-center gap-4">
               <Loader2 className="w-8 h-8 animate-spin text-[hsl(var(--muted-foreground))]" />
-              <p className="text-[hsl(var(--muted-foreground))]">Cargando feed...</p>
+              <p className="text-[hsl(var(--muted-foreground))]">{currentLang === 'es' ? 'Cargando contenido...' : 'Loading feed...'}</p>
             </div>
           </div>
         )}
@@ -159,10 +159,10 @@ export default function Following() {
             <div className="text-center">
               <Heart className="w-12 h-12 text-[hsl(var(--muted-foreground))]/30 mx-auto mb-4" />
               <h2 className="text-xl font-semibold text-[hsl(var(--foreground))] mb-2">
-                No hay contenido
+                {currentLang === 'es' ? 'No hay contenido' : 'No content yet'}
               </h2>
               <p className="text-[hsl(var(--muted-foreground))]">
-                Aún no sigues a nadie o no tienen obras publicadas.
+                {currentLang === 'es' ? 'Aún no sigues a nadie o no tienen obras publicadas.' : 'You are not following anyone yet, or they have not published any works.'}
               </p>
             </div>
           </div>
