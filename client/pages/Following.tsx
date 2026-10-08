@@ -7,6 +7,7 @@ import Footer from '@/components/Footer';
 import WorkCard from '@/components/WorkCard';
 import { Loader2, Heart } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
+import { useWorks } from '@/lib/WorksContext';
 import { useStarsBackground } from '@/hooks/use-stars-background';
 
 const PAGE_SIZE = 40;
@@ -14,6 +15,7 @@ const PAGE_SIZE = 40;
 export default function Following() {
   useRequireAuth();
   const { user } = useAuth();
+  const worksContext = useWorks();
   const { language: currentLang, t } = useI18n();
   const [works, setWorks] = useState<Work[]>([]);
   const [page, setPage] = useState(0);
@@ -80,32 +82,20 @@ export default function Following() {
 
       if (error) throw error;
 
-      // Get likes for current user
       const workIds = (data ?? []).map((w: any) => w.id);
-      const { data: userLikesData } = await supabase
-        .from('likes')
-        .select('work_id')
-        .eq('user_id', user.id)
-        .in('work_id', workIds);
-
-      const likedWorkIds = new Set(userLikesData?.map(l => l.work_id) || []);
-
-      // Get saves for current user
-      const { data: userSavesData } = await supabase
-        .from('saves')
-        .select('work_id')
-        .eq('user_id', user.id)
-        .in('work_id', workIds);
-
-      const savedWorkIds = new Set(userSavesData?.map(s => s.work_id) || []);
 
       // Transform data
       const fetched = (data ?? []).map((work: any) => ({
         ...work,
         profiles: work.profiles,
-        liked_by_me: likedWorkIds.has(work.id),
-        saved_by_me: savedWorkIds.has(work.id),
+        liked_by_me: false,
+        saved_by_me: false,
       })) as Work[];
+      await worksContext.loadUserInteractions(
+        workIds,
+        user.id,
+        Object.fromEntries(fetched.map(work => [work.id, Number(work.like_count) || 0]))
+      );
       setWorks(prev => replace ? fetched : [...prev, ...fetched]);
       setHasMore(fetched.length === PAGE_SIZE);
       setPage(pageNum);

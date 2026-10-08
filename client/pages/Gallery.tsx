@@ -91,10 +91,14 @@ export default function Gallery() {
         saved_by_me: item.saved_by_me || false,
       })) as Work[];
 
-      // Update context with counts from RPC
-      if (user && fetched.length > 0 && pageNum === 0) {
+      // Keep global counts from the works/RPC payload; likes only determines
+      // the current user's interaction state.
+      if (user && fetched.length > 0) {
         const workIds = fetched.map(w => w.id);
-        await worksContext.loadUserInteractions(workIds, user.id);
+        const likeCounts = Object.fromEntries(
+          fetched.map(work => [work.id, Number(work.like_count) || 0])
+        );
+        await worksContext.loadUserInteractions(workIds, user.id, likeCounts);
       }
 
       // THEN update gallery state after context is ready

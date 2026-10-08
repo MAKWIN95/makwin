@@ -185,7 +185,11 @@ export default function WorkDetail() {
 
         // Check if user liked/saved this work (load into context)
         if (user && workData.id) {
-          await worksContext.loadUserInteractions([workData.id], user.id);
+          await worksContext.loadUserInteractions(
+            [workData.id],
+            user.id,
+            { [workData.id]: Number(workData.like_count) || 0 }
+          );
         }
       } catch (err: any) {
         console.error('[WorkDetail] Error:', err);
