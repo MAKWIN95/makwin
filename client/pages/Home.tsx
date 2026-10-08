@@ -141,7 +141,7 @@ export default function Home() {
             </h1>
             <p className="text-lg sm:text-xl text-[hsl(var(--muted-foreground))] font-light max-w-2xl mx-auto leading-relaxed">
               {es
-                ? 'Real art, real experiences, real connections. Una plataforma donde el arte emergente se encuentra con coleccionistas apasionados.'
+                ? 'Arte real, experiencias reales, conexiones reales. Una plataforma donde el arte emergente se encuentra con coleccionistas apasionados.'
                 : 'Real art, real experiences, real connections. A platform where emerging art meets passionate collectors.'}
             </p>
           </div>
