@@ -222,9 +222,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     }, 10000);
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (!isMounted) return;
-      await handleSession(session);
+      void handleSession(session)
+        .catch((error) => {
+          console.error('[AuthContext] Error handling auth state change:', error);
+        })
+        .finally(() => {
+          if (isMounted) setLoading(false);
+        });
     });
 
     return () => {
