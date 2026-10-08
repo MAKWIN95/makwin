@@ -26,6 +26,8 @@ node -e "import { previewTemplate } from './server/emails/index.ts'; console.log
 
 Para la integración real, copia el contenido de los archivos en `server/emails/supabase_templates/` y pégalos en Supabase Console → Authentication → Templates.
 
+La notificación nativa de cambio de contraseña usa `security_templates/password-changed.html` y su asunto localizado está en `security_templates/password-changed.subject.txt`. Ambos usan `user_metadata.language_preference` (`es` por defecto, `en` para inglés); Settings y el flujo de restablecimiento incluyen el idioma efectivo en la misma actualización de usuario que cambia la contraseña.
+
 ## Variables compatibles
 
 - Confirmación: `{{ .ConfirmationURL }}`

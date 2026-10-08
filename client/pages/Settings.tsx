@@ -9,11 +9,14 @@ import { AlertCircle, CheckCircle2, Loader2, LogOut, Trash2, X } from 'lucide-re
 import { supabase } from '@/lib/supabase';
 import { getPasswordPolicyError, getPasswordStrengthScore } from '@/lib/passwordPolicy';
 import { getPasswordUpdateErrorMessage } from '@/lib/passwordUpdateError';
+import { withPasswordNotificationLanguage } from '@/lib/passwordNotificationMetadata';
+import { useI18n } from '@/lib/i18n';
 
 export default function Settings() {
   useRequireAuth();
   const navigate = useNavigate();
   const { user, signOut, resetPassword } = useAuth();
+  const { language } = useI18n();
   
   // Password change state
   const [newPassword, setNewPassword] = useState('');
@@ -71,7 +74,10 @@ export default function Settings() {
     setPasswordLoading(true);
 
     try {
-      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword,
+        data: withPasswordNotificationLanguage(user?.user_metadata, language),
+      });
 
       if (error) {
         setPasswordError(getPasswordUpdateErrorMessage(error));

@@ -7,11 +7,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { AlertCircle, CheckCircle2, Loader2, Mail } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
+import { withPasswordNotificationLanguage } from '@/lib/passwordNotificationMetadata';
 
 export default function ResetPassword() {
   const navigate = useNavigate();
   const { user, resetPassword } = useAuth();
-  const { t } = useI18n();
+  const { t, language } = useI18n();
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -82,7 +83,10 @@ export default function ResetPassword() {
     setLoading(true);
 
     try {
-      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword,
+        data: withPasswordNotificationLanguage(user?.user_metadata, language),
+      });
 
       if (error) {
         setError(error.message);
