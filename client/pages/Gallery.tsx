@@ -278,10 +278,10 @@ export default function Gallery() {
 
             {/* Loading skeleton - only show if we don't have cached data */}
             {loadingInitial && works.length === 0 && (
-              <div className="grid grid-cols-2 items-start gap-x-4 gap-y-6 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+              <div className="columns-2 gap-4 sm:columns-3 lg:columns-4 xl:columns-5 2xl:columns-6">
                 {Array.from({ length: 12 }).map((_, i) => (
-                  <div key={i} className="w-full min-w-0">
-                    <div className="aspect-[4/3] rounded-2xl bg-[hsl(var(--muted))] animate-pulse" />
+                  <div key={i} className="mb-4 inline-block w-full break-inside-avoid">
+                    <div className={`rounded-2xl bg-[hsl(var(--muted))] animate-pulse ${i % 3 === 0 ? 'h-56' : i % 3 === 1 ? 'h-40' : 'h-72'}`} />
                     <div className="mt-2 h-3 bg-[hsl(var(--muted))] rounded animate-pulse w-3/4" />
                     <div className="mt-1 h-2 bg-[hsl(var(--muted))] rounded animate-pulse w-1/2" />
                   </div>
@@ -322,11 +322,11 @@ export default function Gallery() {
               </div>
             )}
 
-            {/* Works masonry grid - stable layout */}
+            {/* Natural-height masonry columns keep each artwork's original ratio. */}
             {works.length > 0 && filtered.length > 0 && (
-              <div className="grid grid-cols-2 items-start gap-x-4 gap-y-6 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
+              <div className="columns-2 gap-4 sm:columns-3 lg:columns-4 xl:columns-5 2xl:columns-6">
                 {filtered.map((item: any) => (
-                  <div key={item.id} className={`w-full min-w-0 transition-opacity duration-300 ${showItems ? 'opacity-100' : 'opacity-0'}`}>
+                  <div key={item.id} className={`mb-5 inline-block w-full break-inside-avoid align-top transition-opacity duration-300 ${showItems ? 'opacity-100' : 'opacity-0'}`}>
                     <WorkCard work={item as Work} />
                   </div>
                 ))}

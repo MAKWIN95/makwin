@@ -125,9 +125,9 @@ export default function WorkCard({ work, onLikeToggle, onSaveToggle, isOwnProfil
 
   return (
     <>
-    <Link to={linkPath} state={{ from: 'gallery' }} className="group block rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))] focus-visible:ring-offset-2 focus-visible:ring-offset-[hsl(var(--background))]">
+    <Link to={linkPath} state={{ from: 'gallery' }} className="group relative z-0 block rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))] focus-visible:ring-offset-2 focus-visible:ring-offset-[hsl(var(--background))] hover:z-20 focus-within:z-20">
       {/* Image/Media area */}
-      <div className="relative aspect-[4/3] overflow-hidden rounded-2xl glass-effect transition-shadow duration-300 ease-out group-hover:shadow-xl bg-[hsl(var(--muted))]">
+      <div className="relative rounded-2xl transition-shadow duration-300 ease-out group-hover:shadow-xl">
 
         {/* Save button — top right */}
         <button
@@ -145,20 +145,20 @@ export default function WorkCard({ work, onLikeToggle, onSaveToggle, isOwnProfil
           <img
             src={work.cover_url ?? work.file_url ?? ''}
             alt={work.title}
-            className={`block h-full w-full object-contain transition-[transform,opacity] duration-300 ease-out group-hover:scale-[1.035] group-focus-within:scale-[1.035] ${
+            className={`relative z-0 block h-auto w-full rounded-2xl object-contain transition-[transform,opacity] duration-300 ease-out group-hover:z-20 group-hover:scale-[1.055] group-focus-within:z-20 group-focus-within:scale-[1.055] ${
               imageLoaded ? 'opacity-100' : 'opacity-0'
             }`}
             loading="lazy"
             onLoad={() => setImageLoaded(true)}
           />
         ) : isPoem ? (
-          <div className="flex h-full w-full items-center justify-center p-6">
+          <div className="flex min-h-48 w-full items-center justify-center p-6">
             <p className="text-center text-[hsl(var(--foreground))] text-sm font-light whitespace-pre-line leading-relaxed line-clamp-6">
               &quot;{work.description}&quot;
             </p>
           </div>
         ) : (
-          <div className="flex h-full w-full items-center justify-center text-4xl bg-gradient-to-br from-[hsl(var(--muted))] to-[hsl(var(--muted))]">
+          <div className="flex min-h-40 w-full items-center justify-center text-4xl bg-gradient-to-br from-[hsl(var(--muted))] to-[hsl(var(--muted))]">
             {WORK_TYPE_ICONS[work.work_type] ?? '🎨'}
           </div>
         )}
