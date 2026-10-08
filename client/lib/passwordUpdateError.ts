@@ -1,11 +1,11 @@
-export function getPasswordUpdateErrorMessage(error: unknown): string {
+export function getPasswordUpdateErrorMessage(error: unknown, language: 'es' | 'en' = 'es'): string {
   if (error && typeof error === 'object' && 'code' in error && error.code === 'same_password') {
-    return 'No puedes usar tu contraseña actual como nueva contraseña.';
+    return language === 'es'
+      ? 'No puedes usar tu contraseña actual como nueva contraseña.'
+      : 'You cannot reuse your current password.';
   }
 
-  if (error && typeof error === 'object' && 'message' in error && typeof error.message === 'string') {
-    return error.message || 'Error al cambiar la contraseña.';
-  }
-
-  return 'Error al cambiar la contraseña.';
+  return language === 'es'
+    ? 'No se pudo cambiar la contraseña. Inténtalo de nuevo.'
+    : 'The password could not be changed. Please try again.';
 }

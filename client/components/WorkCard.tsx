@@ -125,9 +125,9 @@ export default function WorkCard({ work, onLikeToggle, onSaveToggle, isOwnProfil
 
   return (
     <>
-    <Link to={linkPath} state={{ from: 'gallery' }} className="group block">
+    <Link to={linkPath} state={{ from: 'gallery' }} className="group block rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))] focus-visible:ring-offset-2 focus-visible:ring-offset-[hsl(var(--background))]">
       {/* Image/Media area */}
-      <div className="relative overflow-hidden rounded-2xl glass-effect transition-shadow duration-300 ease-out group-hover:shadow-xl bg-[hsl(var(--muted))]">
+      <div className="relative aspect-[4/3] overflow-hidden rounded-2xl glass-effect transition-shadow duration-300 ease-out group-hover:shadow-xl bg-[hsl(var(--muted))]">
 
         {/* Save button — top right */}
         <button
@@ -145,20 +145,20 @@ export default function WorkCard({ work, onLikeToggle, onSaveToggle, isOwnProfil
           <img
             src={work.cover_url ?? work.file_url ?? ''}
             alt={work.title}
-            className={`w-full h-auto object-contain block transition-opacity duration-300 ease-out ${
+            className={`block h-full w-full object-contain transition-[transform,opacity] duration-300 ease-out group-hover:scale-[1.035] group-focus-within:scale-[1.035] ${
               imageLoaded ? 'opacity-100' : 'opacity-0'
             }`}
             loading="lazy"
             onLoad={() => setImageLoaded(true)}
           />
         ) : isPoem ? (
-          <div className="flex items-center justify-center min-h-48 w-full p-6">
+          <div className="flex h-full w-full items-center justify-center p-6">
             <p className="text-center text-[hsl(var(--foreground))] text-sm font-light whitespace-pre-line leading-relaxed line-clamp-6">
               &quot;{work.description}&quot;
             </p>
           </div>
         ) : (
-          <div className="flex items-center justify-center min-h-40 text-4xl bg-gradient-to-br from-[hsl(var(--muted))] to-[hsl(var(--muted))]">
+          <div className="flex h-full w-full items-center justify-center text-4xl bg-gradient-to-br from-[hsl(var(--muted))] to-[hsl(var(--muted))]">
             {WORK_TYPE_ICONS[work.work_type] ?? '🎨'}
           </div>
         )}

@@ -26,7 +26,7 @@ export default function Settings() {
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [passwordSuccess, setPasswordSuccess] = useState<string | null>(null);
   const passwordUpdateInFlightRef = useRef(false);
-  const passwordPolicyError = getPasswordPolicyError(newPassword);
+  const passwordPolicyError = getPasswordPolicyError(newPassword, language);
   const passwordStrength = getPasswordStrengthScore(newPassword);
   
   // Reset email state
@@ -81,14 +81,14 @@ export default function Settings() {
       });
 
       if (error) {
-        setPasswordError(getPasswordUpdateErrorMessage(error));
+        setPasswordError(getPasswordUpdateErrorMessage(error, language));
       } else {
         setPasswordSuccess(es ? 'Contraseña actualizada correctamente.' : 'Password updated successfully.');
         setNewPassword('');
         setConfirmPassword('');
       }
     } catch (err: any) {
-      setPasswordError(getPasswordUpdateErrorMessage(err));
+      setPasswordError(getPasswordUpdateErrorMessage(err, language));
     } finally {
       passwordUpdateInFlightRef.current = false;
       setPasswordLoading(false);
@@ -105,13 +105,15 @@ export default function Settings() {
       const { error } = await resetPassword(user.email);
 
       if (error) {
-        alert((es ? 'Error: ' : 'Error: ') + error);
+        console.error('[Settings] Password reset request failed:', error);
+        alert(es ? 'No se pudo enviar el correo de restablecimiento.' : 'The password reset email could not be sent.');
       } else {
         setEmailSuccess(true);
         setTimeout(() => setEmailSuccess(false), 3000);
       }
     } catch (err: any) {
-        alert(err?.message || (es ? 'Error al enviar el correo.' : 'Unable to send the email.'));
+        console.error('[Settings] Password reset request failed:', err);
+        alert(es ? 'No se pudo enviar el correo de restablecimiento.' : 'The password reset email could not be sent.');
     } finally {
       setEmailLoading(false);
     }
@@ -141,7 +143,8 @@ export default function Settings() {
 
       if (!deleteResponse.ok) {
         const errorData = await deleteResponse.json();
-        alert('Error: ' + (errorData.error || (es ? 'No se pudo eliminar la cuenta.' : 'Could not delete the account.')));
+        console.error('[Settings] Account deletion failed:', errorData.error);
+        alert(es ? 'No se pudo eliminar la cuenta.' : 'Could not delete the account.');
         setDeleteLoading(false);
         return;
       }
@@ -168,7 +171,7 @@ export default function Settings() {
       navigate('/');
     } catch (err: any) {
       console.error('[Settings] Error deleting account:', err);
-      alert(err?.message || (es ? 'Error al eliminar la cuenta. Inténtalo más tarde.' : 'Could not delete the account. Please try again later.'));
+      alert(es ? 'No se pudo eliminar la cuenta. Inténtalo más tarde.' : 'Could not delete the account. Please try again later.');
       setDeleteLoading(false);
     }
   };
@@ -300,7 +303,7 @@ export default function Settings() {
         {/* Session Management */}
         <div className="bg-[hsl(var(--card))] border border-[hsl(var(--border))] rounded-lg p-6 mb-8">
           <h2 className="text-lg font-semibold text-[hsl(var(--foreground))] mb-4">
-            Sesión
+            {es ? 'Sesión' : 'Session'}
           </h2>
 
           <Button

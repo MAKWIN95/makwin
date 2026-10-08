@@ -25,7 +25,7 @@ export default function Header({ showSearch = true, showSearchCentered = false, 
   const { t } = useI18n();
   const { language } = useI18n();
   const es = language === 'es';
-  const { user, profile, signOut } = useAuth();
+  const { user, profile, signOut, loading: authLoading, initializationError, retryInitialization } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const { isDark, toggleTheme } = useTheme();
@@ -166,7 +166,7 @@ export default function Header({ showSearch = true, showSearchCentered = false, 
               <div className="relative" ref={userMenuRef}>
                 <button
                   onClick={() => setShowUserMenu(p => !p)}
-                  className="flex items-center gap-2 p-1 rounded-xl hover:bg-[hsl(var(--muted))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))] transition-colors"
+                  className="h-8 w-8 rounded-xl p-0 transition-opacity hover:bg-transparent hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))] focus-visible:ring-offset-2 focus-visible:ring-offset-[hsl(var(--background))]"
                 >
                   <div className="w-8 h-8 rounded-xl overflow-hidden bg-[hsl(var(--muted))] border border-[rgba(120,120,120,0.25)] flex items-center justify-center text-sm font-medium">
                     {profile?.avatar_url
@@ -232,6 +232,12 @@ export default function Header({ showSearch = true, showSearchCentered = false, 
                   </div>
                 )}
               </div>
+            ) : authLoading ? (
+              <div aria-label={es ? 'Comprobando sesión' : 'Checking session'} className="h-8 w-14 rounded-lg bg-[hsl(var(--muted))]/40 animate-pulse" />
+            ) : initializationError ? (
+              <button type="button" onClick={retryInitialization} className="rounded-lg px-2 py-1 text-xs text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[hsl(var(--ring))]">
+                {es ? 'Reintentar sesión' : 'Retry session'}
+              </button>
             ) : (
               <Link to="/login"
                 className="text-xs font-medium text-[hsl(var(--foreground))] border border-[rgba(120,120,120,0.25)] px-3 py-1.5 rounded-lg hover:bg-[hsl(var(--muted))] transition-colors duration-200 whitespace-nowrap">

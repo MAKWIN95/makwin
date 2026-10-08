@@ -15,13 +15,14 @@ const PAGE_SIZE = 40;
 export default function Gallery() {
   const { user } = useAuth();
   const location = useLocation();
-  const worksContext = useWorks();
+  const { loadUserInteractions } = useWorks();
   const { language: currentLang, t } = useI18n();
   const [works, setWorks] = useState<Work[]>([]);
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(true);
   const [loadingInitial, setLoadingInitial] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [loadError, setLoadError] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [filters, setFilters] = useState({ workType: '', sort: 'score' });
@@ -30,12 +31,17 @@ export default function Gallery() {
   const [filterBtnPos, setFilterBtnPos] = useState({ top: 0, left: 0 });
   const filterRef = useRef<HTMLDivElement>(null);
   const loaderRef = useRef<HTMLDivElement>(null);
+  const requestSequenceRef = useRef(0);
+  const activeUserIdRef = useRef<string | null>(user?.id ?? null);
+  activeUserIdRef.current = user?.id ?? null;
 
   useStarsBackground('gallery-stars-background');
 
   // ── Fetch feed from Supabase ──────────────────────────────────────────────
   const fetchWorks = useCallback(async (pageNum: number, replace = false) => {
-    console.log('[Gallery] Fetching page:', pageNum, 'Replace:', replace);
+    const requestSequence = ++requestSequenceRef.current;
+    const requestUserId = user?.id ?? null;
+    if (replace) setLoadError(false);
     if (pageNum === 0) setLoadingInitial(true);
     else setLoadingMore(true);
 
@@ -47,9 +53,6 @@ export default function Gallery() {
       });
 
       if (error) throw error;
-
-      console.log('[Gallery] RPC returned:', data?.length, 'items');
-      console.log('[Gallery] First item sample:', data?.[0]);
 
       // Transform RPC data to expected Work type with profiles object
       const fetched = (data ?? []).map((item: any) => ({
@@ -91,28 +94,35 @@ export default function Gallery() {
         saved_by_me: item.saved_by_me || false,
       })) as Work[];
 
-      // Keep global counts from the works/RPC payload; likes only determines
-      // the current user's interaction state.
-      if (user && fetched.length > 0) {
+      if (requestSequence !== requestSequenceRef.current || requestUserId !== activeUserIdRef.current) return;
+
+      setWorks(prev => replace ? fetched : [...prev, ...fetched]);
+      setHasMore(fetched.length === PAGE_SIZE);
+      setPage(pageNum);
+
+      // The feed is the render-critical request. Hydrate user-specific
+      // interactions independently so a delayed likes/saves query cannot leave
+      // a valid public Gallery blank or trigger a feed refresh.
+      if (requestUserId && fetched.length > 0) {
         const workIds = fetched.map(w => w.id);
         const likeCounts = Object.fromEntries(
           fetched.map(work => [work.id, Number(work.like_count) || 0])
         );
-        await worksContext.loadUserInteractions(workIds, user.id, likeCounts);
+        void loadUserInteractions(workIds, requestUserId, likeCounts);
       }
-
-      // THEN update gallery state after context is ready
-      setWorks(prev => replace ? fetched : [...prev, ...fetched]);
-      setHasMore(fetched.length === PAGE_SIZE);
-      setPage(pageNum);
     } catch (err) {
-      console.error('[Gallery] fetch error:', err);
+      if (requestSequence === requestSequenceRef.current && requestUserId === activeUserIdRef.current) {
+        console.error('[Gallery] Feed request failed:', err);
+        setLoadError(true);
+      }
     } finally {
-      setLoadingInitial(false);
-      setLoadingMore(false);
-      setTimeout(() => setShowItems(true), 100);
+      if (requestSequence === requestSequenceRef.current && requestUserId === activeUserIdRef.current) {
+        setLoadingInitial(false);
+        setLoadingMore(false);
+        setTimeout(() => setShowItems(true), 100);
+      }
     }
-  }, [user?.id]);
+  }, [user?.id, loadUserInteractions]);
 
   useEffect(() => { fetchWorks(0, true); }, [fetchWorks]);
 
@@ -268,14 +278,23 @@ export default function Gallery() {
 
             {/* Loading skeleton - only show if we don't have cached data */}
             {loadingInitial && works.length === 0 && (
-              <div className="columns-2 sm:columns-3 lg:columns-4 xl:columns-5 gap-4">
+              <div className="grid grid-cols-2 items-start gap-x-4 gap-y-6 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
                 {Array.from({ length: 12 }).map((_, i) => (
-                  <div key={i} className="inline-block w-full mb-4 break-inside-avoid">
-                    <div className={`rounded-2xl bg-[hsl(var(--muted))] animate-pulse ${i % 3 === 0 ? 'h-56' : i % 3 === 1 ? 'h-40' : 'h-72'}`} />
+                  <div key={i} className="w-full min-w-0">
+                    <div className="aspect-[4/3] rounded-2xl bg-[hsl(var(--muted))] animate-pulse" />
                     <div className="mt-2 h-3 bg-[hsl(var(--muted))] rounded animate-pulse w-3/4" />
                     <div className="mt-1 h-2 bg-[hsl(var(--muted))] rounded animate-pulse w-1/2" />
                   </div>
                 ))}
+              </div>
+            )}
+
+            {loadError && (
+              <div role="alert" className="w-full py-12 text-center text-[hsl(var(--muted-foreground))]">
+                <p className="mb-4">{currentLang === 'es' ? 'No se pudieron cargar las obras.' : 'Works could not be loaded.'}</p>
+                <button type="button" onClick={() => fetchWorks(0, true)} className="rounded-lg border border-[hsl(var(--border))] px-4 py-2 text-sm hover:bg-[hsl(var(--muted))] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[hsl(var(--ring))]">
+                  {currentLang === 'es' ? 'Reintentar' : 'Try again'}
+                </button>
               </div>
             )}
 
@@ -297,12 +316,17 @@ export default function Gallery() {
               </div>
             )}
 
+            {!loadingInitial && !loadError && filtered.length === 0 && !debouncedSearch && (
+              <div className="w-full py-16 text-center text-sm text-[hsl(var(--muted-foreground))]">
+                {currentLang === 'es' ? 'Todavía no hay obras publicadas.' : 'There are no published works yet.'}
+              </div>
+            )}
+
             {/* Works masonry grid - stable layout */}
-            {!loadingInitial && filtered.length > 0 && (
-              <div className="columns-2 sm:columns-3 lg:columns-4 xl:columns-5 2xl:columns-6 gap-4" style={{ columnFill: 'balance' }}>
+            {works.length > 0 && filtered.length > 0 && (
+              <div className="grid grid-cols-2 items-start gap-x-4 gap-y-6 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
                 {filtered.map((item: any) => (
-                  <div key={item.id}
-                    className={`inline-block w-full mb-4 break-inside-avoid transition-opacity duration-300 ${showItems ? 'opacity-100' : 'opacity-0'}`}>
+                  <div key={item.id} className={`w-full min-w-0 transition-opacity duration-300 ${showItems ? 'opacity-100' : 'opacity-0'}`}>
                     <WorkCard work={item as Work} />
                   </div>
                 ))}

@@ -142,7 +142,7 @@ export default function GoogleOnboardingPage() {
       return;
     }
 
-    const passwordPolicyError = getPasswordPolicyError(password);
+    const passwordPolicyError = getPasswordPolicyError(password, language);
     if (passwordPolicyError) {
       setError(passwordPolicyError);
       return;
@@ -241,7 +241,7 @@ export default function GoogleOnboardingPage() {
 
             <button
               type="submit"
-              disabled={loading || availability !== 'available' || !username || !displayName.trim() || !password || !confirm || !!getPasswordPolicyError(password) || password !== confirm}
+              disabled={loading || availability !== 'available' || !username || !displayName.trim() || !password || !confirm || !!getPasswordPolicyError(password, language) || password !== confirm}
               className="w-full rounded-xl bg-[hsl(var(--foreground))] px-4 py-3 text-sm font-medium text-[hsl(var(--background))] transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {loading ? (es ? 'Guardando...' : 'Saving...') : (es ? 'Continuar' : 'Continue')}

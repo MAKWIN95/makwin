@@ -53,7 +53,7 @@ export default function LanguageSelector() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <button id="lang-selector-btn" aria-label={language === 'es' ? 'Cambiar idioma' : 'Change language'} className="p-1.5 rounded-full bg-transparent transition-opacity hover:bg-transparent hover:opacity-70 focus:outline-none focus:ring-0" onMouseDown={(e)=>e.preventDefault()}>
+        <button id="lang-selector-btn" aria-label={language === 'es' ? 'Cambiar idioma' : 'Change language'} className="border-0 bg-transparent p-1.5 rounded-md shadow-none transition-opacity hover:border-0 hover:bg-transparent hover:opacity-70 focus:outline-none focus:ring-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[hsl(var(--ring))]" onMouseDown={(e)=>e.preventDefault()}>
           <Globe className="w-4 h-4 text-[hsl(var(--foreground))]" />
         </button>
       </DropdownMenuTrigger>

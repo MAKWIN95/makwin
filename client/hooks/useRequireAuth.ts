@@ -13,12 +13,12 @@ import { useEffect } from 'react';
  * }
  */
 export function useRequireAuth() {
-  const { user, needsUsernameSetup, loading } = useAuth();
+  const { user, needsUsernameSetup, loading, initializationError } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
     // Skip check while loading
-    if (loading) return;
+    if (loading || initializationError) return;
 
       // Redirect to login if not authenticated
     if (!user) {
@@ -30,5 +30,5 @@ export function useRequireAuth() {
     if (needsUsernameSetup) {
       navigate('/completar-perfil', { replace: true });
     }
-  }, [user, needsUsernameSetup, loading, navigate]);
+  }, [user, needsUsernameSetup, loading, initializationError, navigate]);
 }

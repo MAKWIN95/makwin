@@ -88,7 +88,7 @@ const AppLayout = () => {
 };
 
 const RoutesWrapper = () => {
-  const { loading, needsUsernameSetup } = useAuth();
+  const { loading, initializationError, retryInitialization, needsUsernameSetup } = useAuth();
   const { language } = useI18n();
   const location = useLocation();
 
@@ -102,19 +102,29 @@ const RoutesWrapper = () => {
     }
   }, [location.pathname]);
   
-  // Show a friendly loading state while auth initializes or while profile hydration is still resolving.
-  // This prevents the app from rendering a blank/black state during F5 or auth transitions.
-  // Only Supabase Auth bootstrap should block the entire app. Profile data is
-  // hydrated independently; a slow/missing profile must not look like logout
-  // or strand an otherwise valid session on an auth splash forever.
-  const authHydrating = loading;
-  if (authHydrating) {
+  // Public pages can render while Supabase restores a persisted session. Keep
+  // protected routes gated until Auth has a definitive result; profile loading
+  // is already independent and must not hold up the public gallery.
+  const requiresAuthResolution = ['/subir-obra', '/favoritos', '/siguiendo', '/configuracion', '/completar-perfil']
+    .some((route) => location.pathname === route || location.pathname.startsWith(`${route}/`));
+  if (loading && requiresAuthResolution) {
     return (
       <div className="w-screen h-screen bg-black flex items-center justify-center">
         <div className="text-center">
           <div className="text-white text-sm mb-4">{language === 'es' ? 'Cargando autenticación…' : 'Loading authentication…'}</div>
           <div className="w-12 h-12 border-4 border-white/20 border-t-white rounded-full animate-spin mx-auto" />
         </div>
+      </div>
+    );
+  }
+
+  if (initializationError && requiresAuthResolution) {
+    return (
+      <div role="alert" className="min-h-screen bg-black flex flex-col items-center justify-center gap-4 px-6 text-center text-white">
+        <p>{language === 'es' ? 'No se pudo comprobar la sesión. Tu cuenta no se ha cerrado.' : 'We could not verify your session. You have not been signed out.'}</p>
+        <button type="button" onClick={retryInitialization} className="rounded-lg border border-white/40 px-4 py-2 hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white">
+          {language === 'es' ? 'Reintentar' : 'Try again'}
+        </button>
       </div>
     );
   }

@@ -5,6 +5,8 @@ describe('password policy', () => {
   it('requires at least eight characters and rejects whitespace', () => {
     expect(getPasswordPolicyError('Short7!')).toContain('8');
     expect(getPasswordPolicyError('Long enough 7!')).toContain('espacios');
+    expect(getPasswordPolicyError('Long enough 7!', 'en')).toContain('spaces');
+    expect(getPasswordPolicyError('Short7!', 'en')).toContain('at least 8');
     expect(isPasswordValid('LongEnough7!')).toBe(true);
   });
 

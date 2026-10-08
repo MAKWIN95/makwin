@@ -9,12 +9,14 @@ export function getPasswordStrengthScore(password: string): number {
   return score;
 }
 
-export function getPasswordPolicyError(password: string): string | null {
+export function getPasswordPolicyError(password: string, language: 'es' | 'en' = 'es'): string | null {
   if (password.length < MIN_PASSWORD_LENGTH) {
-    return `La contraseña debe tener al menos ${MIN_PASSWORD_LENGTH} caracteres.`;
+    return language === 'es'
+      ? `La contraseña debe tener al menos ${MIN_PASSWORD_LENGTH} caracteres.`
+      : `Password must be at least ${MIN_PASSWORD_LENGTH} characters long.`;
   }
   if (/\s/.test(password)) {
-    return 'La contraseña no puede contener espacios.';
+    return language === 'es' ? 'La contraseña no puede contener espacios.' : 'Password cannot contain spaces.';
   }
   return null;
 }

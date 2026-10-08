@@ -8,6 +8,8 @@ interface AuthContextType {
   session: Session | null;
   profile: Profile | null;
   loading: boolean;
+  initializationError: boolean;
+  retryInitialization: () => void;
   needsUsernameSetup: boolean;
   signInWithGoogle: () => Promise<void>;
   signInWithEmail: (email: string, password: string) => Promise<{ error: string | null }>;
@@ -26,26 +28,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [initializationError, setInitializationError] = useState(false);
+  const [initializationAttempt, setInitializationAttempt] = useState(0);
   const [needsUsernameSetup, setNeedsUsernameSetup] = useState(false);
   const [onboardingUser, setOnboardingUser] = useState<User | null>(null);
   const sessionSequenceRef = useRef(0);
   const authEventSequenceRef = useRef(0);
+  const profileRequestSequenceRef = useRef(0);
   const googleOAuthPendingKey = 'makwin-google-oauth-pending';
 
   // Fetch profile without being a dependency
   const fetchProfile = useCallback(async (userId: string) => {
+    const requestSequence = ++profileRequestSequenceRef.current;
+    const sessionSequence = sessionSequenceRef.current;
     try {
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
         .single();
-      if (!error && data) {
+      if (!error && data && requestSequence === profileRequestSequenceRef.current && sessionSequence === sessionSequenceRef.current) {
         setProfile(data as Profile);
       }
     } catch (err) {
       console.error('[AuthContext] Error fetching profile:', err);
     }
+  }, []);
+
+  const retryInitialization = useCallback(() => {
+    setInitializationError(false);
+    setLoading(true);
+    setInitializationAttempt((attempt) => attempt + 1);
   }, []);
 
   // Prefer the established profile setting, and use Auth metadata as the
@@ -232,6 +245,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (!isMounted) return;
       authEventReceived = true;
       authEventSequenceRef.current += 1;
+      setInitializationError(false);
       queueMicrotask(() => {
         if (!isMounted) return;
         const hydration = handleSession(nextSession);
@@ -248,13 +262,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const { data: { session }, error } = await supabase.auth.getSession();
         if (error) throw error;
         if (!isMounted || sequenceAtStart !== authEventSequenceRef.current) return;
+        setInitializationError(false);
         const hydration = handleSession(session);
         // Authentication is known from Supabase now; do not make profile I/O
         // hold the whole application behind its auth splash.
         if (isMounted) setLoading(false);
         await hydration;
       } catch (error) {
-        if (isMounted) console.error('[AuthContext] Error initializing auth:', error);
+        if (isMounted) {
+          console.error('[AuthContext] Error initializing auth:', error);
+          // A bootstrap error is not proof that the user has signed out.
+          // Keep protected routes gated and allow a deliberate retry.
+          if (sequenceAtStart === authEventSequenceRef.current) setInitializationError(true);
+        }
       } finally {
         if (isMounted && !authEventReceived) setLoading(false);
       }
@@ -266,7 +286,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       isMounted = false;
       subscription?.unsubscribe();
     };
-  }, [handleSession]);
+  }, [handleSession, initializationAttempt]);
 
   const getAppBaseUrl = useCallback(() => {
     if (typeof window !== 'undefined' && window.location?.origin) {
@@ -631,7 +651,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <AuthContext.Provider value={{
-      user, session, profile, loading, needsUsernameSetup,
+      user, session, profile, loading, initializationError, retryInitialization, needsUsernameSetup,
       signInWithGoogle, signInWithEmail, signUpWithEmail,
       signOut, resetPassword, updateProfile, refreshProfile, completeGoogleSignUp,
     }}>
