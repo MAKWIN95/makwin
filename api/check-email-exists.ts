@@ -6,10 +6,29 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY || ''
 );
 
+export async function getUsernameAvailability(username: string): Promise<boolean> {
+  const normalized = String(username || '').trim().toLowerCase();
+  if (!normalized) throw new Error('Username is required.');
+  const { data, error } = await supabaseAdmin
+    .from('profiles')
+    .select('id')
+    .eq('username', normalized)
+    .maybeSingle();
+  if (error) throw error;
+  return !data;
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   try {
+    const requestBody = req.body as { action?: string; username?: string; email?: string };
+    if (requestBody?.action === 'username-availability') {
+      if (!requestBody.username) return res.status(400).json({ error: 'Username required' });
+      const available = await getUsernameAvailability(requestBody.username);
+      return res.status(200).json({ available });
+    }
+
     const { email } = req.body as { email: string };
     if (!email) return res.status(400).json({ error: 'Email required' });
 

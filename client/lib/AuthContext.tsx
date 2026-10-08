@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase, Profile, DEFAULT_USER_AVATAR } from './supabase';
+import { getPasswordPolicyError } from './passwordPolicy';
 
 interface AuthContextType {
   user: User | null;
@@ -28,6 +29,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [needsUsernameSetup, setNeedsUsernameSetup] = useState(false);
   const [onboardingUser, setOnboardingUser] = useState<User | null>(null);
   const sessionSequenceRef = useRef(0);
+  const googleOAuthPendingKey = 'makwin-google-oauth-pending';
 
   // Fetch profile without being a dependency
   const fetchProfile = useCallback(async (userId: string) => {
@@ -55,30 +57,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [profile?.language_preference]);
 
-  const isGoogleAuthSession = useCallback((session: Session | null) => {
-    if (!session?.user) return false;
-    const user = session.user as any;
-
-    // Check session-level provider (supabase may populate this on OAuth redirects)
-    if ((session as any).provider === 'google') return true;
-
-    // identities array (present in some Supabase setups)
-    if (Array.isArray(user.identities) && user.identities.some((identity: any) => identity.provider === 'google')) return true;
-
-    // app_metadata can be either a string provider or an array 'providers'
-    if (user.app_metadata?.provider === 'google') return true;
-    if (Array.isArray(user.app_metadata?.providers) && user.app_metadata.providers.includes('google')) return true;
-
-    // user_metadata sometimes carries provider information
-    if (user.user_metadata?.provider === 'google') return true;
-
-    return false;
+  const isGoogleOAuthFlow = useCallback(() => {
+    try {
+      if (typeof window === 'undefined') return false;
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('makwin_oauth') === 'google') {
+        window.sessionStorage.setItem(googleOAuthPendingKey, 'true');
+        params.delete('makwin_oauth');
+        const query = params.toString();
+        window.history.replaceState(
+          window.history.state,
+          '',
+          `${window.location.pathname}${query ? `?${query}` : ''}${window.location.hash}`
+        );
+      }
+      return window.sessionStorage.getItem(googleOAuthPendingKey) === 'true';
+    } catch (err) {
+      console.warn('[AuthContext] Error reading Google OAuth marker:', err);
+      return false;
+    }
   }, []);
 
   const isProfileCompleteForSession = useCallback((session: Session | null, profileData: any) => {
     if (!profileData) return false;
 
-    const googleUser = isGoogleAuthSession(session);
+    const googleUser = isGoogleOAuthFlow();
 
     // For Google sessions the profile is only complete after the user finishes onboarding explicitly.
     // The DB trigger may create a row and populate username/display_name/avatar_url automatically,
@@ -90,7 +93,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const usernameExists = !!(profileData.username && String(profileData.username).trim().length > 0);
     const displayNameExists = !!(profileData.display_name && String(profileData.display_name).trim().length > 0);
     return usernameExists && displayNameExists;
-  }, [isGoogleAuthSession]);
+  }, [isGoogleOAuthFlow]);
 
   const refreshProfile = useCallback(async () => {
     if (!user) return;
@@ -149,12 +152,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (!isLatest()) return;
 
-      const isGoogleUser = isGoogleAuthSession(session);
+      const isGoogleUser = isGoogleOAuthFlow();
 
       if (!error && data) {
         const profileComplete = isProfileCompleteForSession(session, data);
 
-        if (!profileComplete) {
+        if (!profileComplete && isGoogleUser) {
           setIncompleteGoogleState(session, session.user);
           return;
         }
@@ -187,12 +190,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setProfile(null);
       setNeedsUsernameSetup(false);
       setOnboardingUser(null);
-      const isGoogleUser = isGoogleAuthSession(session);
+      const isGoogleUser = isGoogleOAuthFlow();
       if (isGoogleUser) {
         setIncompleteGoogleState(session, session.user);
       }
     }
-  }, [clearOnboardingState, isGoogleAuthSession, isProfileCompleteForSession, setIncompleteGoogleState]);
+  }, [clearOnboardingState, isGoogleOAuthFlow, isProfileCompleteForSession, setIncompleteGoogleState]);
 
   useEffect(() => {
     let isMounted = true;
@@ -245,16 +248,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const signInWithGoogle = async () => {
-    const redirectTo = `${getAppBaseUrl()}/galeria`;
-
-    await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: { redirectTo },
-    });
+    const redirectTo = `${getAppBaseUrl()}/galeria?makwin_oauth=google`;
+    try {
+      window.sessionStorage.setItem(googleOAuthPendingKey, 'true');
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: { redirectTo },
+      });
+      if (error) window.sessionStorage.removeItem(googleOAuthPendingKey);
+    } catch (error) {
+      window.sessionStorage.removeItem(googleOAuthPendingKey);
+      throw error;
+    }
   };
 
   const signInWithEmail = async (email: string, password: string) => {
     try {
+      window.sessionStorage.removeItem(googleOAuthPendingKey);
       const { error } = await supabase.auth.signInWithPassword({ email, password });
 
       if (error) {
@@ -347,6 +357,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       if (typeof window !== 'undefined') {
         window.sessionStorage.removeItem('makwin-onboarding-incomplete');
+        window.sessionStorage.removeItem(googleOAuthPendingKey);
       }
     } catch (err) {
       console.warn('[AuthContext] Error clearing sessionStorage on signOut:', err);
@@ -411,9 +422,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return { error: 'Este nombre de usuario ya existe.' };
       }
 
-      // Do not allow spaces in passwords
-      if (/\s/.test(password)) {
-        return { error: 'Password cannot contain spaces.' };
+      const passwordPolicyError = getPasswordPolicyError(password);
+      if (passwordPolicyError) {
+        return { error: passwordPolicyError };
       }
 
       // Prefer setting password via server-side admin endpoint to avoid triggering provider emails
@@ -571,6 +582,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (typeof window !== 'undefined') {
         try {
           window.sessionStorage.setItem('makwin-last-google-auth', effectiveUser.id);
+          window.sessionStorage.removeItem(googleOAuthPendingKey);
         } catch (e) {
           console.warn('[AuthContext] Error saving onboarding state marker:', e);
         }

@@ -7,9 +7,8 @@ import cors from "cors";
 import { handleDemo } from "./routes/demo";
 import { handleSubmitWork } from "./routes/submit-work";
 import { handleDeleteAccount } from "./routes/delete-account";
-import { checkEmailExists } from "../api/check-email-exists";
+import { checkEmailExists, getUsernameAvailability } from "../api/check-email-exists";
 import { saveHelpMessage } from "../api/save-help-message";
-import { pruneOrphanedProfileByUsername } from "./lib/delete-account";
 
 export function createServer() {
   const app = express();
@@ -50,8 +49,8 @@ export function createServer() {
         return res.status(400).json({ available: false, cleaned: false, error: 'Username is required.' });
       }
 
-      const result = await pruneOrphanedProfileByUsername(username);
-      return res.status(200).json(result);
+      const available = await getUsernameAvailability(username);
+      return res.status(200).json({ available });
     } catch (error) {
       console.error('[API /api/check-username-availability] Error:', error);
       return res.status(500).json({ available: false, cleaned: false, error: 'Unable to verify username availability.' });
@@ -127,4 +126,3 @@ export function createServer() {
 
   return app;
 }
-

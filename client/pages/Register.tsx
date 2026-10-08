@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/lib/AuthContext';
 import { useI18n } from '@/lib/i18n';
 import { supabase } from '@/lib/supabase';
+import { checkUsernameAvailability } from '@/lib/usernameAvailability';
 
 export default function Register() {
   const { signUpWithEmail, signInWithGoogle } = useAuth();
@@ -91,38 +92,39 @@ export default function Register() {
 
   // Validate username uniqueness in real-time
   useEffect(() => {
+    let current = true;
     const checkUsername = async () => {
       if (!form.username || form.username.length < 3) {
-        setUsernameError('');
-        setCheckingUsername(false);
+        if (current) {
+          setUsernameError('');
+          setCheckingUsername(false);
+        }
         return;
       }
 
-      setCheckingUsername(true);
+      if (current) setCheckingUsername(true);
       try {
-        const response = await fetch('/api/check-username-availability', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username: form.username }),
-        });
-
-        const payload = await response.json().catch(() => ({ available: true, cleaned: false }));
-        if (!response.ok || payload.available === false) {
+        const result = await checkUsernameAvailability(form.username);
+        if (!current) return;
+        if (result === 'taken') {
           setUsernameError(es ? 'Este @ ya está en uso' : 'This username is taken');
-        } else {
+        } else if (result === 'available') {
           setUsernameError('');
+        } else {
+          setUsernameError(es ? 'No se pudo verificar el username. Inténtalo de nuevo.' : 'Could not verify username availability. Try again.');
         }
       } catch (err: any) {
         console.error('[Register] Error checking username:', err);
-        setUsernameError('');
+        if (current) setUsernameError(es ? 'No se pudo verificar el username. Inténtalo de nuevo.' : 'Could not verify username availability. Try again.');
       }
-      setCheckingUsername(false);
+      if (current) setCheckingUsername(false);
     };
 
     if (usernameTimeoutRef.current) clearTimeout(usernameTimeoutRef.current);
     usernameTimeoutRef.current = setTimeout(checkUsername, 500);
 
     return () => {
+      current = false;
       if (usernameTimeoutRef.current) clearTimeout(usernameTimeoutRef.current);
     };
   }, [form.username, es]);

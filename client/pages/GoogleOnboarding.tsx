@@ -1,9 +1,11 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useRef } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/AuthContext';
 import { useI18n } from '@/lib/i18n';
+import { getPasswordPolicyError, getPasswordStrengthScore } from '@/lib/passwordPolicy';
+import { checkUsernameAvailability, type UsernameAvailability } from '@/lib/usernameAvailability';
 
 function parseSuggestedUsername(email?: string) {
   if (!email) return '';
@@ -16,53 +18,27 @@ function validateUsername(username: string) {
   return usernameRegex.test(username);
 }
 
-async function checkUsernameAvailability(username: string): Promise<boolean> {
-  const normalized = String(username || '').trim().toLowerCase();
-  if (!normalized) return false;
-
-  try {
-    const response = await fetch('/api/check-username-availability', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username: normalized }),
-    });
-
-    const payload = await response.json().catch(() => ({ available: true, cleaned: false }));
-    return !!response.ok && payload.available !== false;
-  } catch (err) {
-    console.error('[GoogleOnboarding] Error checking username availability:', err);
-    return false;
-  }
-}
-
-function strengthScore(pw: string) {
-  let score = 0;
-  if (pw.length >= 8) score += 1;
-  if (/[A-Z]/.test(pw)) score += 1;
-  if (/[0-9]/.test(pw)) score += 1;
-  if (/[^A-Za-z0-9]/.test(pw)) score += 1;
-  return score;
-}
-
-async function findAvailableUsername(base: string): Promise<string> {
+async function findAvailableUsername(base: string): Promise<{ username: string | null; status: 'available' | 'taken' | 'error' }> {
   const sanitized = (base || 'makwin').replace(/[^a-z0-9_.]/gi, '').replace(/^[._]+|[._]+$/g, '').toLowerCase();
   const candidates = sanitized ? [sanitized, `${sanitized}1`, `${sanitized}_1`, `${sanitized}art`, `${sanitized}.art`] : ['makwin', 'makwin1'];
 
   for (const candidate of candidates) {
     if (!candidate || !validateUsername(candidate)) continue;
-    const isAvailable = await checkUsernameAvailability(candidate);
-    if (isAvailable) return candidate;
+    const availability = await checkUsernameAvailability(candidate);
+    if (availability === 'available') return { username: candidate, status: 'available' };
+    if (availability === 'error') return { username: null, status: 'error' };
   }
 
   let index = 2;
   while (index < 1000) {
     const candidate = `${sanitized || 'makwin'}${index}`;
-    const isAvailable = await checkUsernameAvailability(candidate);
-    if (isAvailable) return candidate;
+    const availability = await checkUsernameAvailability(candidate);
+    if (availability === 'available') return { username: candidate, status: 'available' };
+    if (availability === 'error') return { username: null, status: 'error' };
     index += 1;
   }
 
-  return sanitized || 'makwin';
+  return { username: null, status: 'taken' };
 }
 
 export default function GoogleOnboardingPage() {
@@ -81,7 +57,8 @@ export default function GoogleOnboardingPage() {
   const [showConfirm, setShowConfirm] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [available, setAvailable] = useState<boolean | null>(null);
+  const [availability, setAvailability] = useState<UsernameAvailability>('idle');
+  const usernameEditedRef = useRef(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -92,9 +69,10 @@ export default function GoogleOnboardingPage() {
         setUsername('');
         return;
       }
-      const availableUsername = await findAvailableUsername(base);
+      const suggestion = await findAvailableUsername(base);
       if (isMounted) {
-        setUsername(availableUsername);
+        if (suggestion.username && !usernameEditedRef.current) setUsername(suggestion.username);
+        else setAvailability(suggestion.status);
       }
     };
 
@@ -109,23 +87,28 @@ export default function GoogleOnboardingPage() {
   }, [needsUsernameSetup, navigate]);
 
   useEffect(() => {
+    let current = true;
     const id = setTimeout(async () => {
       if (!username || username.length < 2) {
-        setAvailable(null);
+        setAvailability('idle');
         return;
       }
       if (!validateUsername(username)) {
-        setAvailable(false);
+        setAvailability('invalid');
         return;
       }
+      setAvailability('checking');
       try {
-        const isAvailable = await checkUsernameAvailability(username);
-        setAvailable(isAvailable);
+        const result = await checkUsernameAvailability(username);
+        if (current) setAvailability(result);
       } catch (err) {
-        setAvailable(null);
+        if (current) setAvailability('error');
       }
     }, 500);
-    return () => clearTimeout(id);
+    return () => {
+      current = false;
+      clearTimeout(id);
+    };
   }, [username]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -144,13 +127,24 @@ export default function GoogleOnboardingPage() {
       return;
     }
 
-    if (available === false) {
+    if (availability === 'invalid') {
+      setError(es ? 'Formato de username no válido.' : 'Invalid username format.');
+      return;
+    }
+
+    if (availability === 'taken') {
       setError(es ? 'Este nombre de usuario ya está en uso.' : 'This username is already in use.');
       return;
     }
 
-    if (password.length < 8) {
-      setError(es ? 'La contraseña debe tener al menos 8 caracteres.' : 'Password must be at least 8 characters long.');
+    if (availability === 'error') {
+      setError(es ? 'No se pudo verificar el username. Inténtalo de nuevo.' : 'Could not verify username availability. Try again.');
+      return;
+    }
+
+    const passwordPolicyError = getPasswordPolicyError(password);
+    if (passwordPolicyError) {
+      setError(passwordPolicyError);
       return;
     }
 
@@ -166,7 +160,7 @@ export default function GoogleOnboardingPage() {
     if (res.error) {
       const lower = String(res.error).toLowerCase();
       if (lower.includes('usuario') || lower.includes('nombre de usuario') || lower.includes('already')) {
-        setAvailable(false);
+        setAvailability('taken');
       }
       setError(res.error);
       return;
@@ -175,7 +169,7 @@ export default function GoogleOnboardingPage() {
     navigate('/galeria', { replace: true });
   };
 
-  const score = strengthScore(password);
+  const score = getPasswordStrengthScore(password);
   const strengthLabel = score <= 1 ? (es ? 'Débil' : 'Weak') : score === 2 ? (es ? 'Media' : 'Fair') : (es ? 'Fuerte' : 'Strong');
 
   return (
@@ -196,12 +190,19 @@ export default function GoogleOnboardingPage() {
               </div>
               <input
                 value={username}
-                onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_.]/g, ''))}
+                onChange={(e) => {
+                  usernameEditedRef.current = true;
+                  setAvailability('checking');
+                  setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_.]/g, ''));
+                }}
                 className="w-full rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--input))] px-3 py-2.5 text-sm outline-none ring-0 transition focus:border-[hsl(var(--ring))]"
                 placeholder={es ? 'tu_usuario' : 'your_handle'}
               />
-              {available === false && <div className="mt-2 text-xs text-red-500">{es ? 'Este username ya está ocupado.' : 'This username is already taken.'}</div>}
-              {available === true && <div className="mt-2 text-xs text-emerald-400">{es ? 'Username disponible.' : 'Username available.'}</div>}
+              {availability === 'invalid' && <div className="mt-2 text-xs text-red-500">{es ? 'Formato de username no válido.' : 'Invalid username format.'}</div>}
+              {availability === 'taken' && <div className="mt-2 text-xs text-red-500">{es ? 'Este username ya está ocupado.' : 'This username is already taken.'}</div>}
+              {availability === 'available' && <div className="mt-2 text-xs text-emerald-400">{es ? 'Username disponible.' : 'Username available.'}</div>}
+              {availability === 'checking' && <div className="mt-2 text-xs text-[hsl(var(--muted-foreground))]">{es ? 'Verificando username…' : 'Checking username…'}</div>}
+              {availability === 'error' && <div className="mt-2 text-xs text-amber-400">{es ? 'No se pudo verificar el username.' : 'Username availability could not be verified.'}</div>}
             </div>
 
             <div>
@@ -240,7 +241,7 @@ export default function GoogleOnboardingPage() {
 
             <button
               type="submit"
-              disabled={loading || available === false || !username || !displayName.trim() || !password || !confirm}
+              disabled={loading || availability !== 'available' || !username || !displayName.trim() || !password || !confirm || !!getPasswordPolicyError(password) || password !== confirm}
               className="w-full rounded-xl bg-[hsl(var(--foreground))] px-4 py-3 text-sm font-medium text-[hsl(var(--background))] transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {loading ? (es ? 'Guardando...' : 'Saving...') : (es ? 'Continuar' : 'Continue')}

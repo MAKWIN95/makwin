@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { AlertCircle, CheckCircle2, Loader2, LogOut, Trash2, X } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { getPasswordPolicyError, getPasswordStrengthScore } from '@/lib/passwordPolicy';
 
 export default function Settings() {
   useRequireAuth();
@@ -19,6 +20,8 @@ export default function Settings() {
   const [passwordLoading, setPasswordLoading] = useState(false);
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [passwordSuccess, setPasswordSuccess] = useState<string | null>(null);
+  const passwordPolicyError = getPasswordPolicyError(newPassword);
+  const passwordStrength = getPasswordStrengthScore(newPassword);
   
   // Reset email state
   const [emailLoading, setEmailLoading] = useState(false);
@@ -51,8 +54,8 @@ export default function Settings() {
       return;
     }
 
-    if (newPassword.length < 6) {
-      setPasswordError('La contraseña debe tener al menos 6 caracteres.');
+    if (passwordPolicyError) {
+      setPasswordError(passwordPolicyError);
       return;
     }
 
@@ -64,8 +67,6 @@ export default function Settings() {
     setPasswordLoading(true);
 
     try {
-      await new Promise(resolve => setTimeout(resolve, 500)); // Show loading briefly
-      
       const { error } = await supabase.auth.updateUser({ password: newPassword });
 
       if (error) {
@@ -74,12 +75,6 @@ export default function Settings() {
         setPasswordSuccess('Contraseña actualizada correctamente.');
         setNewPassword('');
         setConfirmPassword('');
-        
-        // Redirect to previous page or home after 2s
-        setTimeout(() => {
-          const lastPage = sessionStorage.getItem('lastPage') || '/';
-          navigate(lastPage);
-        }, 2000);
       }
     } catch (err: any) {
       setPasswordError(err?.message || 'Error al cambiar la contraseña.');
@@ -218,9 +213,16 @@ export default function Settings() {
                 type="password"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
-                placeholder="Mínimo 6 caracteres"
+                placeholder="Mínimo 8 caracteres, sin espacios"
                 disabled={passwordLoading}
               />
+              <div className="mt-3 flex items-center gap-2">
+                <div className="h-2 flex-1 overflow-hidden rounded-full bg-[hsl(var(--muted))]">
+                  <div className={`h-full rounded-full transition-all ${passwordStrength <= 1 ? 'bg-red-500' : passwordStrength === 2 ? 'bg-yellow-400' : 'bg-emerald-400'}`} style={{ width: `${(passwordStrength / 4) * 100}%` }} />
+                </div>
+                <span className="text-[10px] uppercase tracking-[0.12em] text-[hsl(var(--muted-foreground))]">{passwordStrength <= 1 ? 'Débil' : passwordStrength === 2 ? 'Media' : 'Fuerte'}</span>
+              </div>
+              <p className={`mt-2 text-xs ${passwordPolicyError ? 'text-amber-500' : 'text-[hsl(var(--muted-foreground))]'}`}>{passwordPolicyError || 'Mínimo 8 caracteres y sin espacios.'}</p>
             </div>
 
             <div>
@@ -231,12 +233,13 @@ export default function Settings() {
                 type="password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="Repite tu contraseña"
+                placeholder="Confirma la nueva contraseña"
                 disabled={passwordLoading}
               />
+              {confirmPassword && newPassword !== confirmPassword && <p className="mt-2 text-xs text-red-500">Las contraseñas no coinciden.</p>}
             </div>
 
-            <Button type="submit" disabled={passwordLoading} className="w-full transition-all duration-200 hover:scale-[1.02] hover:shadow-lg active:scale-[0.98]">
+            <Button type="submit" disabled={passwordLoading || !!passwordPolicyError || !newPassword || !confirmPassword || newPassword !== confirmPassword} className="w-full transition-all duration-200 hover:scale-[1.02] hover:shadow-lg active:scale-[0.98]">
               {passwordLoading ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
