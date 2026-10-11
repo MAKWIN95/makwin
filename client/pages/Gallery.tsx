@@ -12,6 +12,25 @@ import { useStarsBackground } from '@/hooks/use-stars-background';
 
 const PAGE_SIZE = 40;
 
+function preloadImage(src: string): Promise<void> {
+  return new Promise(resolve => {
+    const image = new Image();
+    const finish = () => resolve();
+    image.fetchPriority = 'high';
+    image.decoding = 'async';
+    image.onload = () => {
+      if (typeof image.decode === 'function') {
+        void image.decode().catch(() => undefined).finally(finish);
+      } else {
+        finish();
+      }
+    };
+    image.onerror = finish;
+    image.src = src;
+    if (image.complete) finish();
+  });
+}
+
 export default function Gallery() {
   const { user } = useAuth();
   const location = useLocation();
@@ -93,6 +112,22 @@ export default function Gallery() {
         liked_by_me: item.liked_by_me || false,
         saved_by_me: item.saved_by_me || false,
       })) as Work[];
+
+      if (requestSequence !== requestSequenceRef.current || requestUserId !== activeUserIdRef.current) return;
+
+      // Decode the first visible masonry row before inserting it. Natural-height
+      // images otherwise begin at zero height and reflow the columns/footer as
+      // they load, which is especially noticeable when the first card is hovered.
+      await Promise.all(
+        fetched.slice(0, 3)
+          .map(work => work.cover_url ?? (
+            work.work_type === 'pintura' || work.work_type === 'fotografia'
+              ? work.file_url
+              : null
+          ))
+          .filter((src): src is string => Boolean(src))
+          .map(preloadImage)
+      );
 
       if (requestSequence !== requestSequenceRef.current || requestUserId !== activeUserIdRef.current) return;
 
@@ -325,9 +360,9 @@ export default function Gallery() {
             {/* Natural-height masonry columns keep each artwork's original ratio. */}
             {works.length > 0 && filtered.length > 0 && (
               <div className="columns-2 gap-4 sm:columns-3 lg:columns-4 xl:columns-5 2xl:columns-6">
-                {filtered.map((item: any) => (
+                {filtered.map((item: any, index: number) => (
                   <div key={item.id} className={`mb-5 inline-block w-full break-inside-avoid align-top transition-opacity duration-300 ${showItems ? 'opacity-100' : 'opacity-0'}`}>
-                    <WorkCard work={item as Work} />
+                    <WorkCard work={item as Work} priorityImage={index < 3} />
                   </div>
                 ))}
               </div>

@@ -12,6 +12,7 @@ import DeleteWorkModal from '@/components/DeleteWorkModal';
 
 interface Props {
   work: Work;
+  priorityImage?: boolean;
   onLikeToggle?: (workId: string, liked: boolean) => void;
   onSaveToggle?: (workId: string, saved: boolean) => void;
   isOwnProfile?: boolean;
@@ -27,7 +28,7 @@ const WORK_TYPE_ICONS: Record<string, string> = {
   video: '🎬',
 };
 
-export default function WorkCard({ work, onLikeToggle, onSaveToggle, isOwnProfile, onWorkChange, onWorkDeleted }: Props) {
+export default function WorkCard({ work, priorityImage = false, onLikeToggle, onSaveToggle, isOwnProfile, onWorkChange, onWorkDeleted }: Props) {
   const { user } = useAuth();
   const { language: currentLang } = useI18n();
   const navigate = useNavigate();
@@ -145,10 +146,12 @@ export default function WorkCard({ work, onLikeToggle, onSaveToggle, isOwnProfil
           <img
             src={work.cover_url ?? work.file_url ?? ''}
             alt={work.title}
-            className={`relative z-0 block h-auto w-full rounded-2xl object-contain transition-[transform,opacity] duration-300 ease-out group-hover:z-20 group-hover:scale-[1.055] group-focus-within:z-20 group-focus-within:scale-[1.055] ${
+            className={`relative z-0 block h-auto w-full rounded-2xl object-contain transition-[transform,opacity] duration-300 ease-out group-hover:z-20 group-hover:scale-[1.028] group-focus-within:z-20 group-focus-within:scale-[1.028] ${
               imageLoaded ? 'opacity-100' : 'opacity-0'
             }`}
-            loading="lazy"
+            loading={priorityImage ? 'eager' : 'lazy'}
+            fetchPriority={priorityImage ? 'high' : 'auto'}
+            decoding="async"
             onLoad={() => setImageLoaded(true)}
           />
         ) : isPoem ? (
@@ -164,27 +167,28 @@ export default function WorkCard({ work, onLikeToggle, onSaveToggle, isOwnProfil
         )}
       </div>
 
-      {/* Metadata */}
-      <div className="mt-3 px-1">
-        <p className="text-sm font-medium text-[hsl(var(--foreground))] truncate leading-tight">{work.title}</p>
-        <div className="flex items-center justify-between gap-2 mt-1.5">
-          {work.profiles?.username ? (
-            <Link
-              to={`/u/${work.profiles.username}`}
-              onClick={e => e.stopPropagation()}
-              className="text-xs text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] transition-colors duration-200"
-            >
-              @{work.profiles.username}
-            </Link>
-          ) : (
-            <span className="text-xs text-[hsl(var(--muted-foreground))]">{currentLang === 'es' ? 'Usuario no encontrado' : 'User not found'}</span>
-          )}
-          <span className="text-xs text-[hsl(var(--muted-foreground))]">{formatDate(work.created_at)}</span>
+      <div className="transition-transform duration-300 ease-out group-hover:translate-y-1 group-focus-within:translate-y-1">
+        {/* Metadata */}
+        <div className="mt-3 px-1">
+          <p className="text-sm font-medium text-[hsl(var(--foreground))] truncate leading-tight">{work.title}</p>
+          <div className="flex items-center justify-between gap-2 mt-1.5">
+            {work.profiles?.username ? (
+              <Link
+                to={`/u/${work.profiles.username}`}
+                onClick={e => e.stopPropagation()}
+                className="text-xs text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] transition-colors duration-200"
+              >
+                @{work.profiles.username}
+              </Link>
+            ) : (
+              <span className="text-xs text-[hsl(var(--muted-foreground))]">{currentLang === 'es' ? 'Usuario no encontrado' : 'User not found'}</span>
+            )}
+            <span className="text-xs text-[hsl(var(--muted-foreground))]">{formatDate(work.created_at)}</span>
+          </div>
         </div>
-      </div>
 
-      {/* Actions */}
-      <div className="mt-2 px-1 flex items-center justify-between gap-2">
+        {/* Actions */}
+        <div className="mt-2 px-1 flex items-center justify-between gap-2">
         {isOwnProfile ? (
           <div className="flex gap-2 w-full">
             <button
@@ -237,6 +241,7 @@ export default function WorkCard({ work, onLikeToggle, onSaveToggle, isOwnProfil
             </button>
           </>
         )}
+        </div>
       </div>
 
     </Link>
