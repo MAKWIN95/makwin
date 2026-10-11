@@ -15,17 +15,19 @@ const PAGE_SIZE = 40;
 function preloadImage(src: string): Promise<void> {
   return new Promise(resolve => {
     const image = new Image();
-    const finish = () => resolve();
+    let finished = false;
+    let fallbackTimer: number;
+    const finish = () => {
+      if (finished) return;
+      finished = true;
+      window.clearTimeout(fallbackTimer);
+      resolve();
+    };
     image.fetchPriority = 'high';
     image.decoding = 'async';
-    image.onload = () => {
-      if (typeof image.decode === 'function') {
-        void image.decode().catch(() => undefined).finally(finish);
-      } else {
-        finish();
-      }
-    };
+    image.onload = finish;
     image.onerror = finish;
+    fallbackTimer = window.setTimeout(finish, 3000);
     image.src = src;
     if (image.complete) finish();
   });

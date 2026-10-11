@@ -150,7 +150,6 @@ export default function WorkCard({ work, priorityImage = false, onLikeToggle, on
               imageLoaded ? 'opacity-100' : 'opacity-0'
             }`}
             loading={priorityImage ? 'eager' : 'lazy'}
-            fetchPriority={priorityImage ? 'high' : 'auto'}
             decoding="async"
             onLoad={() => setImageLoaded(true)}
           />
