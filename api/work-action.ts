@@ -1,5 +1,5 @@
 import { VercelRequest, VercelResponse } from "@vercel/node";
-import { redis } from "../server/lib/redis";
+import { redis } from "../server/lib/redis.js";
 
 interface PublishedWork {
   submissionId: string;

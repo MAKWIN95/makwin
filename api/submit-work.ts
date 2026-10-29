@@ -1,5 +1,5 @@
 import { VercelRequest, VercelResponse } from "@vercel/node";
-import { redis } from "../server/lib/redis";
+import { redis } from "../server/lib/redis.js";
 
 function generateSubmissionId(): string {
   const year = new Date().getFullYear();
