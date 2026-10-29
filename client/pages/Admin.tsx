@@ -6,13 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AlertCircle, CheckCircle2, Loader2, Trash2, Archive, RotateCcw } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
 import AdminHelpMessages from '@/components/AdminHelpMessages';
-import { supabase } from '@/lib/supabase';
-
-// The API decides who is an admin (ADMIN_EMAILS); the page only forwards the session.
-async function authHeaders(): Promise<Record<string, string>> {
-  const { data: { session } } = await supabase.auth.getSession();
-  return session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {};
-}
+import { authHeaders } from '@/lib/adminApi';
 
 interface Submission {
   submissionId: string;

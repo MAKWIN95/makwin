@@ -4,6 +4,7 @@ import { useI18n } from '@/lib/i18n';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { useAuth } from '@/lib/AuthContext';
+import { authHeaders } from '@/lib/adminApi';
 
 interface HelpModalProps {
   isOpen: boolean;
@@ -44,14 +45,13 @@ export default function HelpModal({
     try {
       const response = await fetch('/api/save-help-message', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
         body: JSON.stringify({
           email,
           name,
           subject,
           message,
           category,
-          user_id: user?.id || null,
         }),
       });
 

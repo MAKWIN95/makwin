@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, type User } from '@supabase/supabase-js';
 
 const supabaseAdmin = createClient(
   process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '',
@@ -14,13 +14,23 @@ export function getAdminEmails(): string[] {
     .filter(Boolean);
 }
 
-export async function isAdminRequest(authorization: string | string[] | undefined): Promise<boolean> {
+function bearerToken(authorization: string | string[] | undefined): string {
   const header = Array.isArray(authorization) ? authorization[0] : authorization;
-  const token = (header || '').replace(/^Bearer\s+/i, '').trim();
-  const admins = getAdminEmails();
-  if (!token || admins.length === 0) return false;
+  return (header || '').replace(/^Bearer\s+/i, '').trim();
+}
 
+// Resolves the Supabase user behind an Authorization header, or null.
+export async function getRequestUser(authorization: string | string[] | undefined): Promise<User | null> {
+  const token = bearerToken(authorization);
+  if (!token) return null;
   const { data, error } = await supabaseAdmin.auth.getUser(token);
-  const email = data?.user?.email?.toLowerCase();
-  return !error && !!email && admins.includes(email);
+  return error ? null : data?.user ?? null;
+}
+
+export async function isAdminRequest(authorization: string | string[] | undefined): Promise<boolean> {
+  const admins = getAdminEmails();
+  if (!bearerToken(authorization) || admins.length === 0) return false;
+
+  const email = (await getRequestUser(authorization))?.email?.toLowerCase();
+  return !!email && admins.includes(email);
 }

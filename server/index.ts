@@ -11,6 +11,8 @@ import { checkEmailExists } from "../api/check-email-exists";
 import { saveHelpMessage } from "../api/save-help-message";
 import { isValidUsername, normalizeUsername } from "../shared/username";
 import { getUsernameAvailability, getUsernameAvailabilityUserId } from "./lib/username-availability";
+import { getRequestUser } from "./lib/admin-auth";
+import helpMessagesHandler from "../api/help-messages";
 
 export function createServer() {
   const app = express();
@@ -75,13 +77,14 @@ export function createServer() {
   // Save help message to database
   app.post("/api/save-help-message", async (req, res) => {
     try {
-      const { email, name, category, subject, message, user_id } = req.body;
+      const { email, name, category, subject, message } = req.body;
 
       if (!email || !name || !category || !subject || !message) {
         return res.status(400).json({ error: "Faltan campos requeridos" });
       }
 
-      const result = await saveHelpMessage(email, name, category, subject, message, user_id);
+      const user = await getRequestUser(req.headers.authorization);
+      const result = await saveHelpMessage(email, name, category, subject, message, user?.id ?? null);
 
       if ("error" in result) {
         return res.status(result.status).json({ error: result.error });
@@ -97,6 +100,8 @@ export function createServer() {
       return res.status(500).json({ error: "Error interno del servidor" });
     }
   });
+
+  app.all("/api/help-messages", (req, res) => helpMessagesHandler(req as any, res as any));
 
   // Gemini proxy endpoint to avoid browser CORS issues
   app.post("/api/analyze", async (req, res) => {

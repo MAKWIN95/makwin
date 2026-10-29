@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Loader, MessageSquare, Trash2 } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
-import { supabase } from '@/lib/supabase';
+import { authHeaders } from '@/lib/adminApi';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 
@@ -41,12 +41,9 @@ export default function AdminHelpMessages() {
 
   const loadMessages = async () => {
     try {
-      const { data, error } = await supabase
-        .from('help_messages')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
+      const response = await fetch('/api/help-messages', { headers: await authHeaders() });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const { messages: data } = await response.json();
       setMessages(data || []);
     } catch (error) {
       console.error('Error loading messages:', error);
@@ -56,14 +53,18 @@ export default function AdminHelpMessages() {
     }
   };
 
+  const sendMessageChange = async (method: 'PATCH' | 'DELETE', body: Record<string, string>) => {
+    const response = await fetch('/api/help-messages', {
+      method,
+      headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
+      body: JSON.stringify(body),
+    });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+  };
+
   const updateStatus = async (id: string, status: string) => {
     try {
-      const { error } = await supabase
-        .from('help_messages')
-        .update({ status })
-        .eq('id', id);
-
-      if (error) throw error;
+      await sendMessageChange('PATCH', { id, status });
       
       setMessages(messages.map(m => m.id === id ? { ...m, status } : m));
       toast.success(language === 'es' ? 'Estado actualizado' : 'Status updated');
@@ -78,12 +79,7 @@ export default function AdminHelpMessages() {
 
     setDeleting(id);
     try {
-      const { error } = await supabase
-        .from('help_messages')
-        .delete()
-        .eq('id', id);
-
-      if (error) throw error;
+      await sendMessageChange('DELETE', { id });
       
       setMessages(messages.filter(m => m.id !== id));
       toast.success(language === 'es' ? 'Mensaje eliminado' : 'Message deleted');

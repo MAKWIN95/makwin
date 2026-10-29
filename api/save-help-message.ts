@@ -2,6 +2,7 @@ import { createClient } from "@supabase/supabase-js";
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import type { HelpMessage } from "@shared/api";
 import { Resend } from 'resend';
+import { getRequestUser } from "../server/lib/admin-auth.js";
 
 const supabase = createClient(
   process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || "",
@@ -36,6 +37,10 @@ async function saveHelpMessage(
   }
 
   // Validar longitud de campo
+  if (name.length > 100 || category.length > 50) {
+    return { error: "Nombre o categoría demasiado largos", status: 400 };
+  }
+
   if (subject.length < 5 || subject.length > 100) {
     return { error: "El asunto debe tener entre 5 y 100 caracteres", status: 400 };
   }
@@ -66,8 +71,9 @@ async function saveHelpMessage(
   }
 
   console.log("[HelpMessage] ✓ Mensaje guardado exitosamente:", data?.id);
-  // Prepare and send notification email to HELP_EMAIL or default recipient
-  (async () => {
+  // Prepare and send notification email to HELP_EMAIL or default recipient.
+  // Awaited: serverless functions may be frozen as soon as the response is sent.
+  await (async () => {
     try {
       // Route recipient based on category
       const categoryLower = (category || '').toLowerCase();
@@ -130,14 +136,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const { email, name, category, subject, message, user_id } = req.body as HelpMessage & { user_id?: string };
+    const { email, name, category, subject, message } = req.body as HelpMessage;
 
     // Validar campos
     if (!email || !name || !category || !subject || !message) {
       return res.status(400).json({ error: "Faltan campos requeridos" });
     }
 
-    const result = await saveHelpMessage(email, name, category, subject, message, user_id);
+    // Link the message to an account only from a verified session, never from the body.
+    const user = await getRequestUser(req.headers.authorization);
+    const result = await saveHelpMessage(email, name, category, subject, message, user?.id ?? null);
 
     if ("error" in result) {
       return res.status(result.status).json({ error: result.error });
