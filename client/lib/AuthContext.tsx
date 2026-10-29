@@ -2,7 +2,7 @@ import React, { createContext, useContext, useEffect, useState, useCallback, use
 import { User, Session } from '@supabase/supabase-js';
 import { supabase, Profile, DEFAULT_USER_AVATAR } from './supabase';
 import { getPasswordPolicyError } from './passwordPolicy';
-import { isValidUsername, isUsernameUniqueViolation, normalizeUsername } from '@shared/username';
+import { isPlaceholderUsername, isValidUsername, isUsernameUniqueViolation, normalizeUsername } from '@shared/username';
 
 interface AuthContextType {
   user: User | null;
@@ -117,6 +117,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const isProfileCompleteForSession = useCallback((session: Session | null, profileData: any) => {
     if (!profileData) return false;
+    if (isPlaceholderUsername(profileData.username)) return false;
 
     const googleUser = isGoogleSession(session);
 
@@ -203,7 +204,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (!error && data) {
         const profileComplete = isProfileCompleteForSession(session, data);
 
-        if (!profileComplete && isGoogleUser) {
+        // A placeholder username means onboarding never finished, even when the
+        // session's provider metadata does not say Google (e.g. a later email link).
+        if (!profileComplete && (isGoogleUser || isPlaceholderUsername(data.username))) {
           setIncompleteGoogleState(session, session.user);
           return;
         }

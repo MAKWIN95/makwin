@@ -4,8 +4,11 @@
 -- person could not sign up at all ("Database error saving new user"). It also
 -- reserved the prefix for people who never finished onboarding.
 --
--- Users without a chosen username now get a unique placeholder until Google
--- onboarding sets the real one. Email sign-ups keep the username they picked.
+-- Users without a chosen username now get a placeholder built from their own
+-- user id until Google onboarding sets the real one. The id is unique, and at
+-- 37 characters the placeholder cannot match a chosen username (max 24).
+-- Email sign-ups keep the username they picked. Existing profiles are not
+-- touched: this only replaces the function used for new auth.users rows.
 --
 -- Rollback: re-create the previous body, which used
 --   coalesce(new.raw_user_meta_data->>'username', split_part(new.email, '@', 1))
@@ -21,8 +24,8 @@ begin
   values (
     new.id,
     coalesce(
-      nullif(lower(trim(new.raw_user_meta_data->>'username')), ''),
-      'user_' || substr(replace(new.id::text, '-', ''), 1, 12)
+      nullif(new.raw_user_meta_data->>'username', ''),
+      'user_' || replace(new.id::text, '-', '')
     ),
     coalesce(
       new.raw_user_meta_data->>'display_name',

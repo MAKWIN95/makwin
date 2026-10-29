@@ -17,3 +17,9 @@ export function isUsernameUniqueViolation(error: { code?: string; message?: stri
   const message = String(error?.message ?? '').toLowerCase();
   return message.includes('duplicate key') && message.includes('username');
 }
+
+// handle_new_user gives sign-ups without a chosen username (Google) `user_`
+// plus their id until onboarding replaces it.
+export function isPlaceholderUsername(value: unknown): boolean {
+  return /^user_[0-9a-f]{32}$/.test(String(value ?? ''));
+}
