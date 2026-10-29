@@ -146,7 +146,7 @@ export default function WorkCard({ work, priorityImage = false, onLikeToggle, on
           <img
             src={work.cover_url ?? work.file_url ?? ''}
             alt={work.title}
-            className={`relative z-0 block h-auto w-full rounded-2xl object-contain transition-[transform,opacity] duration-300 ease-out group-hover:z-20 group-hover:scale-[1.028] group-focus-within:z-20 group-focus-within:scale-[1.028] ${
+            className={`relative z-0 block h-auto w-full rounded-2xl object-contain transition-[transform,opacity] duration-300 ease-out group-hover:z-20 group-hover:scale-[1.014] group-focus-within:z-20 group-focus-within:scale-[1.014] ${
               imageLoaded ? 'opacity-100' : 'opacity-0'
             }`}
             loading={priorityImage ? 'eager' : 'lazy'}
@@ -166,7 +166,7 @@ export default function WorkCard({ work, priorityImage = false, onLikeToggle, on
         )}
       </div>
 
-      <div className="transition-transform duration-300 ease-out group-hover:translate-y-1 group-focus-within:translate-y-1">
+      <div className="transition-transform duration-300 ease-out group-hover:translate-y-0.5 group-focus-within:translate-y-0.5">
         {/* Metadata */}
         <div className="mt-3 px-1">
           <p className="text-sm font-medium text-[hsl(var(--foreground))] truncate leading-tight">{work.title}</p>

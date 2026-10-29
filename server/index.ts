@@ -7,8 +7,9 @@ import cors from "cors";
 import { handleDemo } from "./routes/demo";
 import { handleSubmitWork } from "./routes/submit-work";
 import { handleDeleteAccount } from "./routes/delete-account";
-import { checkEmailExists, getUsernameAvailability } from "../api/check-email-exists";
+import { checkEmailExists, getUsernameAvailability, getUsernameAvailabilityUserId } from "../api/check-email-exists";
 import { saveHelpMessage } from "../api/save-help-message";
+import { isValidUsername, normalizeUsername } from "../shared/username";
 
 export function createServer() {
   const app = express();
@@ -44,12 +45,25 @@ export function createServer() {
 
   app.post("/api/check-username-availability", async (req, res) => {
     try {
-      const username = String(req.body?.username ?? '').trim().toLowerCase();
-      if (!username) {
-        return res.status(400).json({ available: false, cleaned: false, error: 'Username is required.' });
+      const username = normalizeUsername(req.body?.username);
+      if (!isValidUsername(username)) {
+        return res.status(400).json({ error: 'Invalid username format.' });
       }
 
-      const available = await getUsernameAvailability(username);
+      const authHeader = req.headers.authorization;
+      let excludeUserId: string | undefined;
+      if (authHeader !== undefined) {
+        try {
+          if (typeof authHeader !== 'string' || !/^Bearer\s+\S+$/i.test(authHeader)) {
+            return res.status(401).json({ error: 'Invalid authentication token.' });
+          }
+          const accessToken = authHeader.replace(/^Bearer\s+/i, '');
+          excludeUserId = await getUsernameAvailabilityUserId(accessToken);
+        } catch {
+          return res.status(401).json({ error: 'Invalid authentication token.' });
+        }
+      }
+      const available = await getUsernameAvailability(username, excludeUserId);
       return res.status(200).json({ available });
     } catch (error) {
       console.error('[API /api/check-username-availability] Error:', error);

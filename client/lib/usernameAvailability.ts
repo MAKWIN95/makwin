@@ -1,14 +1,18 @@
+import { isValidUsername, normalizeUsername } from '@shared/username';
+
 export type UsernameAvailability = 'idle' | 'checking' | 'available' | 'taken' | 'invalid' | 'error';
 
-export async function checkUsernameAvailability(username: string): Promise<UsernameAvailability> {
-  const normalized = String(username || '').trim().toLowerCase();
-  if (!normalized) return 'error';
+export async function checkUsernameAvailability(username: string, accessToken?: string): Promise<UsernameAvailability> {
+  const normalized = normalizeUsername(username);
+  if (!isValidUsername(normalized)) return 'invalid';
 
   try {
-    const response = await fetch('/api/check-email-exists', {
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
+    const response = await fetch('/api/check-username-availability', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'username-availability', username: normalized }),
+      headers,
+      body: JSON.stringify({ username: normalized }),
     });
 
     const payload = await response.json().catch(() => null);

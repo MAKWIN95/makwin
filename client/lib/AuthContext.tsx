@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState, useCallback, use
 import { User, Session } from '@supabase/supabase-js';
 import { supabase, Profile, DEFAULT_USER_AVATAR } from './supabase';
 import { getPasswordPolicyError } from './passwordPolicy';
+import { isValidUsername, isUsernameUniqueViolation, normalizeUsername } from '@shared/username';
 
 interface AuthContextType {
   user: User | null;
@@ -461,19 +462,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return { error: 'La sesión de autenticación no está activa.' };
     }
 
-    const uname = String(username || '').trim().toLowerCase();
+    const uname = normalizeUsername(username);
+    if (!isValidUsername(uname)) return { error: 'Invalid username format.' };
     const safeDisplayName = String(displayName || '').trim();
     const googleAvatar = (effectiveUser.user_metadata?.avatar_url as string | undefined) || DEFAULT_USER_AVATAR;
 
     try {
-      const { data: taken } = await supabase
+      const { data: taken, error: usernameQueryError } = await supabase
         .from('profiles')
         .select('id')
         .eq('username', uname)
         .maybeSingle();
 
+      if (usernameQueryError) {
+        console.error('[AuthContext] Username uniqueness check failed:', usernameQueryError);
+        return { error: 'USERNAME_CHECK_FAILED' };
+      }
+
       if (taken && taken.id !== effectiveUser.id) {
-        return { error: 'Este nombre de usuario ya existe.' };
+        return { error: 'USERNAME_TAKEN' };
       }
 
       const passwordPolicyError = getPasswordPolicyError(password);
@@ -576,9 +583,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           );
 
           if (updateError) {
-            const msg = String(updateError.message || '').toLowerCase();
-            if (msg.includes('duplicate') || msg.includes('already exists')) {
-              return { error: 'Este nombre de usuario ya existe.' };
+            if (isUsernameUniqueViolation(updateError)) {
+              return { error: 'USERNAME_TAKEN' };
             }
             return { error: updateError.message || 'No se pudo guardar el perfil.' };
           }
@@ -600,9 +606,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           );
 
           if (insertError) {
-            const msg = String(insertError.message || '').toLowerCase();
-            if (msg.includes('duplicate') || msg.includes('already exists')) {
-              return { error: 'Este nombre de usuario ya existe.' };
+            if (isUsernameUniqueViolation(insertError)) {
+              return { error: 'USERNAME_TAKEN' };
             }
             return { error: insertError.message || 'No se pudo guardar el perfil.' };
           }

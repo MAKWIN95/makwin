@@ -6,6 +6,7 @@ import { useAuth } from '@/lib/AuthContext';
 import { useI18n } from '@/lib/i18n';
 import { getPasswordPolicyError, getPasswordStrengthScore } from '@/lib/passwordPolicy';
 import { checkUsernameAvailability, type UsernameAvailability } from '@/lib/usernameAvailability';
+import { isValidUsername, normalizeUsername, USERNAME_MAX_LENGTH } from '@shared/username';
 
 function parseSuggestedUsername(email?: string) {
   if (!email) return '';
@@ -14,25 +15,29 @@ function parseSuggestedUsername(email?: string) {
 }
 
 function validateUsername(username: string) {
-  const usernameRegex = /^[a-z0-9]([a-z0-9_.]*[a-z0-9])?$/;
-  return usernameRegex.test(username);
+  return isValidUsername(username);
 }
 
-async function findAvailableUsername(base: string): Promise<{ username: string | null; status: 'available' | 'taken' | 'error' }> {
-  const sanitized = (base || 'makwin').replace(/[^a-z0-9_.]/gi, '').replace(/^[._]+|[._]+$/g, '').toLowerCase();
+async function findAvailableUsername(base: string, accessToken?: string): Promise<{ username: string | null; status: 'available' | 'taken' | 'error' }> {
+  const cleanedBase = (base || '').replace(/[^a-z0-9_.]/gi, '').replace(/^[._]+|[._]+$/g, '').toLowerCase();
+  const sanitized = (cleanedBase.length >= 3 ? cleanedBase : 'makwin').slice(0, USERNAME_MAX_LENGTH);
   const candidates = sanitized ? [sanitized, `${sanitized}1`, `${sanitized}_1`, `${sanitized}art`, `${sanitized}.art`] : ['makwin', 'makwin1'];
 
   for (const candidate of candidates) {
     if (!candidate || !validateUsername(candidate)) continue;
-    const availability = await checkUsernameAvailability(candidate);
+    const availability = await checkUsernameAvailability(candidate, accessToken);
     if (availability === 'available') return { username: candidate, status: 'available' };
     if (availability === 'error') return { username: null, status: 'error' };
   }
 
   let index = 2;
-  while (index < 1000) {
-    const candidate = `${sanitized || 'makwin'}${index}`;
-    const availability = await checkUsernameAvailability(candidate);
+  while (index < 30) {
+    const candidate = `${sanitized.slice(0, USERNAME_MAX_LENGTH - 2)}${index}`;
+    if (!validateUsername(candidate)) {
+      index += 1;
+      continue;
+    }
+    const availability = await checkUsernameAvailability(candidate, accessToken);
     if (availability === 'available') return { username: candidate, status: 'available' };
     if (availability === 'error') return { username: null, status: 'error' };
     index += 1;
@@ -42,7 +47,7 @@ async function findAvailableUsername(base: string): Promise<{ username: string |
 }
 
 export default function GoogleOnboardingPage() {
-  const { user, completeGoogleSignUp, needsUsernameSetup } = useAuth();
+  const { user, session, completeGoogleSignUp, needsUsernameSetup } = useAuth();
   const { language } = useI18n();
   const es = language === 'es';
   const navigate = useNavigate();
@@ -69,7 +74,7 @@ export default function GoogleOnboardingPage() {
         setUsername('');
         return;
       }
-      const suggestion = await findAvailableUsername(base);
+      const suggestion = await findAvailableUsername(base, session?.access_token);
       if (isMounted) {
         if (suggestion.username && !usernameEditedRef.current) setUsername(suggestion.username);
         else setAvailability(suggestion.status);
@@ -78,7 +83,7 @@ export default function GoogleOnboardingPage() {
 
     prepareSuggestedUsername();
     return () => { isMounted = false; };
-  }, [user?.email]);
+  }, [user?.email, session?.access_token]);
 
   useEffect(() => {
     if (!needsUsernameSetup) {
@@ -89,7 +94,7 @@ export default function GoogleOnboardingPage() {
   useEffect(() => {
     let current = true;
     const id = setTimeout(async () => {
-      if (!username || username.length < 2) {
+      if (!username || username.length < 3) {
         setAvailability('idle');
         return;
       }
@@ -99,7 +104,7 @@ export default function GoogleOnboardingPage() {
       }
       setAvailability('checking');
       try {
-        const result = await checkUsernameAvailability(username);
+        const result = await checkUsernameAvailability(username, session?.access_token);
         if (current) setAvailability(result);
       } catch (err) {
         if (current) setAvailability('error');
@@ -109,13 +114,13 @@ export default function GoogleOnboardingPage() {
       current = false;
       clearTimeout(id);
     };
-  }, [username]);
+  }, [username, session?.access_token]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
-    const finalUsername = username.trim();
+    const finalUsername = normalizeUsername(username);
 
     if (!finalUsername || !displayName.trim() || !password.trim() || !confirm.trim()) {
       setError(es ? 'Todos los campos son obligatorios.' : 'All fields are required.');
@@ -154,15 +159,19 @@ export default function GoogleOnboardingPage() {
     }
 
     setLoading(true);
-    const res = await completeGoogleSignUp(finalUsername.toLowerCase(), password, displayName.trim());
+    const res = await completeGoogleSignUp(finalUsername, password, displayName.trim());
     setLoading(false);
 
     if (res.error) {
-      const lower = String(res.error).toLowerCase();
-      if (lower.includes('usuario') || lower.includes('nombre de usuario') || lower.includes('already')) {
+      if (res.error === 'USERNAME_TAKEN') {
         setAvailability('taken');
+        setError(es ? 'Este username ya está ocupado.' : 'This username is already taken.');
+      } else if (res.error === 'USERNAME_CHECK_FAILED') {
+        setAvailability('error');
+        setError(es ? 'No se pudo verificar el username. Inténtalo de nuevo.' : 'Could not verify username availability. Try again.');
+      } else {
+        setError(res.error);
       }
-      setError(res.error);
       return;
     }
 
@@ -186,14 +195,14 @@ export default function GoogleOnboardingPage() {
               <label className="mb-2 block text-sm font-medium text-[hsl(var(--foreground))]">{es ? 'Username' : 'Username'}</label>
               <div className="mb-2 inline-flex items-center rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--input))] px-2.5 py-1.5 text-xs text-[hsl(var(--muted-foreground))]">
                 @
-                <span className="ml-1">{username || suggested || 'usuario'}</span>
+                <span className="ml-1">{username || suggested || (es ? 'usuario' : 'username')}</span>
               </div>
               <input
                 value={username}
                 onChange={(e) => {
                   usernameEditedRef.current = true;
                   setAvailability('checking');
-                  setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_.]/g, ''));
+                  setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_.]/g, '').slice(0, USERNAME_MAX_LENGTH));
                 }}
                 className="w-full rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--input))] px-3 py-2.5 text-sm outline-none ring-0 transition focus:border-[hsl(var(--ring))]"
                 placeholder={es ? 'tu_usuario' : 'your_handle'}
