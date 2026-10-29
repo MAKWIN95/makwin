@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { getUsernameAvailability, getUsernameAvailabilityUserId } from './check-email-exists';
+import { getUsernameAvailability, getUsernameAvailabilityUserId } from '../server/lib/username-availability';
 import { isValidUsername, normalizeUsername } from '../shared/username';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
