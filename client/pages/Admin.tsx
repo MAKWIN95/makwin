@@ -6,6 +6,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AlertCircle, CheckCircle2, Loader2, Trash2, Archive, RotateCcw } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
 import AdminHelpMessages from '@/components/AdminHelpMessages';
+import { supabase } from '@/lib/supabase';
+
+// The API decides who is an admin (ADMIN_EMAILS); the page only forwards the session.
+async function authHeaders(): Promise<Record<string, string>> {
+  const { data: { session } } = await supabase.auth.getSession();
+  return session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {};
+}
 
 interface Submission {
   submissionId: string;
@@ -27,7 +34,6 @@ interface Submission {
 
 export default function Admin() {
   const [unlocked, setUnlocked] = useState(false);
-  const [password, setPassword] = useState('');
   const { language } = useI18n();
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [loading, setLoading] = useState(true);
@@ -36,29 +42,18 @@ export default function Admin() {
   const [activeTab, setActiveTab] = useState('pending');
 
   useEffect(() => {
-    if (unlocked) fetchSubmissions();
-  }, [unlocked]);
-
-  // Auto-unlock if auth query param matches
-  useEffect(() => {
-    try {
-      const params = new URLSearchParams(window.location.search);
-      const auth = params.get('auth');
-      if (auth === 'makwin95/12') {
-        setUnlocked(true);
-      }
-    } catch (e) {
-      // ignore
-    }
+    fetchSubmissions();
   }, []);
 
   const fetchSubmissions = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/get-submissions');
+      const response = await fetch('/api/get-submissions', { headers: await authHeaders() });
       const data = await response.json();
       if (response.ok) {
-        setSubmissions(data.submissions || []);
+        // Non-admins only receive the public listing, so keep the panel locked.
+        setUnlocked(data.scope === 'admin');
+        setSubmissions(data.scope === 'admin' ? data.submissions || [] : []);
       } else {
         setError('Error al cargar las obras');
       }
@@ -79,7 +74,7 @@ export default function Admin() {
       setProcessing((prev) => ({ ...prev, [submissionId]: true }));
       const response = await fetch('/api/work-action', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
         body: JSON.stringify({ action, submissionId, reason }),
       });
 
@@ -175,18 +170,15 @@ export default function Admin() {
   if (!unlocked) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[hsl(var(--background))]">
-        <input
-          type="password"
-          autoFocus
-          value={password}
-          onChange={e => setPassword(e.target.value)}
-          onKeyDown={e => {
-            if (e.key === 'Enter' && password === 'makwin95/12') {
-              setUnlocked(true);
-            }
-          }}
-          className="border border-[hsl(var(--border))] bg-[hsl(var(--input))] rounded-lg px-4 py-2 text-lg outline-none"
-        />
+        {loading ? (
+          <Loader2 className="w-6 h-6 animate-spin text-[hsl(var(--muted-foreground))]" />
+        ) : (
+          <p className="text-sm text-[hsl(var(--muted-foreground))]">
+            {error || (language === 'en'
+              ? 'Restricted access: sign in with an admin account.'
+              : 'Acceso restringido: inicia sesión con una cuenta de administrador.')}
+          </p>
+        )}
       </div>
     );
   }

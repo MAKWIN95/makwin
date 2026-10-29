@@ -1,5 +1,9 @@
 import { VercelRequest, VercelResponse } from "@vercel/node";
 import { redis } from "../server/lib/redis.js";
+import { isAdminRequest } from "../server/lib/admin-auth.js";
+
+// Fields that only admins may see (artist contact data and moderation notes).
+const PRIVATE_FIELDS = ["email", "rejectionReason"];
 
 export default async function handler(
   req: VercelRequest,
@@ -14,7 +18,7 @@ export default async function handler(
   );
   res.setHeader(
     "Access-Control-Allow-Headers",
-    "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version"
+    "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Authorization, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version"
   );
 
   if (req.method === "OPTIONS") {
@@ -28,12 +32,17 @@ export default async function handler(
   }
 
   try {
+    // Anonymous callers (e.g. the marketplace) only get published works
+    // without private fields; admins get every submission.
+    const isAdmin = await isAdminRequest(req.headers.authorization);
+    const scope = isAdmin ? "admin" : "public";
+
     const keys = (await redis.keys("*-obra-*"))
       .filter((key) => /^\d{4}-obra-\d+$/.test(key));
     console.log(`[GET-SUBMISSIONS] Found ${keys.length} submissions`);
 
     if (!keys || keys.length === 0) {
-      res.status(200).json({ submissions: [] });
+      res.status(200).json({ submissions: [], scope });
       return;
     }
 
@@ -62,7 +71,17 @@ export default async function handler(
         new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
     );
 
-    res.status(200).json({ submissions });
+    const visible = isAdmin
+      ? submissions
+      : submissions
+          .filter((submission: any) => submission.status === "published")
+          .map((submission: any) => {
+            const publicSubmission = { ...submission };
+            for (const field of PRIVATE_FIELDS) delete publicSubmission[field];
+            return publicSubmission;
+          });
+
+    res.status(200).json({ submissions: visible, scope });
   } catch (error: any) {
     console.error("[API] Error al leer Redis:", error?.name || "Redis error");
     res.status(503).json({ error: "Servicio temporalmente no disponible" });

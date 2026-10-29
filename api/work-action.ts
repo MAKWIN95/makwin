@@ -1,5 +1,6 @@
 import { VercelRequest, VercelResponse } from "@vercel/node";
 import { redis } from "../server/lib/redis.js";
+import { isAdminRequest } from "../server/lib/admin-auth.js";
 
 interface PublishedWork {
   submissionId: string;
@@ -192,7 +193,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   );
   res.setHeader(
     "Access-Control-Allow-Headers",
-    "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version"
+    "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Authorization, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version"
   );
 
   if (req.method === "OPTIONS") {
@@ -206,6 +207,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
+    if (!(await isAdminRequest(req.headers.authorization))) {
+      res.status(401).json({ error: "No autorizado" });
+      return;
+    }
+
     const { action, submissionId, reason } = req.body || {};
 
     if (!submissionId) {
