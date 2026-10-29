@@ -12,7 +12,7 @@ import { useStarsBackground } from '@/hooks/use-stars-background';
 
 const PAGE_SIZE = 40;
 
-function preloadImage(src: string): Promise<void> {
+function preloadImage(src: string): Promise<{ width: number; height: number } | null> {
   return new Promise(resolve => {
     const image = new Image();
     let finished = false;
@@ -21,15 +21,23 @@ function preloadImage(src: string): Promise<void> {
       if (finished) return;
       finished = true;
       window.clearTimeout(fallbackTimer);
-      resolve();
+      resolve(image.naturalWidth > 0 && image.naturalHeight > 0
+        ? { width: image.naturalWidth, height: image.naturalHeight }
+        : null);
     };
     image.fetchPriority = 'high';
     image.decoding = 'async';
-    image.onload = finish;
+    const decodeAndFinish = () => {
+      void image.decode().catch(() => undefined).then(finish);
+    };
+    image.onload = decodeAndFinish;
     image.onerror = finish;
     fallbackTimer = window.setTimeout(finish, 3000);
     image.src = src;
-    if (image.complete) finish();
+    if (image.complete) {
+      if (image.naturalWidth > 0) decodeAndFinish();
+      else finish();
+    }
   });
 }
 
@@ -39,6 +47,7 @@ export default function Gallery() {
   const { loadUserInteractions } = useWorks();
   const { language: currentLang, t } = useI18n();
   const [works, setWorks] = useState<Work[]>([]);
+  const [imageDimensions, setImageDimensions] = useState<Record<string, { width: number; height: number }>>({});
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(true);
   const [loadingInitial, setLoadingInitial] = useState(true);
@@ -120,18 +129,25 @@ export default function Gallery() {
       // Decode the first visible masonry row before inserting it. Natural-height
       // images otherwise begin at zero height and reflow the columns/footer as
       // they load, which is especially noticeable when the first card is hovered.
-      await Promise.all(
-        fetched.slice(0, 3)
-          .map(work => work.cover_url ?? (
+      const preloadedDimensions = await Promise.all(
+        fetched.slice(0, 3).map(async work => {
+          const src = work.cover_url ?? (
             work.work_type === 'pintura' || work.work_type === 'fotografia'
               ? work.file_url
               : null
-          ))
-          .filter((src): src is string => Boolean(src))
-          .map(preloadImage)
+          );
+          return src ? [work.id, await preloadImage(src)] as const : null;
+        })
       );
 
       if (requestSequence !== requestSequenceRef.current || requestUserId !== activeUserIdRef.current) return;
+
+      setImageDimensions(prev => ({
+        ...prev,
+        ...Object.fromEntries(preloadedDimensions.filter(
+          (entry): entry is readonly [string, { width: number; height: number }] => entry?.[1] != null
+        )),
+      }));
 
       setWorks(prev => replace ? fetched : [...prev, ...fetched]);
       setHasMore(fetched.length === PAGE_SIZE);
@@ -364,7 +380,7 @@ export default function Gallery() {
               <div className="columns-2 gap-4 sm:columns-3 lg:columns-4 xl:columns-5 2xl:columns-6">
                 {filtered.map((item: any, index: number) => (
                   <div key={item.id} className={`mb-5 inline-block w-full break-inside-avoid align-top transition-opacity duration-300 ${showItems ? 'opacity-100' : 'opacity-0'}`}>
-                    <WorkCard work={item as Work} priorityImage={index < 3} />
+                    <WorkCard work={item as Work} priorityImage={index < 3} imageDimensions={imageDimensions[item.id]} />
                   </div>
                 ))}
               </div>

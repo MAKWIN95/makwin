@@ -13,6 +13,7 @@ import DeleteWorkModal from '@/components/DeleteWorkModal';
 interface Props {
   work: Work;
   priorityImage?: boolean;
+  imageDimensions?: { width: number; height: number };
   onLikeToggle?: (workId: string, liked: boolean) => void;
   onSaveToggle?: (workId: string, saved: boolean) => void;
   isOwnProfile?: boolean;
@@ -28,7 +29,7 @@ const WORK_TYPE_ICONS: Record<string, string> = {
   video: '🎬',
 };
 
-export default function WorkCard({ work, priorityImage = false, onLikeToggle, onSaveToggle, isOwnProfile, onWorkChange, onWorkDeleted }: Props) {
+export default function WorkCard({ work, priorityImage = false, imageDimensions, onLikeToggle, onSaveToggle, isOwnProfile, onWorkChange, onWorkDeleted }: Props) {
   const { user } = useAuth();
   const { language: currentLang } = useI18n();
   const navigate = useNavigate();
@@ -146,6 +147,8 @@ export default function WorkCard({ work, priorityImage = false, onLikeToggle, on
           <img
             src={work.cover_url ?? work.file_url ?? ''}
             alt={work.title}
+            width={imageDimensions?.width}
+            height={imageDimensions?.height}
             className={`relative z-0 block h-auto w-full rounded-2xl object-contain transition-[transform,opacity] duration-300 ease-out group-hover:z-20 group-hover:scale-[1.014] group-focus-within:z-20 group-focus-within:scale-[1.014] ${
               imageLoaded ? 'opacity-100' : 'opacity-0'
             }`}

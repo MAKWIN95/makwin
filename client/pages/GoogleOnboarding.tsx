@@ -7,6 +7,7 @@ import { useI18n } from '@/lib/i18n';
 import { getPasswordPolicyError, getPasswordStrengthScore } from '@/lib/passwordPolicy';
 import { checkUsernameAvailability, type UsernameAvailability } from '@/lib/usernameAvailability';
 import { isValidUsername, normalizeUsername, USERNAME_MAX_LENGTH } from '@shared/username';
+import { useStarsBackground } from '@/hooks/use-stars-background';
 
 function parseSuggestedUsername(email?: string) {
   if (!email) return '';
@@ -65,6 +66,8 @@ export default function GoogleOnboardingPage() {
   const [availability, setAvailability] = useState<UsernameAvailability>('idle');
   const usernameEditedRef = useRef(false);
 
+  useStarsBackground('google-onboarding-stars-background');
+
   useEffect(() => {
     let isMounted = true;
 
@@ -75,10 +78,12 @@ export default function GoogleOnboardingPage() {
         return;
       }
       const suggestion = await findAvailableUsername(base, session?.access_token);
-      if (isMounted) {
-        if (suggestion.username && !usernameEditedRef.current) setUsername(suggestion.username);
-        else setAvailability(suggestion.status);
-      }
+      // The email-based search may finish after the user starts typing. Its
+      // result belongs only to the suggested value; never apply it to the
+      // current input's availability state.
+      if (!isMounted || usernameEditedRef.current) return;
+      if (suggestion.username) setUsername(suggestion.username);
+      else setAvailability(suggestion.status);
     };
 
     prepareSuggestedUsername();
@@ -182,8 +187,9 @@ export default function GoogleOnboardingPage() {
   const strengthLabel = score <= 1 ? (es ? 'Débil' : 'Weak') : score === 2 ? (es ? 'Media' : 'Fair') : (es ? 'Fuerte' : 'Strong');
 
   return (
-    <div className="min-h-screen bg-black flex items-center justify-center px-4 py-10">
-      <div className="w-full max-w-lg">
+    <div className="relative min-h-screen bg-black flex items-center justify-center px-4 py-10">
+      <div id="google-onboarding-stars-background" className="pointer-events-none absolute inset-0 z-0 overflow-hidden stars-background" />
+      <div className="relative z-10 w-full max-w-lg">
         <div className="rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--popover))]/90 p-6 shadow-[0_0_40px_rgba(255,255,255,0.05)] backdrop-blur-sm">
           <div className="mb-6 text-center">
             <h1 className="text-2xl font-semibold tracking-tight text-[hsl(var(--foreground))]">{es ? 'Completa tu cuenta' : 'Complete your account'}</h1>

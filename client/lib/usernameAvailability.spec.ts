@@ -32,6 +32,11 @@ describe('username availability', () => {
     expect(await checkUsernameAvailability('artist')).toBe('error');
   });
 
+  it('does not treat an authentication/session error as an occupied username', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('{}', { status: 401 })));
+    expect(await checkUsernameAvailability('artist', 'expired-session-token')).toBe('error');
+  });
+
   it('does not treat backend failures as occupied usernames', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('{}', { status: 500 })));
     expect(await checkUsernameAvailability('artist')).toBe('error');

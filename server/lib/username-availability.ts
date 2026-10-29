@@ -12,11 +12,12 @@ export async function getUsernameAvailability(username: string, excludeUserId?: 
   let query = supabaseAdmin
     .from('profiles')
     .select('id')
-    .eq('username', normalized);
+    .eq('username', normalized)
+    .limit(1);
   if (excludeUserId) query = query.neq('id', excludeUserId);
-  const { data, error } = await query.maybeSingle();
+  const { data, error } = await query;
   if (error) throw error;
-  return !data;
+  return (data ?? []).length === 0;
 }
 
 export async function getUsernameAvailabilityUserId(accessToken: string): Promise<string> {
