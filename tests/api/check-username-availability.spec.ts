@@ -5,9 +5,9 @@ const availability = vi.hoisted(() => ({
   getUsernameAvailabilityUserId: vi.fn(),
 }));
 
-vi.mock('../server/lib/username-availability.js', () => availability);
+vi.mock('../../server/lib/username-availability.js', () => availability);
 
-import handler from './check-username-availability';
+import handler from '../../api/check-username-availability';
 
 function createResponse() {
   const response: any = {

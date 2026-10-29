@@ -3,14 +3,14 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const redisMock = vi.hoisted(() => ({ redis: { set: vi.fn() } }));
 const resendMock = vi.hoisted(() => ({ send: vi.fn() }));
 
-vi.mock('../server/lib/redis.js', () => redisMock);
+vi.mock('../../server/lib/redis.js', () => redisMock);
 vi.mock('resend', () => ({
   Resend: class {
     emails = { send: resendMock.send };
   },
 }));
 
-import handler from './submit-work';
+import handler from '../../api/submit-work';
 
 function createResponse() {
   const response: any = {
