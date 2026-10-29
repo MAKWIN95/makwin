@@ -25,7 +25,7 @@ dist-ssr
 
 .config/
 .env
-.env.local
-.env.*.local
+.env.*
+!.env.example
 .secrets.local
 .vercel
