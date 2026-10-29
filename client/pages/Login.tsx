@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/lib/AuthContext';
 import { useI18n } from '@/lib/i18n';
@@ -6,7 +6,7 @@ import { useI18n } from '@/lib/i18n';
 type Mode = 'login' | 'forgot';
 
 export default function Login() {
-  const { signInWithEmail, signInWithGoogle, resetPassword } = useAuth();
+  const { user, loading: authLoading, signInWithEmail, signInWithGoogle, resetPassword } = useAuth();
   const { language } = useI18n();
   const navigate = useNavigate();
 
@@ -18,6 +18,12 @@ export default function Login() {
   const [resetSent, setResetSent] = useState(false);
 
   const es = language === 'es';
+
+  // Email confirmation links land here with a fresh session; a signed-in user
+  // has nothing to do on the login form.
+  useEffect(() => {
+    if (!authLoading && user) navigate('/galeria', { replace: true });
+  }, [authLoading, user, navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();

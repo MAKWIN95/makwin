@@ -13,6 +13,7 @@ import { isValidUsername, normalizeUsername } from "../shared/username";
 import { getUsernameAvailability, getUsernameAvailabilityUserId } from "./lib/username-availability";
 import { getRequestUser } from "./lib/admin-auth";
 import helpMessagesHandler from "../api/help-messages";
+import adminSetPasswordHandler from "../api/admin-set-password";
 
 export function createServer() {
   const app = express();
@@ -102,6 +103,7 @@ export function createServer() {
   });
 
   app.all("/api/help-messages", (req, res) => helpMessagesHandler(req as any, res as any));
+  app.post("/api/admin-set-password", (req, res) => adminSetPasswordHandler(req as any, res as any));
 
   // Gemini proxy endpoint to avoid browser CORS issues
   app.post("/api/analyze", async (req, res) => {

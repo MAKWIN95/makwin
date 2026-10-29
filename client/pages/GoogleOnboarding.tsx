@@ -48,7 +48,7 @@ async function findAvailableUsername(base: string, accessToken?: string): Promis
 }
 
 export default function GoogleOnboardingPage() {
-  const { user, session, completeGoogleSignUp, needsUsernameSetup } = useAuth();
+  const { user, session, completeGoogleSignUp, needsUsernameSetup, signOut } = useAuth();
   const { language } = useI18n();
   const es = language === 'es';
   const navigate = useNavigate();
@@ -183,6 +183,11 @@ export default function GoogleOnboardingPage() {
     navigate('/galeria', { replace: true });
   };
 
+  const handleUseAnotherAccount = async () => {
+    await signOut();
+    navigate('/login', { replace: true });
+  };
+
   const score = getPasswordStrengthScore(password);
   const strengthLabel = score <= 1 ? (es ? 'Débil' : 'Weak') : score === 2 ? (es ? 'Media' : 'Fair') : (es ? 'Fuerte' : 'Strong');
 
@@ -262,6 +267,15 @@ export default function GoogleOnboardingPage() {
               {loading ? (es ? 'Guardando...' : 'Saving...') : (es ? 'Continuar' : 'Continue')}
             </button>
           </form>
+
+          {/* Every route redirects here until onboarding is done, so this is
+              the only way out for someone who picked the wrong Google account. */}
+          <p className="mt-5 text-center text-xs text-[hsl(var(--muted-foreground))]">
+            {user?.email && <span className="block mb-1">{es ? 'Has entrado como' : 'Signed in as'} {user.email}</span>}
+            <button type="button" onClick={handleUseAnotherAccount} disabled={loading} className="underline underline-offset-2 hover:text-[hsl(var(--foreground))] disabled:opacity-50">
+              {es ? 'Usar otra cuenta' : 'Use another account'}
+            </button>
+          </p>
         </div>
       </div>
     </div>

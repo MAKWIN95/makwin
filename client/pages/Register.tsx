@@ -6,10 +6,14 @@ import { supabase } from '@/lib/supabase';
 import { checkUsernameAvailability } from '@/lib/usernameAvailability';
 
 export default function Register() {
-  const { signUpWithEmail, signInWithGoogle } = useAuth();
+  const { user, loading: authLoading, signUpWithEmail, signInWithGoogle } = useAuth();
   const { language } = useI18n();
   const navigate = useNavigate();
   const es = language === 'es';
+
+  useEffect(() => {
+    if (!authLoading && user) navigate('/galeria', { replace: true });
+  }, [authLoading, user, navigate]);
 
   const [form, setForm] = useState({
     email: '',
@@ -207,6 +211,9 @@ export default function Register() {
           setError(es
             ? 'La contraseña no es lo suficientemente segura.'
             : 'The password is not secure enough.');
+        } else if (error.includes('Database error saving new user')) {
+          // The profile trigger rejected the username (taken since our check).
+          setError(es ? 'Este nombre de usuario ya está en uso.' : 'This username is already in use.');
         } else if (error.includes('username') || error.includes('Usuario')) {
           setError(error); // Custom error from our check
         } else {
