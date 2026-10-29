@@ -1,13 +1,13 @@
 import { createClient } from '@supabase/supabase-js';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { getUsernameAvailability } from '../server/lib/username-availability';
+import { getUsernameAvailability } from '../server/lib/username-availability.js';
 
 const supabaseAdmin = createClient(
   process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '',
   process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY || ''
 );
 
-export { getUsernameAvailability } from '../server/lib/username-availability';
+export { getUsernameAvailability } from '../server/lib/username-availability.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });

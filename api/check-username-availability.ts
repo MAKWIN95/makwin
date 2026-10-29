@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { getUsernameAvailability, getUsernameAvailabilityUserId } from '../server/lib/username-availability';
-import { isValidUsername, normalizeUsername } from '../shared/username';
+import { getUsernameAvailability, getUsernameAvailabilityUserId } from '../server/lib/username-availability.js';
+import { isValidUsername, normalizeUsername } from '../shared/username.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
