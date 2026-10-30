@@ -363,7 +363,7 @@ export default function UploadWork() {
 
               {/* Submit */}
               <button type="submit" disabled={isLoading}
-                className="w-full py-3 rounded-xl bg-[hsl(var(--foreground))] text-[hsl(var(--background))] text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center justify-center gap-2">
+                className="w-full glass-button glass-button--primary flex items-center justify-center gap-2">
                 {isLoading
                   ? <><Loader2 className="w-4 h-4 animate-spin" />{progressLabel}</>
                   : <><Upload className="w-4 h-4" />{es ? 'Publicar obra' : 'Publish work'}</>

@@ -285,7 +285,7 @@ export default function Gallery() {
 
             {/* Filter popup */}
             {showFilterPopup && (
-              <div ref={filterRef} className="fixed z-50 bg-[hsl(var(--popover))] border border-[hsl(var(--border))] rounded-xl shadow-lg p-3 flex flex-col gap-2 animate-in fade-in slide-in-from-top-2 duration-200"
+              <div ref={filterRef} className="fixed z-50 glass-surface p-3 flex flex-col gap-2 animate-in fade-in slide-in-from-top-2 duration-200"
                 style={{ top: `${filterBtnPos.top}px`, left: `${Math.max(10, filterBtnPos.left)}px`, width: '200px' }}>
                 <select value={filters.workType} onChange={e => setFilters(f => ({ ...f, workType: e.target.value }))}
                   className="phone:h-11 w-full px-2 py-2 border border-[hsl(var(--border))] rounded bg-[hsl(var(--input))] text-sm focus:outline-none focus:ring-0 focus:border-[hsl(var(--border))]">
@@ -297,7 +297,7 @@ export default function Gallery() {
                   <option value="video">{t('filter.video')}</option>
                 </select>
                 <button onClick={() => setFilters({ workType: '', sort: 'score' })}
-                  className="phone:h-11 w-full px-2 py-2 text-sm rounded border border-[hsl(var(--border))] bg-[hsl(var(--popover))]">
+                  className="glass-button w-full">
                   {t('filter.clear')}
                 </button>
               </div>

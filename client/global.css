@@ -52,14 +52,107 @@ html.theme-switching * {
   backdrop-filter: blur(22px) saturate(180%);
 }
 
-.glass-menu {
-  transform-origin: var(--radix-dropdown-menu-content-transform-origin, top right);
-  background: hsl(var(--popover) / 0.74);
+/* The site's one glass: menus, windows and the floating header all share it. */
+.glass-menu,
+.glass-panel,
+.glass-surface,
+.glass-bar {
+  background: hsl(var(--popover) / 0.6);
   -webkit-backdrop-filter: blur(28px) saturate(180%);
   backdrop-filter: blur(28px) saturate(180%);
   border: 1px solid hsl(var(--foreground) / 0.1);
   border-radius: 14px;
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.28);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.24);
+}
+
+.glass-bar {
+  background: hsl(var(--popover) / 0.5);
+  border-radius: 24px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.14);
+}
+
+@media (min-width: 640px) {
+  .glass-bar { border-radius: 9999px; }
+}
+
+.glass-panel {
+  border-radius: 22px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.glass-panel:not([data-state]) {
+  animation: glass-menu-in 0.28s cubic-bezier(0.32, 0.72, 0, 1) both;
+}
+
+/* No blur here: the window above has to see the page itself through its glass. */
+.glass-overlay {
+  background: rgba(0, 0, 0, 0.3);
+}
+
+/* Buttons: same shape, border and response. Only the tint says which one leads. */
+.glass-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 2.75rem;
+  padding: 0 1.25rem;
+  border-radius: 9999px;
+  border: 1px solid hsl(var(--foreground) / 0.16);
+  background: transparent;
+  color: hsl(var(--foreground));
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.16s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.glass-button--primary {
+  background: hsl(var(--foreground) / 0.12);
+  border-color: hsl(var(--foreground) / 0.2);
+}
+
+.glass-button--danger {
+  background: rgba(239, 68, 68, 0.14);
+  border-color: rgba(239, 68, 68, 0.32);
+  color: rgb(239, 68, 68);
+}
+
+@media (hover: hover) {
+  .glass-button:not(:disabled):hover {
+    background: hsl(var(--foreground) / 0.08);
+    border-color: hsl(var(--foreground) / 0.28);
+  }
+
+  .glass-button--primary:not(:disabled):hover {
+    background: hsl(var(--foreground) / 0.2);
+  }
+
+  .glass-button--danger:not(:disabled):hover {
+    background: rgba(239, 68, 68, 0.24);
+    border-color: rgba(239, 68, 68, 0.5);
+  }
+}
+
+.glass-button:not(:disabled):active {
+  transform: scale(0.97);
+}
+
+.glass-button:disabled {
+  opacity: 0.45;
+}
+
+.theme-icon {
+  display: block;
+  animation: theme-icon-in 0.34s cubic-bezier(0.32, 0.72, 0, 1) both;
+}
+
+@keyframes theme-icon-in {
+  from { opacity: 0; transform: rotate(-40deg) scale(0.7); }
+  to { opacity: 1; transform: none; }
+}
+
+.glass-menu {
+  transform-origin: var(--radix-dropdown-menu-content-transform-origin, top right);
   animation: glass-menu-in 0.24s cubic-bezier(0.32, 0.72, 0, 1) both !important;
 }
 
@@ -76,7 +169,60 @@ html.theme-switching * {
   to { opacity: 0; transform: scale(0.95); }
 }
 
-/* The three dots open into a line along the top of the work, right to left. */
+/* A corner of the work folded inwards, like the corner of a page. It lives inside
+   the work, so it grows with it; on its own hover it grows a little more. */
+.work-fold {
+  --fold-paper: rgba(255, 255, 255, 0.82);
+}
+
+.work-fold[data-plain] {
+  --fold-paper: hsl(var(--muted-foreground) / 0.5);
+}
+
+.work-fold-shape {
+  position: absolute;
+  top: 0;
+  right: 0;
+  overflow: visible;
+  transform-origin: top right;
+  transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.18s ease;
+}
+
+.work-fold-close {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 1rem;
+  height: 1rem;
+  margin: -0.5rem;
+  color: #fff;
+  opacity: 0;
+  transform: scale(0.6);
+  transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.18s ease;
+}
+
+.work-fold[aria-expanded="true"] .work-fold-shape {
+  opacity: 0;
+  transform: scale(0.5);
+}
+
+.work-fold[aria-expanded="true"] .work-fold-close {
+  opacity: 1;
+  transform: none;
+}
+
+@media (hover: hover) {
+  .work-fold[aria-expanded="false"]:hover .work-fold-shape {
+    transform: scale(1.5);
+  }
+}
+
+.work-fold[aria-expanded="false"]:active .work-fold-shape,
+.work-fold[aria-expanded="false"]:focus-visible .work-fold-shape {
+  transform: scale(1.5);
+}
+
+/* It opens into a line along the top of the work, right to left. */
 .work-options {
   container-type: inline-size;
 }
@@ -85,6 +231,7 @@ html.theme-switching * {
   overflow: hidden;
   border-radius: 9999px;
   background: rgba(0, 0, 0, 0.26);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   -webkit-backdrop-filter: blur(16px) saturate(170%);
   backdrop-filter: blur(16px) saturate(170%);
   animation: work-options-in 0.34s cubic-bezier(0.32, 0.72, 0, 1) both;
@@ -108,6 +255,21 @@ html.theme-switching * {
 @keyframes work-options-out {
   from { width: 100%; opacity: 1; }
   to { width: 2rem; opacity: 0; }
+}
+
+.work-options-item {
+  transition: background-color 0.18s ease, transform 0.16s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.work-options-item:focus-visible,
+.work-options-item:active {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+@media (hover: hover) {
+  .work-options-item:hover {
+    background: rgba(255, 255, 255, 0.2);
+  }
 }
 
 /* Words when they fit, icons on very narrow cards. */
@@ -148,6 +310,8 @@ html.theme-switching * {
   .glass-menu[data-state="closed"],
   .work-options-bar,
   .work-options-bar[data-closing],
+  .glass-panel,
+  .theme-icon,
   .icon-pop {
     animation-duration: 1ms !important;
   }

@@ -1,8 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { createPortal } from 'react-dom';
-import { X, LogIn, UserPlus } from 'lucide-react';
+import { X } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
-import { Button } from '@/components/ui/button';
 import { useBodyScrollLock } from '@/hooks/use-body-scroll-lock';
 
 interface AuthModalProps {
@@ -39,42 +38,30 @@ export default function AuthModal({
   // Rendered on <body>: opened from inside work cards, whose stacking and hover
   // effects must not clip or reposition this fixed overlay.
   return createPortal(
-    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain relative bg-[hsl(var(--card))] border border-[hsl(var(--border))] rounded-lg max-w-sm w-full p-6 animate-in fade-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
-        {/* Close button */}
+    <div className="glass-overlay fixed inset-0 flex items-center justify-center z-50 p-4" onClick={onClose}>
+      <div role="dialog" aria-modal="true" className="glass-panel relative max-w-[22rem] w-full max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain px-6 pt-8 pb-6 text-center" onClick={(e) => e.stopPropagation()}>
         <button
           onClick={onClose}
           aria-label={es ? 'Cerrar' : 'Close'}
-          className="tap-area absolute top-4 right-4 p-1 hover:bg-[hsl(var(--muted))] rounded-lg transition-colors"
+          className="tap-area ios-press absolute top-3.5 right-3.5 p-1 rounded-full text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] transition-colors"
         >
-          <X className="w-5 h-5 text-[hsl(var(--muted-foreground))]" />
+          <X className="w-4 h-4" />
         </button>
 
-        {/* Content */}
-        <h3 className="text-xl font-bold text-[hsl(var(--foreground))] mb-2">
+        <h3 className="text-lg font-medium text-[hsl(var(--foreground))] mb-1.5 px-4">
           {title ?? (es ? 'Inicia sesión para continuar' : 'Sign in to continue')}
         </h3>
         <p className="text-sm text-[hsl(var(--muted-foreground))] mb-6">
           {description ?? (es ? 'Necesitas una cuenta para hacer esto.' : 'You need an account to do this.')}
         </p>
 
-        {/* Buttons */}
-        <div className="flex flex-col gap-3">
-          <Button
-            onClick={handleLogin}
-            className="w-full flex items-center justify-center gap-2 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
-          >
-            <LogIn className="w-4 h-4" />
+        <div className="flex flex-col gap-2">
+          <button type="button" onClick={handleLogin} className="glass-button glass-button--primary w-full">
             {es ? 'Iniciar sesión' : 'Sign in'}
-          </Button>
-          <Button
-            onClick={handleRegister}
-            variant="outline"
-            className="w-full flex items-center justify-center gap-2 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
-          >
-            <UserPlus className="w-4 h-4" />
+          </button>
+          <button type="button" onClick={handleRegister} className="glass-button w-full">
             {es ? 'Crear cuenta' : 'Create account'}
-          </Button>
+          </button>
         </div>
       </div>
     </div>,

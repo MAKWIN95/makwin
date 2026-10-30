@@ -347,7 +347,7 @@ export default function UserProfile() {
                 {editError && <p className="text-xs text-red-500">{editError}</p>}
                 <div className="flex gap-2">
                   <button onClick={handleSaveEdit} disabled={saving}
-                    className="phone:min-h-11 flex items-center gap-1 px-4 py-2 rounded-lg bg-[hsl(var(--foreground))] text-[hsl(var(--background))] text-sm hover:opacity-90 disabled:opacity-50">
+                    className="glass-button glass-button--primary disabled:opacity-50">
                     <Check className="w-4 h-4" /> {es ? 'Guardar' : 'Save'}
                   </button>
                   <button onClick={() => setEditing(false)}
@@ -423,9 +423,9 @@ export default function UserProfile() {
                     </button>
                   ) : (
                     <button onClick={handleFollow}
-                      className={`phone:min-h-11 px-5 py-2 rounded-lg text-sm font-medium transition-all duration-200 ease-out ${isFollowing
-                        ? 'border border-[hsl(var(--border))] hover:bg-[hsl(var(--muted))]'
-                        : 'bg-[hsl(var(--foreground))] text-[hsl(var(--background))] hover:opacity-80'}`}>
+                      className={`glass-button ${isFollowing
+                        ? ''
+                        : 'glass-button--primary'}`}>
                       {isFollowing ? (es ? 'Siguiendo' : 'Following') : (es ? 'Seguir' : 'Follow')}
                     </button>
                   )}

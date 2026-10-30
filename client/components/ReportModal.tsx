@@ -89,8 +89,8 @@ export default function ReportModal({
   // ISSUE 3 FIX: Use createPortal to render modal at document.body
   // This ensures it's truly fixed and not constrained by parent grid
   const modalContent = (
-    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="relative bg-[hsl(var(--card))] border border-[hsl(var(--border))] rounded-lg max-w-md w-full max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain p-6 animate-in fade-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
+    <div className="glass-overlay fixed inset-0 flex items-center justify-center z-50 p-4" onClick={onClose}>
+      <div className="relative glass-panel max-w-md w-full max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain p-6" onClick={(e) => e.stopPropagation()}>
         {/* Close button */}
         <button
           onClick={onClose}
@@ -169,7 +169,7 @@ export default function ReportModal({
               <Button
                 onClick={handleSubmit}
                 disabled={!isFormValid || loading}
-                className="flex-1 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
+                className="flex-1"
               >
                 {currentLang === 'es' ? 'Enviar reporte' : 'Send report'}
               </Button>

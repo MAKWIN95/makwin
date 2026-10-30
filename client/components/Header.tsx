@@ -2,11 +2,10 @@ import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/custom-dialog";
 import LanguageSelector from "./LanguageSelector";
-import { Filter, ArrowLeft, Upload, Bookmark, User, LogOut, Settings, Heart, Moon, Sun, Menu, Shield } from 'lucide-react';
+import { Filter, ArrowLeft, Upload, Bookmark, User, LogOut, Settings, Heart, Moon, Sun, Shield } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
 import { useAuth } from '@/lib/AuthContext';
 import { useTheme } from "@/hooks/use-theme";
-import { useSidebar } from "@/lib/SidebarContext";
 import { authHeaders } from "@/lib/adminApi";
 
 const readSearch = (search: string) => (new URLSearchParams(search).get('search') ?? '').replace(/^#/, '').trim();
@@ -54,7 +53,6 @@ export default function Header({ showSearch = true, showSearchCentered = false, 
   const navigate = useNavigate();
   const location = useLocation();
   const { isDark, toggleTheme } = useTheme();
-  const { toggleSidebar } = useSidebar();
   const MUSIC_FEATURE_ENABLED = false;
 
   const handleMakwinClick = () => navigate('/');
@@ -134,13 +132,13 @@ export default function Header({ showSearch = true, showSearchCentered = false, 
   const isGalleryish = location.pathname.startsWith('/galeria') || location.pathname.startsWith('/merch') || location.pathname.startsWith('/marketplace');
   const isHomePage = location.pathname === '/home';
   const headerRootClass = showSearchCentered
-    ? `sticky top-4 phone:top-0 z-50 bg-transparent phone:bg-[hsl(var(--background))] phone:py-1.5 border-none fast-theme w-full transition-all duration-500 px-4 phone:px-2 ${isGalleryish ? 'gallery-navbar header-offset' : ''}`
+    ? `sticky top-4 phone:top-0 z-50 bg-transparent phone:py-1.5 border-none fast-theme w-full transition-all duration-500 px-4 phone:px-2 ${isGalleryish ? 'gallery-navbar header-offset' : ''}`
     : isHomePage
     ? `fixed top-0 left-0 right-0 z-50 bg-[hsl(var(--popover))/0.95] backdrop-blur-md border-b shadow-sm fast-theme w-full transition-all duration-300 ease-out animate-in fade-in slide-in-from-top-1 border-[rgba(80,80,80,0.2)] px-4`
     : `header-glass sticky top-0 z-50 border-b fast-theme w-full transition-all duration-500 border-[rgba(120,120,120,0.16)] px-4 phone:px-2`;
 
   const innerContainerClass = showSearchCentered
-    ? 'w-full px-4 sm:px-6 phone:px-2 py-2 sm:py-3 phone:py-1.5 flex flex-col pointer-events-auto mx-auto max-w-6xl bg-[hsl(var(--popover))/0.95] phone:bg-[hsl(var(--popover))] backdrop-blur-md phone:backdrop-blur-none rounded-3xl sm:rounded-full border border-[rgba(120,120,120,0.25)] shadow-md transition-all duration-500'
+    ? 'w-full px-4 sm:px-6 phone:px-2 py-2 sm:py-3 phone:py-1.5 flex flex-col pointer-events-auto mx-auto max-w-6xl glass-bar rounded-3xl sm:rounded-full transition-all duration-500'
     : isHomePage
     ? 'w-full px-4 sm:px-6 py-4 sm:py-5 flex flex-col transition-all duration-500'
     : breadcrumb
@@ -165,14 +163,11 @@ export default function Header({ showSearch = true, showSearchCentered = false, 
 
           {/* Left: navigation + logo */}
           <div className={`${isHomePage ? 'hidden' : 'col-span-1'} flex items-center gap-1 sm:gap-2 min-w-0 relative`}>
-            <button onClick={toggleSidebar} className="p-0 w-10 h-10 phone:w-11 phone:h-11 max-[374px]:!w-9 rounded-lg transition-all duration-200 ease-out flex items-center justify-center shrink-0 hover:scale-105 hover:bg-[hsl(var(--muted))] active:scale-95" aria-label={es ? 'Menú' : 'Menu'}>
-              <Menu className="w-5 h-5 text-[hsl(var(--muted-foreground))] phone:text-[hsl(var(--foreground))] transition-colors duration-300" />
-            </button>
             <button onClick={handleGoBack} className={`${isGallery ? 'max-sm:hidden' : ''} max-[359px]:hidden p-0 w-10 h-10 phone:w-11 phone:h-11 max-[374px]:!w-9 rounded-lg transition-all duration-200 ease-out flex items-center justify-center shrink-0 hover:scale-105 hover:bg-[hsl(var(--muted))] active:scale-95`} aria-label={es ? 'Atrás' : 'Back'}>
               <ArrowLeft className="w-5 h-5 text-[hsl(var(--muted-foreground))] phone:text-[hsl(var(--foreground))] transition-colors duration-300" />
             </button>
-            <div onClick={handleMakwinClick} className="cursor-pointer flex items-center gap-2 ml-1 min-w-0 overflow-hidden phone:min-h-11">
-              <span className={`logo-makwin tracking-widest hover:opacity-80 transition-opacity duration-200 whitespace-nowrap leading-tight ${hideSearch ? 'text-base sm:text-lg' : 'text-lg sm:text-xl md:text-2xl'}`}>
+            <div onClick={handleMakwinClick} className={`cursor-pointer flex items-center gap-2 ml-1 min-w-0 overflow-hidden phone:min-h-11 ${isGallery ? 'max-sm:ml-2' : ''}`}>
+              <span className={`logo-makwin tracking-widest hover:opacity-80 transition-opacity duration-200 whitespace-nowrap leading-tight max-[374px]:!text-base ${hideSearch ? 'text-base sm:text-lg' : 'text-lg sm:text-xl md:text-2xl'}`}>
                 MAKWIN
               </span>
               {breadcrumb && <>
@@ -236,6 +231,13 @@ export default function Header({ showSearch = true, showSearchCentered = false, 
               </Dialog>
             )}
 
+            {/* Light / dark */}
+            <button type="button" onClick={toggleTheme} className="ios-press inline-flex items-center justify-center shrink-0 p-2 phone:p-0 phone:w-11 phone:h-11 max-[374px]:!w-9 rounded-lg hover:bg-[hsl(var(--muted))] transition-colors" aria-label={isDark ? (es ? 'Modo claro' : 'Light mode') : (es ? 'Modo oscuro' : 'Dark mode')}>
+              <span key={String(isDark)} className="theme-icon">
+                {isDark ? <Sun className="w-4 h-4 phone:w-5 phone:h-5 text-[hsl(var(--foreground))]" /> : <Moon className="w-4 h-4 phone:w-5 phone:h-5 text-[hsl(var(--foreground))]" />}
+              </span>
+            </button>
+
             {/* Upload shortcut */}
             <Link to={user || authLoading ? '/subir-obra' : '/login'} className="ios-press inline-flex items-center justify-center shrink-0 p-2 phone:p-0 phone:w-11 phone:h-11 max-[374px]:!w-9 rounded-lg hover:bg-[hsl(var(--muted))] transition-colors" aria-label={es ? 'Subir obra' : 'Upload work'}>
               <Upload className="w-4 h-4 phone:w-5 phone:h-5 text-[hsl(var(--foreground))]" />
@@ -290,11 +292,6 @@ export default function Header({ showSearch = true, showSearchCentered = false, 
                           <Shield className="w-4 h-4" /> {es ? 'Administración' : 'Administration'}
                         </Link>
                       )}
-                      <button onClick={() => { toggleTheme(); }}
-                        className="flex items-center gap-3 px-4 py-2.5 phone:py-3 text-sm text-[hsl(var(--foreground))] hover:bg-[hsl(var(--muted))] transition-colors w-full text-left">
-                        {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-                        {isDark ? (es ? 'Modo claro' : 'Light mode') : (es ? 'Modo oscuro' : 'Dark mode')}
-                      </button>
                       <div className="border-t border-[rgba(120,120,120,0.25)] mt-1 pt-1">
                         <button onClick={async () => { 
                           setIsLoggingOut(true);

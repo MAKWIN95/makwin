@@ -9,7 +9,6 @@ import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-route
 import { useEffect, useState } from "react";
 
 // Global components
-import NavMenu from "./components/NavMenu";
 import GlobalStars from "./components/GlobalStars";
 
 // Pages
@@ -37,7 +36,6 @@ import Onboarding from '@/components/Onboarding';
 import GoogleOnboardingPage from '@/pages/GoogleOnboarding';
 import { AuthProvider, useAuth } from "@/lib/AuthContext";
 import { WorksProvider } from "@/lib/WorksContext";
-import { SidebarProvider } from "@/lib/SidebarContext";
 import { FollowProvider } from "@/lib/FollowContext";
 
 const queryClient = new QueryClient();
@@ -76,12 +74,9 @@ const BeatsPage = () => {
 };
 
 // Wrapper that waits for auth to be ready
-// Global app layout with NavMenu and overlay at viewport root
 const AppLayout = () => {
   return (
     <div className="relative w-full">
-      {/* NavMenu: viewport-fixed at root level */}
-      <NavMenu />
       {/* Routes wrapper */}
       <RoutesWrapper />
     </div>
@@ -185,7 +180,6 @@ const App = () => {
       <TooltipProvider>
         <I18nProvider>
           <AuthProvider>
-            <SidebarProvider>
               <FollowProvider>
                 <WorksProvider>
                   <Toaster />
@@ -196,7 +190,6 @@ const App = () => {
                   </BrowserRouter>
                 </WorksProvider>
               </FollowProvider>
-            </SidebarProvider>
           </AuthProvider>
         </I18nProvider>
       </TooltipProvider>

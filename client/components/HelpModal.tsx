@@ -124,12 +124,12 @@ export default function HelpModal({ isOpen, onClose }: HelpModalProps) {
   };
 
   return createPortal(
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4" onClick={handleClose}>
+    <div className="glass-overlay fixed inset-0 z-[60] flex items-center justify-center p-4" onClick={handleClose}>
       <div
         role="dialog"
         aria-modal="true"
         aria-labelledby="help-modal-title"
-        className="bg-[hsl(var(--background))] rounded-lg shadow-lg w-full max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain border border-[hsl(var(--border))] animate-in fade-in zoom-in-95 duration-200"
+        className="glass-panel w-full max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain"
         onClick={(event) => event.stopPropagation()}
       >
         <div className="sticky top-0 z-10 bg-[hsl(var(--background))] border-b border-[rgba(120,120,120,0.25)] p-4 flex items-center justify-between">

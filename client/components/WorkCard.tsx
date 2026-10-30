@@ -129,7 +129,7 @@ export default function WorkCard({ work, priorityImage = false, imageDimensions,
           { label: es ? 'Editar' : 'Edit', icon: <Pencil className={optionIcon} />, onSelect: () => setShowEditModal(true) },
           { label: es ? 'Eliminar' : 'Delete', icon: <Trash2 className={optionIcon} />, onSelect: () => setShowDeleteModal(true) },
         ]
-      : [{ label: es ? 'Denunciar' : 'Report', icon: <Flag className={optionIcon} />, onSelect: handleReport }]),
+      : [{ label: es ? 'Reportar' : 'Report', icon: <Flag className={optionIcon} />, onSelect: handleReport }]),
   ];
 
   return (
@@ -138,13 +138,13 @@ export default function WorkCard({ work, priorityImage = false, imageDimensions,
         are invalid and make phones ignore or repeat taps. */}
     <div className="group relative z-0 block rounded-xl hover:z-20 focus-within:z-20">
       {/* Image/Media area */}
-      <div className="relative rounded-2xl transition-shadow duration-300 ease-out group-hover:shadow-xl">
+      <div className="relative rounded-2xl transition-[transform,box-shadow] duration-300 ease-out group-hover:shadow-xl group-hover:scale-[1.014] group-focus-within:scale-[1.014]">
 
-        {/* Options: no background, so it covers as little of the work as possible */}
+        {/* Options: a folded corner that grows with the work and covers almost nothing */}
         <WorkOptionsMenu
           label={es ? 'Opciones' : 'Options'}
           options={options}
-          className={hasImage ? 'text-white [filter:drop-shadow(0_0_1px_rgba(0,0,0,0.35))_drop-shadow(0_1px_3px_rgba(0,0,0,0.3))]' : 'text-[hsl(var(--muted-foreground))]'}
+          onArtwork={hasImage}
         />
 
         {/* Media content */}
@@ -155,7 +155,7 @@ export default function WorkCard({ work, priorityImage = false, imageDimensions,
             alt={work.title}
             width={imageDimensions?.width}
             height={imageDimensions?.height}
-            className={`relative z-0 block h-auto w-full rounded-2xl object-contain transition-[transform,opacity] duration-300 ease-out group-hover:z-20 group-hover:scale-[1.014] group-focus-within:z-20 group-focus-within:scale-[1.014] ${
+            className={`block h-auto w-full rounded-2xl object-contain transition-opacity duration-300 ease-out ${
               imageLoaded ? 'opacity-100' : 'opacity-0'
             }`}
             loading={priorityImage ? 'eager' : 'lazy'}
@@ -176,7 +176,7 @@ export default function WorkCard({ work, priorityImage = false, imageDimensions,
         </Link>
       </div>
 
-      <div className="relative z-30 transition-transform duration-300 ease-out group-hover:translate-y-0.5 group-focus-within:translate-y-0.5">
+      <div className="transition-transform duration-300 ease-out group-hover:translate-y-0.5 group-focus-within:translate-y-0.5">
         {/* Title with the two quick actions, artist right under it */}
         <div className="mt-2 px-1">
           <div className="flex items-center justify-between gap-2">

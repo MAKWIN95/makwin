@@ -128,7 +128,7 @@ export default function Login() {
           </span>
         </Link>
 
-        <div className="bg-[hsl(var(--popover))/0.8] backdrop-blur-xl border border-[hsl(var(--border))] rounded-2xl p-8 shadow-2xl">
+        <div className="glass-panel p-8">
 
           {mode === 'login' && (
             <>
@@ -185,7 +185,7 @@ export default function Login() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full py-3 rounded-xl bg-[hsl(var(--foreground))] text-[hsl(var(--background))] text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
+                  className="w-full glass-button glass-button--primary"
                 >
                   {loading ? '…' : (es ? 'Entrar' : 'Sign in')}
                 </button>
@@ -248,7 +248,7 @@ export default function Login() {
                   <button
                     type="submit"
                     disabled={loading}
-                    className="w-full py-3 rounded-xl bg-[hsl(var(--foreground))] text-[hsl(var(--background))] text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
+                    className="w-full glass-button glass-button--primary"
                   >
                     {loading ? '…' : (es ? 'Enviar enlace' : 'Send link')}
                   </button>

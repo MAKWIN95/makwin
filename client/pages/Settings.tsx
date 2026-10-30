@@ -345,8 +345,8 @@ export default function Settings() {
 
       {/* Delete Confirmation Modal */}
       {showDeleteModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="relative bg-[hsl(var(--card))] border border-[hsl(var(--border))] rounded-lg max-w-sm w-full max-h-[90vh] overflow-y-auto p-6 animate-in fade-in zoom-in-95 duration-200">
+        <div className="glass-overlay fixed inset-0 flex items-center justify-center z-50 p-4">
+          <div className="relative glass-panel max-w-sm w-full max-h-[90vh] overflow-y-auto p-6">
             {/* Close button */}
             <button
               onClick={() => setShowDeleteModal(false)}

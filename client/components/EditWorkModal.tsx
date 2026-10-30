@@ -67,8 +67,8 @@ export default function EditWorkModal({ isOpen, onClose, work, onSuccess }: Prop
   // Rendered on <body>: opened from inside work cards, whose stacking and hover
   // effects must not clip or reposition this fixed overlay.
   return createPortal(
-    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain bg-[hsl(var(--popover))] border border-[rgba(120,120,120,0.25)] rounded-2xl max-w-md w-full shadow-2xl" onClick={(e) => e.stopPropagation()}>
+    <div className="glass-overlay fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain glass-panel max-w-md w-full" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between p-6 border-b border-[rgba(120,120,120,0.25)]">
           <h2 className="text-lg font-light text-[hsl(var(--foreground))]">
             {es ? 'Editar obra' : 'Edit work'}
@@ -135,7 +135,7 @@ export default function EditWorkModal({ isOpen, onClose, work, onSuccess }: Prop
             <button
               type="submit"
               disabled={loading}
-              className="flex-1 py-2 rounded-lg bg-[hsl(var(--foreground))] text-[hsl(var(--background))] text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center justify-center gap-2"
+              className="flex-1 glass-button glass-button--primary gap-2"
             >
               {loading && <Loader2 className="w-4 h-4 animate-spin" />}
               {loading ? (es ? 'Guardando...' : 'Saving...') : (es ? 'Guardar cambios' : 'Save changes')}
@@ -143,7 +143,7 @@ export default function EditWorkModal({ isOpen, onClose, work, onSuccess }: Prop
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 py-2 rounded-lg border border-[hsl(var(--border))] text-sm hover:bg-[hsl(var(--muted))] transition-colors"
+              className="flex-1 glass-button"
             >
               {es ? 'Cancelar' : 'Cancel'}
             </button>

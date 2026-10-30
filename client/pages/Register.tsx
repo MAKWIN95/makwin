@@ -257,7 +257,7 @@ export default function Register() {
           <span className="text-3xl font-black tracking-widest uppercase text-[hsl(var(--foreground))]">MAKWIN</span>
         </Link>
 
-        <div className="bg-[hsl(var(--popover))/0.8] backdrop-blur-xl border border-[hsl(var(--border))] rounded-2xl p-8 shadow-2xl">
+        <div className="glass-panel p-8">
           <h1 className="text-xl font-light mb-6 text-[hsl(var(--foreground))]">
             {es ? 'Crear cuenta' : 'Create account'}
           </h1>
@@ -353,7 +353,7 @@ export default function Register() {
             <button
               type="submit"
               disabled={loading || usernameError !== '' || emailError !== '' || checkingUsername || checkingEmail}
-              className="w-full py-3 rounded-xl bg-[hsl(var(--foreground))] text-[hsl(var(--background))] text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50 mt-2"
+              className="w-full glass-button glass-button--primary mt-2"
             >
               {loading ? '…' : (es ? 'Crear cuenta' : 'Create account')}
             </button>

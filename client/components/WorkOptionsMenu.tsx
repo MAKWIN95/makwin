@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { MoreVertical } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { X } from 'lucide-react';
 
 export interface WorkOption {
   label: string;
@@ -11,14 +10,15 @@ export interface WorkOption {
 interface Props {
   label: string;
   options: WorkOption[];
-  className?: string;
+  /** Over an image the corner is pale paper; over plain cards it is a soft grey. */
+  onArtwork?: boolean;
 }
 
 const CLOSE_MS = 200;
 
-// The three dots over a work. They unfold to the left into a line along the top
+// A folded corner on the work. It unfolds to the left into a line along the top
 // of the work, and any tap elsewhere only closes it.
-export default function WorkOptionsMenu({ label, options, className }: Props) {
+export default function WorkOptionsMenu({ label, options, onArtwork = true }: Props) {
   const [open, setOpen] = useState(false);
   const [closing, setClosing] = useState(false);
   const root = useRef<HTMLDivElement>(null);
@@ -46,7 +46,7 @@ export default function WorkOptionsMenu({ label, options, className }: Props) {
       const target = event.target as Element;
       if (root.current?.contains(target)) return;
       hide();
-      // Another card's dots open straight away; anything else must not also be
+      // Another card's corner opens straight away; anything else must not also be
       // activated by the tap that closed this line.
       if (target.closest?.('[data-work-options]')) return;
       const swallow = (click: MouseEvent) => {
@@ -73,11 +73,11 @@ export default function WorkOptionsMenu({ label, options, className }: Props) {
   }, [open]);
 
   return (
-    <div ref={root} data-work-options className="absolute inset-x-1 top-1 z-30 h-8 pointer-events-none">
+    <div ref={root} data-work-options className="absolute inset-x-0 top-0 z-30 h-10 pointer-events-none">
       {(open || closing) && (
-        <div className="work-options absolute inset-0" data-count={options.length}>
+        <div className="work-options absolute inset-x-1 top-1 h-8" data-count={options.length}>
           <div className="work-options-bar absolute inset-y-0 right-0 pointer-events-auto" data-closing={closing || undefined}>
-            <div role="menu" aria-label={label} className="work-options-row absolute inset-y-0 right-0 flex items-stretch pr-8">
+            <div role="menu" aria-label={label} className="work-options-row absolute inset-y-0 right-0 flex items-stretch gap-0.5 p-0.5 pr-8">
               {options.map((option) => (
                 <button
                   key={option.label}
@@ -88,7 +88,7 @@ export default function WorkOptionsMenu({ label, options, className }: Props) {
                     hide();
                     option.onSelect();
                   }}
-                  className="ios-press flex-1 min-w-0 flex items-center justify-center text-xs font-medium text-white whitespace-nowrap outline-none focus-visible:underline"
+                  className="work-options-item flex-1 min-w-0 flex items-center justify-center rounded-full text-xs font-medium text-white whitespace-nowrap outline-none"
                 >
                   <span className="work-options-label">{option.label}</span>
                   <span className="work-options-icon">{option.icon}</span>
@@ -103,14 +103,16 @@ export default function WorkOptionsMenu({ label, options, className }: Props) {
         aria-label={label}
         aria-haspopup="menu"
         aria-expanded={open}
+        data-plain={onArtwork ? undefined : ''}
         onClick={() => (open ? hide() : show())}
-        className={cn(
-          'tap-area ios-press absolute top-0 right-0 w-8 h-8 pointer-events-auto flex items-center justify-center rounded-full outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))]',
-          className,
-          open && 'text-white',
-        )}
+        className="work-fold tap-area absolute top-0 right-0 w-10 h-10 pointer-events-auto outline-none"
       >
-        <MoreVertical className="w-5 h-5" strokeWidth={2.5} />
+        <svg className="work-fold-shape" width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
+          <path d="M-1.2 1.2L16.8 19.2H2.3Q-1.2 19.2-1.2 15.7Z" fill="rgba(0,0,0,0.16)" />
+          <path d="M0 0L18 18H3.5Q0 18 0 14.5Z" fill="var(--fold-paper)" />
+          <path d="M0 0H18V18Z" fill="hsl(var(--background))" />
+        </svg>
+        <X className="work-fold-close" strokeWidth={2.25} />
       </button>
     </div>
   );

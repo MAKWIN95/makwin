@@ -48,8 +48,8 @@ export default function DeleteWorkModal({ isOpen, onClose, workId, workTitle, on
   // Rendered on <body>: opened from inside work cards, whose stacking and hover
   // effects must not clip or reposition this fixed overlay.
   return createPortal(
-    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain bg-[hsl(var(--popover))] border border-[hsl(var(--border))] rounded-2xl max-w-sm w-full shadow-2xl" onClick={(e) => e.stopPropagation()}>
+    <div className="glass-overlay fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain glass-panel max-w-sm w-full" onClick={(e) => e.stopPropagation()}>
         <div className="p-6">
           <div className="flex items-center gap-3 mb-4">
             <div className="w-10 h-10 rounded-full bg-red-500/20 flex items-center justify-center">
@@ -73,7 +73,7 @@ export default function DeleteWorkModal({ isOpen, onClose, workId, workTitle, on
             <button
               onClick={handleDelete}
               disabled={loading}
-              className="flex-1 py-2 rounded-lg bg-red-600 text-white text-sm font-medium hover:bg-red-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              className="flex-1 glass-button glass-button--danger"
             >
               {loading && <Loader2 className="w-4 h-4 animate-spin" />}
               {loading ? (es ? 'Eliminando...' : 'Deleting...') : (es ? 'Eliminar' : 'Delete')}
@@ -81,7 +81,7 @@ export default function DeleteWorkModal({ isOpen, onClose, workId, workTitle, on
             <button
               onClick={onClose}
               disabled={loading}
-              className="flex-1 py-2 rounded-lg border border-[hsl(var(--border))] text-sm hover:bg-[hsl(var(--muted))] transition-colors disabled:opacity-50"
+              className="flex-1 glass-button"
             >
               {es ? 'Cancelar' : 'Cancel'}
             </button>
