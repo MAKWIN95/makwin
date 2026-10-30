@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { getRequestUser, isAdminRequest } from '../server/lib/admin-auth.js';
-import { requestBaseUrl, sendEmail, teamEmail } from '../server/lib/email.js';
+import { HELP_ADDRESS, requestBaseUrl, sendEmail, teamEmail } from '../server/lib/email.js';
 
 // policy_reports only lets reporters read their own rows, so moderators and the
 // team notification go through this endpoint.
@@ -9,6 +9,8 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '',
   process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY || '',
 );
+
+const PENDING_REVIEW_FLAG = 'pending_review';
 
 const REASONS: Record<string, string> = {
   porno: 'Contenido +18',
@@ -71,6 +73,88 @@ async function createReport(req: VercelRequest, res: VercelResponse) {
   return res.status(200).json({ success: true });
 }
 
+const REPORTS_QUERY = 'id, reason, details, reviewed, created_at, work:works(id, title, status), reporter:profiles(username)';
+
+// Everything the admin panel shows, in one request: one cold start and one
+// session check instead of three, and the tabs then open instantly.
+async function loadPanel(res: VercelResponse) {
+  const [messages, reports, held] = await Promise.all([
+    supabaseAdmin.from('help_messages').select('*').order('created_at', { ascending: false }),
+    supabaseAdmin.from('policy_reports').select(REPORTS_QUERY).order('created_at', { ascending: false }),
+    supabaseAdmin
+      .from('works')
+      .select('id, title, description, lyrics, hashtags, work_type, file_url, cover_url, policy_flags, created_at, user:profiles!works_user_id_fkey(username)')
+      .eq('status', 'removed_policy')
+      .contains('policy_flags', [PENDING_REVIEW_FLAG])
+      .order('created_at', { ascending: false }),
+  ]);
+  const failed = messages.error || reports.error || held.error;
+  if (failed) throw failed;
+  return res.status(200).json({ messages: messages.data, reports: reports.data, held: held.data });
+}
+
+function storagePath(url: string | null): string | null {
+  const marker = '/object/public/works/';
+  const at = url?.indexOf(marker) ?? -1;
+  return url && at >= 0 ? decodeURIComponent(url.slice(at + marker.length)) : null;
+}
+
+async function notifyArtist(userId: string, title: string, approved: boolean, baseUrl: string, workId: string) {
+  const { data } = await supabaseAdmin.auth.admin.getUserById(userId);
+  const email = data?.user?.email;
+  if (!email) return;
+  const language = data.user?.user_metadata?.language_preference === 'en' ? 'en' : 'es';
+  const es = language === 'es';
+  await sendEmail({
+    to: email,
+    subject: approved
+      ? (es ? `Tu obra «${title}» ya está publicada` : `Your work "${title}" is now published`)
+      : (es ? `Tu obra «${title}» no se ha publicado` : `Your work "${title}" was not published`),
+    content: {
+      language,
+      title: approved ? (es ? 'Tu obra ya está publicada' : 'Your work is now published') : (es ? 'Tu obra no se ha publicado' : 'Your work was not published'),
+      preheader: title,
+      blocks: approved
+        ? [
+            { type: 'text', text: es ? `Hemos revisado «${title}» y ya puede verla todo el mundo en MAKWIN.` : `We have reviewed "${title}" and everyone can now see it on MAKWIN.` },
+            ...(baseUrl ? [{ type: 'button' as const, label: es ? 'VER MI OBRA' : 'SEE MY WORK', url: `${baseUrl}/work/${workId}` }] : []),
+          ]
+        : [
+            { type: 'text', text: es ? `Hemos revisado «${title}» y no cumple las normas de MAKWIN, así que la hemos eliminado.` : `We have reviewed "${title}". It does not meet MAKWIN's rules, so it has been removed.` },
+            { type: 'note', text: es ? `Si crees que es un error, escríbenos a ${HELP_ADDRESS}.` : `If you think this is a mistake, write to us at ${HELP_ADDRESS}.` },
+          ],
+    },
+  });
+}
+
+async function decideHeldWork(req: VercelRequest, res: VercelResponse) {
+  const { heldWorkId: id, decision } = (req.body || {}) as { heldWorkId?: string; decision?: string };
+  if (!id || (decision !== 'approve' && decision !== 'delete')) return res.status(400).json({ error: 'Datos no válidos' });
+
+  const { data: work, error } = await supabaseAdmin
+    .from('works')
+    .select('id, user_id, title, file_url, cover_url, policy_flags')
+    .eq('id', id)
+    .maybeSingle();
+  if (error) throw error;
+  if (!work || !work.policy_flags?.includes(PENDING_REVIEW_FLAG)) return res.status(404).json({ error: 'Obra no encontrada' });
+
+  if (decision === 'approve') {
+    const { error: updateError } = await supabaseAdmin.from('works').update({ status: 'published', policy_flags: [] }).eq('id', id);
+    if (updateError) throw updateError;
+  } else {
+    const { error: deleteError } = await supabaseAdmin.from('works').delete().eq('id', id);
+    if (deleteError) throw deleteError;
+    const paths = [work.file_url, work.cover_url].map(storagePath).filter((path): path is string => !!path);
+    if (paths.length) {
+      const { error: storageError } = await supabaseAdmin.storage.from('works').remove(paths);
+      if (storageError) console.warn('[REPORTS] Could not remove held files:', storageError.message);
+    }
+  }
+  await notifyArtist(work.user_id, work.title, decision === 'approve', requestBaseUrl(req.headers), work.id);
+  return res.status(200).json({ success: true });
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     if (req.method === 'POST') return await createReport(req, res);
@@ -79,10 +163,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(401).json({ error: 'No autorizado' });
     }
 
+    if (req.method === 'GET' && req.query?.scope === 'panel') return await loadPanel(res);
+    if (req.method === 'PATCH' && req.body?.heldWorkId) return await decideHeldWork(req, res);
+
     if (req.method === 'GET') {
       const { data, error } = await supabaseAdmin
         .from('policy_reports')
-        .select('id, reason, details, reviewed, created_at, work:works(id, title, status), reporter:profiles(username)')
+        .select(REPORTS_QUERY)
         .order('created_at', { ascending: false });
       if (error) throw error;
       return res.status(200).json({ reports: data || [] });

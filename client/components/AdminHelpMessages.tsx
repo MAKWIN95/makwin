@@ -1,11 +1,12 @@
-import { useEffect, useState } from 'react';
-import { Loader, MessageSquare, Trash2 } from 'lucide-react';
+import { useState, type Dispatch, type SetStateAction } from 'react';
+import { Loader, MessageSquare, Reply, Trash2 } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
 import { authHeaders } from '@/lib/adminApi';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
 
-interface HelpMessage {
+export interface HelpMessage {
   id: string;
   email: string;
   name: string;
@@ -17,18 +18,6 @@ interface HelpMessage {
   user_id?: string | null;
 }
 
-const STATUS_COLORS = {
-  new: 'bg-red-100 text-red-800',
-  read: 'bg-yellow-100 text-yellow-800',
-  resolved: 'bg-green-100 text-green-800',
-};
-
-const STATUS_LABELS = {
-  new: { es: 'Nuevo', en: 'New' },
-  read: { es: 'Leído', en: 'Read' },
-  resolved: { es: 'Resuelto', en: 'Resolved' },
-};
-
 const CATEGORY_LABELS: Record<string, { es: string; en: string }> = {
   question: { es: 'Pregunta', en: 'Question' },
   bug: { es: 'Error en la web', en: 'Something is broken' },
@@ -37,31 +26,22 @@ const CATEGORY_LABELS: Record<string, { es: string; en: string }> = {
   other: { es: 'Otro', en: 'Other' },
 };
 
-export default function AdminHelpMessages() {
+const MAX_REPLY_LENGTH = 5000;
+
+interface Props {
+  messages: HelpMessage[];
+  setMessages: Dispatch<SetStateAction<HelpMessage[]>>;
+}
+
+export default function AdminHelpMessages({ messages, setMessages }: Props) {
   const { language } = useI18n();
-  const [messages, setMessages] = useState<HelpMessage[]>([]);
-  const [loading, setLoading] = useState(true);
+  const es = language === 'es';
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [replyingTo, setReplyingTo] = useState<string | null>(null);
+  const [replyText, setReplyText] = useState('');
+  const [sending, setSending] = useState(false);
 
-  useEffect(() => {
-    loadMessages();
-  }, []);
-
-  const loadMessages = async () => {
-    try {
-      const response = await fetch('/api/help-messages', { headers: await authHeaders() });
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      const { messages: data } = await response.json();
-      setMessages(data || []);
-    } catch (error) {
-      console.error('Error loading messages:', error);
-      toast.error(language === 'es' ? 'Error al cargar mensajes' : 'Error loading messages');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const sendMessageChange = async (method: 'PATCH' | 'DELETE', body: Record<string, string>) => {
+  const request = async (method: 'POST' | 'PATCH' | 'DELETE', body: Record<string, string>) => {
     const response = await fetch('/api/help-messages', {
       method,
       headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
@@ -70,124 +50,162 @@ export default function AdminHelpMessages() {
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
   };
 
-  const updateStatus = async (id: string, status: string) => {
+  const setLocalStatus = (id: string, status: string) =>
+    setMessages((current) => current.map((m) => (m.id === id ? { ...m, status } : m)));
+
+  // The box changes at once; the save happens behind it and undoes itself on failure.
+  const updateStatus = async (msg: HelpMessage, status: string) => {
+    const previous = msg.status;
+    setLocalStatus(msg.id, status);
     try {
-      await sendMessageChange('PATCH', { id, status });
-      
-      setMessages(messages.map(m => m.id === id ? { ...m, status } : m));
-      toast.success(language === 'es' ? 'Estado actualizado' : 'Status updated');
+      await request('PATCH', { id: msg.id, status });
     } catch (error) {
       console.error('Error updating status:', error);
-      toast.error(language === 'es' ? 'Error al actualizar' : 'Error updating');
+      setLocalStatus(msg.id, previous);
+      toast.error(es ? 'No se pudo guardar el cambio' : 'The change could not be saved');
     }
   };
 
   const deleteMessage = async (id: string) => {
-    if (!confirm(language === 'es' ? '¿Eliminar mensaje?' : 'Delete message?')) return;
-
+    if (!confirm(es ? '¿Eliminar mensaje?' : 'Delete message?')) return;
     setDeleting(id);
     try {
-      await sendMessageChange('DELETE', { id });
-      
-      setMessages(messages.filter(m => m.id !== id));
-      toast.success(language === 'es' ? 'Mensaje eliminado' : 'Message deleted');
+      await request('DELETE', { id });
+      setMessages((current) => current.filter((m) => m.id !== id));
+      toast.success(es ? 'Mensaje eliminado' : 'Message deleted');
     } catch (error) {
       console.error('Error deleting message:', error);
-      toast.error(language === 'es' ? 'Error al eliminar' : 'Error deleting');
+      toast.error(es ? 'Error al eliminar' : 'Error deleting');
     } finally {
       setDeleting(null);
     }
   };
 
-  const formatDate = (date: string) => {
-    return new Date(date).toLocaleDateString(language === 'es' ? 'es-ES' : 'en-US', {
+  const openReply = (id: string) => {
+    setReplyingTo(replyingTo === id ? null : id);
+    setReplyText('');
+  };
+
+  const sendReply = async (msg: HelpMessage) => {
+    const reply = replyText.trim();
+    if (!reply) return;
+    setSending(true);
+    try {
+      await request('POST', { id: msg.id, reply });
+      setLocalStatus(msg.id, 'resolved');
+      setReplyingTo(null);
+      setReplyText('');
+      toast.success(es ? `Respuesta enviada a ${msg.email}` : `Reply sent to ${msg.email}`);
+    } catch (error) {
+      console.error('Error sending reply:', error);
+      toast.error(es ? 'No se pudo enviar. Tu texto sigue aquí.' : 'It could not be sent. Your text is still here.');
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const formatDate = (date: string) =>
+    new Date(date).toLocaleDateString(es ? 'es-ES' : 'en-US', {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',
       hour: '2-digit',
       minute: '2-digit',
     });
-  };
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <Loader className="w-8 h-8 animate-spin text-[hsl(var(--primary))]" />
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2 mb-6">
         <MessageSquare className="w-5 h-5 text-[hsl(var(--primary))]" />
-        <h2 className="text-xl font-bold">
-          {language === 'es' ? 'Mensajes de Ayuda' : 'Help Messages'}
-        </h2>
+        <h2 className="text-xl font-bold">{es ? 'Mensajes de Ayuda' : 'Help Messages'}</h2>
         <span className="ml-auto text-sm text-[hsl(var(--muted-foreground))]">
-          {messages.length} {language === 'es' ? 'mensajes' : 'messages'}
+          {messages.length} {es ? 'mensajes' : 'messages'}
         </span>
       </div>
 
       {messages.length === 0 ? (
-        <div className="text-center py-8 text-[hsl(var(--muted-foreground))]">
-          {language === 'es' ? 'No hay mensajes' : 'No messages'}
-        </div>
+        <div className="text-center py-8 text-[hsl(var(--muted-foreground))]">{es ? 'No hay mensajes' : 'No messages'}</div>
       ) : (
         <div className="space-y-3">
           {messages.map((msg) => (
-            <div
-              key={msg.id}
-              className="border border-[hsl(var(--border))] rounded-lg p-4 hover:bg-[hsl(var(--muted))] transition"
-            >
-              <div className="flex items-start justify-between mb-2">
-                <div className="flex-1">
-                  <h3 className="font-medium text-[hsl(var(--foreground))]">{msg.subject}</h3>
-                  <p className="text-sm text-[hsl(var(--muted-foreground))]">
-                    {language === 'es' ? 'De:' : 'From:'} {msg.name} ({msg.email})
-                  </p>
-                </div>
-                <span className={`px-2 py-1 rounded text-xs font-medium ${STATUS_COLORS[msg.status as keyof typeof STATUS_COLORS]}`}>
-                  {STATUS_LABELS[msg.status as keyof typeof STATUS_LABELS]?.[language]}
+            <div key={msg.id} className="border border-[hsl(var(--border))] rounded-lg p-4">
+              {msg.status === 'new' && (
+                <span className="inline-block mb-2 px-2 py-0.5 rounded text-xs font-medium bg-[hsl(var(--foreground))] text-[hsl(var(--background))]">
+                  {es ? 'Nuevo' : 'New'}
                 </span>
-              </div>
+              )}
+              <h3 className="font-medium text-[hsl(var(--foreground))]">{msg.subject}</h3>
+              <p className="text-sm text-[hsl(var(--muted-foreground))] mb-2">
+                {es ? 'De:' : 'From:'} {msg.name} ({msg.email})
+              </p>
 
               <div className="mb-3">
                 <p className="text-sm text-[hsl(var(--muted-foreground))] mb-2">
-                  {language === 'es' ? 'Categoría:' : 'Category:'} {CATEGORY_LABELS[msg.category]?.[language] ?? msg.category}
+                  {es ? 'Categoría:' : 'Category:'} {CATEGORY_LABELS[msg.category]?.[language] ?? msg.category}
                 </p>
-                <p className="text-sm bg-[hsl(var(--muted))] p-3 rounded border border-[hsl(var(--border))] whitespace-pre-wrap">
+                <p className="text-sm p-3 rounded border border-[hsl(var(--border))] whitespace-pre-wrap">
                   {msg.message}
                 </p>
               </div>
 
-              <div className="flex items-center justify-between text-xs text-[hsl(var(--muted-foreground))]">
-                <span>{formatDate(msg.created_at)}</span>
-                <div className="flex gap-2">
-                  <select
-                    value={msg.status}
-                    onChange={(e) => updateStatus(msg.id, e.target.value)}
-                    className="px-2 py-1 border border-[hsl(var(--border))] rounded text-xs bg-[hsl(var(--background))] text-[hsl(var(--foreground))]"
-                  >
-                    <option value="new">{STATUS_LABELS.new[language]}</option>
-                    <option value="read">{STATUS_LABELS.read[language]}</option>
-                    <option value="resolved">{STATUS_LABELS.resolved[language]}</option>
-                  </select>
+              <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <Checkbox
+                    checked={msg.status !== 'new'}
+                    onCheckedChange={(checked) => updateStatus(msg, checked ? 'read' : 'new')}
+                  />
+                  {es ? 'Leído' : 'Read'}
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <Checkbox
+                    checked={msg.status === 'resolved'}
+                    onCheckedChange={(checked) => updateStatus(msg, checked ? 'resolved' : 'read')}
+                  />
+                  {es ? 'Resuelto' : 'Resolved'}
+                </label>
+                <Button variant="outline" size="sm" className="h-8" onClick={() => openReply(msg.id)}>
+                  <Reply className="w-3.5 h-3.5 mr-1.5" />
+                  {es ? 'Responder' : 'Reply'}
+                </Button>
+                <div className="ml-auto flex items-center gap-2 text-xs text-[hsl(var(--muted-foreground))]">
+                  <span>{formatDate(msg.created_at)}</span>
                   <Button
                     onClick={() => deleteMessage(msg.id)}
                     disabled={deleting === msg.id}
                     variant="ghost"
                     size="sm"
                     className="h-7 px-2"
+                    aria-label={es ? 'Eliminar mensaje' : 'Delete message'}
                   >
-                    {deleting === msg.id ? (
-                      <Loader className="w-3 h-3 animate-spin" />
-                    ) : (
-                      <Trash2 className="w-3 h-3" />
-                    )}
+                    {deleting === msg.id ? <Loader className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
                   </Button>
                 </div>
               </div>
+
+              {replyingTo === msg.id && (
+                <div className="mt-4 pt-4 border-t border-[hsl(var(--border))]">
+                  <label htmlFor={`reply-${msg.id}`} className="block text-sm text-[hsl(var(--muted-foreground))] mb-2">
+                    {es ? `Tu respuesta a ${msg.email}. Se enviará desde help@makwin.art y el saludo se añade solo.` : `Your reply to ${msg.email}. It will be sent from help@makwin.art with a greeting added.`}
+                  </label>
+                  <textarea
+                    id={`reply-${msg.id}`}
+                    value={replyText}
+                    onChange={(event) => setReplyText(event.target.value)}
+                    maxLength={MAX_REPLY_LENGTH}
+                    rows={5}
+                    autoFocus
+                    className="w-full px-3 py-2 rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--input))] text-sm resize-y focus:outline-none"
+                  />
+                  <div className="flex gap-2 mt-2">
+                    <Button size="sm" disabled={sending || !replyText.trim()} onClick={() => sendReply(msg)}>
+                      {sending ? <Loader className="w-4 h-4 animate-spin" /> : es ? 'Enviar respuesta' : 'Send reply'}
+                    </Button>
+                    <Button size="sm" variant="ghost" disabled={sending} onClick={() => openReply(msg.id)}>
+                      {es ? 'Cancelar' : 'Cancel'}
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
           ))}
         </div>

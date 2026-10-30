@@ -1,12 +1,12 @@
-import { useEffect, useState } from 'react';
+import type { Dispatch, SetStateAction } from 'react';
 import { Link } from 'react-router-dom';
-import { Flag, Loader } from 'lucide-react';
+import { Flag } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { authHeaders } from '@/lib/adminApi';
 import { useI18n } from '@/lib/i18n';
 
-interface Report {
+export interface Report {
   id: string;
   reason: string;
   details: string | null;
@@ -24,56 +24,46 @@ const REASONS: Record<string, { es: string; en: string }> = {
   otro: { es: 'Otro', en: 'Other' },
 };
 
-export default function AdminReports() {
+interface Props {
+  reports: Report[];
+  setReports: Dispatch<SetStateAction<Report[]>>;
+}
+
+export default function AdminReports({ reports, setReports }: Props) {
   const { language } = useI18n();
   const es = language === 'es';
-  const [reports, setReports] = useState<Report[]>([]);
-  const [loading, setLoading] = useState(true);
 
-  const send = async (method: string, body?: object) => {
+  const patch = async (body: object) => {
     const response = await fetch('/api/reports', {
-      method,
+      method: 'PATCH',
       headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
-      body: body ? JSON.stringify(body) : undefined,
+      body: JSON.stringify(body),
     });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    return response.json();
   };
 
-  const load = async () => {
+  // Changes show at once and undo themselves if the save fails.
+  const act = async (body: object, change: (report: Report) => Report) => {
+    const previous = reports;
+    setReports((current) => current.map(change));
     try {
-      const { reports: data } = await send('GET');
-      setReports(data || []);
-    } catch (error) {
-      console.error('[AdminReports] Could not load reports:', error);
-      toast.error(es ? 'No se pudieron cargar los reportes' : 'Could not load reports');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    load();
-  }, []);
-
-  const act = async (body: object) => {
-    try {
-      await send('PATCH', body);
-      await load();
-      toast.success(es ? 'Actualizado' : 'Updated');
+      await patch(body);
     } catch (error) {
       console.error('[AdminReports] Could not update:', error);
+      setReports(previous);
       toast.error(es ? 'No se pudo actualizar' : 'Could not update');
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <Loader className="w-8 h-8 animate-spin text-[hsl(var(--primary))]" />
-      </div>
+  const setReviewed = (report: Report) =>
+    act({ id: report.id, reviewed: !report.reviewed }, (item) =>
+      item.id === report.id ? { ...item, reviewed: !report.reviewed } : item,
     );
-  }
+
+  const toggleWork = (report: Report, status: 'published' | 'removed_policy') =>
+    act({ workId: report.work!.id, workStatus: status }, (item) =>
+      item.work?.id === report.work!.id ? { ...item, work: { ...item.work!, status } } : item,
+    );
 
   return (
     <div className="space-y-4">
@@ -112,7 +102,7 @@ export default function AdminReports() {
               </div>
               {report.details && <p className="text-sm whitespace-pre-wrap mb-3">{report.details}</p>}
               <div className="flex flex-wrap gap-2">
-                <Button size="sm" variant="outline" onClick={() => act({ id: report.id, reviewed: !report.reviewed })}>
+                <Button size="sm" variant="outline" onClick={() => setReviewed(report)}>
                   {report.reviewed ? (es ? 'Marcar como pendiente' : 'Mark as pending') : es ? 'Marcar como revisado' : 'Mark as reviewed'}
                 </Button>
                 {report.work && (
@@ -120,7 +110,7 @@ export default function AdminReports() {
                     size="sm"
                     variant="outline"
                     className={removed ? '' : 'text-red-500'}
-                    onClick={() => act({ workId: report.work!.id, workStatus: removed ? 'published' : 'removed_policy' })}
+                    onClick={() => toggleWork(report, removed ? 'published' : 'removed_policy')}
                   >
                     {removed ? (es ? 'Restaurar obra' : 'Restore work') : es ? 'Retirar obra' : 'Remove work'}
                   </Button>

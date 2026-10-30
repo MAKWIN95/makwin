@@ -17,6 +17,8 @@ export interface EmailContent {
   title: string;
   preheader: string;
   blocks: EmailBlock[];
+  // A person wrote this one and answers will be read.
+  personal?: boolean;
 }
 
 const INK = '#111111';
@@ -26,9 +28,17 @@ const HAIRLINE = '#ececec';
 const SANS = "-apple-system,BlinkMacSystemFont,'Helvetica Neue',Helvetica,Arial,sans-serif";
 const SERIF = "Georgia,'Times New Roman',Times,serif";
 
-const FOOTER: Record<EmailLanguage, { tagline: string; legal: string }> = {
-  es: { tagline: 'Arte real, experiencias reales, conexiones reales.', legal: 'Correo automático de MAKWIN.' },
-  en: { tagline: 'Real art, real experiences, real connections.', legal: 'Automated email from MAKWIN.' },
+const FOOTER: Record<EmailLanguage, { tagline: string; legal: string; personal: string }> = {
+  es: {
+    tagline: 'Arte real, experiencias reales, conexiones reales.',
+    legal: 'Correo automático de MAKWIN.',
+    personal: 'Puedes responder a este correo para seguir la conversación.',
+  },
+  en: {
+    tagline: 'Real art, real experiences, real connections.',
+    legal: 'Automated email from MAKWIN.',
+    personal: 'You can reply to this email to continue the conversation.',
+  },
 };
 
 export function escapeHtml(value: unknown): string {
@@ -118,7 +128,7 @@ ${content.blocks.map((block) => renderBlock(block, esc)).join('\n')}
 </td></tr>
 <tr><td class="mk-pad" style="padding:0 48px 56px;">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td style="border-top:1px solid ${HAIRLINE};padding-top:24px;font-family:${SANS};font-size:12px;line-height:1.7;color:${MUTED};">
-${esc(footer.tagline)}<br>${esc(footer.legal)}
+${esc(footer.tagline)}<br>${esc(content.personal ? footer.personal : footer.legal)}
 </td></tr></table>
 </td></tr>
 </table>
@@ -134,7 +144,7 @@ export function renderEmail(content: EmailContent): { html: string; text: string
     'MAKWIN',
     content.title,
     ...content.blocks.map(renderBlockText).filter(Boolean),
-    `--\n${footer.tagline}\n${footer.legal}`,
+    `--\n${footer.tagline}\n${content.personal ? footer.personal : footer.legal}`,
   ].join('\n\n');
   return { html: renderHtml(content, escapeHtml), text };
 }

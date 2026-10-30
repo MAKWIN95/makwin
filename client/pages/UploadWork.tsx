@@ -30,7 +30,7 @@ const MAX_IMAGE_MB = 10;
 const MAX_AUDIO_MB = 50;
 const MAX_VIDEO_MB = 50;
 
-type UploadProgress = 'idle' | 'uploading_file' | 'uploading_cover' | 'saving' | 'done' | 'error';
+type UploadProgress = 'idle' | 'uploading_file' | 'uploading_cover' | 'checking' | 'done' | 'error';
 
 export default function UploadWork() {
   useRequireAuth();
@@ -180,28 +180,39 @@ export default function UploadWork() {
         coverUrl = await uploadToStorage(coverFile, 'works', path);
       }
 
-      setProgress('saving');
+      setProgress('checking');
 
-      const { data, error: dbError } = await supabase.from('works').insert({
-        user_id: user.id,
-        title: form.title.trim(),
-        description: form.description.trim(),
-        work_type: form.workType,
-        file_url: fileUrl,
-        cover_url: coverUrl,
-        lyrics: form.workType === 'cancion' ? form.lyrics.trim() : null,
-        hashtags: normalizeHashtags(form.hashtags),
-        is_for_sale: form.isForSale,
-        price: form.isForSale && form.price ? Number(form.price) : null,
-        language,
-        status: 'published',
-      }).select('id').single();
-
-      if (dbError) throw dbError;
+      const { data: { session } } = await supabase.auth.getSession();
+      const response = await fetch('/api/publish-work', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
+        },
+        body: JSON.stringify({
+          title: form.title,
+          description: form.description,
+          workType: form.workType,
+          fileUrl,
+          coverUrl,
+          lyrics: form.lyrics,
+          hashtags: normalizeHashtags(form.hashtags),
+          isForSale: form.isForSale,
+          price: form.isForSale && form.price ? Number(form.price) : null,
+          language,
+        }),
+      });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const { id, held } = await response.json();
 
       setProgress('done');
-      toast.success(es ? 'Obra publicada' : 'Work published');
-      navigate(`/work/${data.id}`);
+      if (held) {
+        toast.info(es ? 'Tu obra se está revisando. Te avisaremos por correo.' : 'Your work is being reviewed. We will let you know by email.', { duration: 8000 });
+        navigate(`/u/${profile?.username}`);
+      } else {
+        toast.success(es ? 'Obra publicada' : 'Work published');
+        navigate(`/work/${id}`);
+      }
     } catch (err: any) {
       console.error('[UploadWork] Could not publish:', err);
       setProgress('error');
@@ -214,12 +225,12 @@ export default function UploadWork() {
 
   const inputClass = "w-full px-4 py-3 rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--input))] text-sm text-[hsl(var(--foreground))] placeholder:text-[hsl(var(--muted-foreground))] focus:outline-none focus:ring-2 focus:ring-[hsl(var(--ring))] transition-all";
   const labelClass = "block text-sm font-medium text-[hsl(var(--foreground))] mb-1";
-  const isLoading = progress === 'uploading_file' || progress === 'uploading_cover' || progress === 'saving';
+  const isLoading = progress === 'uploading_file' || progress === 'uploading_cover' || progress === 'checking';
 
   const progressLabel = {
     uploading_file: es ? 'Subiendo archivo…' : 'Uploading file…',
     uploading_cover: es ? 'Subiendo portada…' : 'Uploading cover…',
-    saving: es ? 'Guardando…' : 'Saving…',
+    checking: es ? 'Comprobando la obra…' : 'Checking the work…',
     done: es ? '¡Publicado!' : 'Published!',
     error: es ? 'Error' : 'Error',
     idle: '',

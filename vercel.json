@@ -1,6 +1,13 @@
 {
     "outputDirectory":  "dist/spa",
     "buildCommand":  "pnpm build:client",
+    "regions":  ["dub1"],
+    "functions":  {
+        "api/publish-work.ts":  {
+            "maxDuration":  60,
+            "includeFiles":  "node_modules/.pnpm/ffmpeg-static*/node_modules/ffmpeg-static/ffmpeg"
+        }
+    },
     "cleanUrls":  false,
     "headers": [
         {

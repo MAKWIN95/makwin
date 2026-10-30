@@ -10,6 +10,7 @@ import { handleDeleteAccount } from "./routes/delete-account";
 import { checkEmailExists } from "../api/check-email-exists";
 import saveHelpMessageHandler from "../api/save-help-message";
 import reportsHandler from "../api/reports";
+import publishWorkHandler from "../api/publish-work";
 import { isValidUsername, normalizeUsername } from "../shared/username";
 import { getUsernameAvailability, getUsernameAvailabilityUserId } from "./lib/username-availability";
 import helpMessagesHandler from "../api/help-messages";
@@ -78,6 +79,7 @@ export function createServer() {
   app.post("/api/save-help-message", (req, res) => saveHelpMessageHandler(req as any, res as any));
   app.all("/api/help-messages", (req, res) => helpMessagesHandler(req as any, res as any));
   app.all("/api/reports", (req, res) => reportsHandler(req as any, res as any));
+  app.all("/api/publish-work", (req, res) => publishWorkHandler(req as any, res as any));
   app.post("/api/admin-set-password", (req, res) => adminSetPasswordHandler(req as any, res as any));
 
   // Gemini proxy endpoint to avoid browser CORS issues

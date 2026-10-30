@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
+import { toast } from 'sonner';
 import { X, Loader2 } from 'lucide-react';
 import { supabase, Work } from '@/lib/supabase';
 import { useI18n } from '@/lib/i18n';
@@ -31,23 +32,29 @@ export default function EditWorkModal({ isOpen, onClose, work, onSuccess }: Prop
 
     const tagsArray = normalizeHashtags(form.hashtags);
 
-    const { error: updateError } = await supabase
-      .from('works')
-      .update({
-        title: form.title,
-        description: form.description,
-        hashtags: tagsArray,
-      })
-      .eq('id', work.id);
-
-    setLoading(false);
-
-    if (updateError) {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const response = await fetch('/api/publish-work', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
+        },
+        body: JSON.stringify({ id: work.id, title: form.title, description: form.description, hashtags: tagsArray }),
+      });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const { held } = await response.json();
+      if (held) {
+        toast.info(es ? 'Tu obra se revisará antes de volver a mostrarse.' : 'Your work will be reviewed before it is shown again.');
+      }
+    } catch (updateError) {
       console.error('[EditWorkModal] Could not save:', updateError);
       setError(es ? 'No se han podido guardar los cambios. Inténtalo de nuevo.' : 'The changes could not be saved. Please try again.');
+      setLoading(false);
       return;
     }
 
+    setLoading(false);
     onSuccess();
     onClose();
   };

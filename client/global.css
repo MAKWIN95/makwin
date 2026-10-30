@@ -384,6 +384,11 @@ html * {
     outline-offset: 2px;
   }
 
+  /* Admin tabs mark focus with their own light grey border. */
+  button[role="tab"]:focus-visible {
+    outline: none;
+  }
+
   /* Remove default browser select arrow */
   select {
     background-image: none;
