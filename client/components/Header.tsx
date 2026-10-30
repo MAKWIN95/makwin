@@ -2,7 +2,8 @@ import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/custom-dialog";
 import LanguageSelector from "./LanguageSelector";
-import { Filter, ArrowLeft, Upload, Bookmark, User, LogOut, Settings, Heart, Moon, Sun, Shield } from 'lucide-react';
+import GalleryFilter from "./GalleryFilter";
+import { ArrowLeft, Upload, Bookmark, User, LogOut, Settings, Heart, Moon, Sun, Shield } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
 import { useAuth } from '@/lib/AuthContext';
 import { useTheme } from "@/hooks/use-theme";
@@ -42,6 +43,7 @@ export default function Header({ showSearch = true, showSearchCentered = false, 
   const [searchTerm, setSearchTerm] = useState(() => readSearch(initialLocation.search));
   const [isAdmin, setIsAdmin] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
+  const [filterExpanded, setFilterExpanded] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const searchRef = useRef<HTMLDivElement | null>(null);
@@ -163,11 +165,11 @@ export default function Header({ showSearch = true, showSearchCentered = false, 
 
           {/* Left: navigation + logo */}
           <div className={`${isHomePage ? 'hidden' : 'col-span-1'} flex items-center gap-1 sm:gap-2 min-w-0 relative`}>
-            <button onClick={handleGoBack} className={`${isGallery ? 'max-sm:hidden' : ''} max-[359px]:hidden p-0 w-10 h-10 phone:w-11 phone:h-11 max-[374px]:!w-9 rounded-lg transition-all duration-200 ease-out flex items-center justify-center shrink-0 hover:scale-105 hover:bg-[hsl(var(--muted))] active:scale-95`} aria-label={es ? 'Atrás' : 'Back'}>
+            <button onClick={handleGoBack} className={`${isGallery ? 'max-sm:hidden' : ''} max-[359px]:hidden header-button ios-press p-0 w-10 h-10 phone:w-11 phone:h-11 max-[429px]:!w-9 max-[374px]:!w-8 flex items-center justify-center shrink-0`} aria-label={es ? 'Atrás' : 'Back'}>
               <ArrowLeft className="w-5 h-5 text-[hsl(var(--muted-foreground))] phone:text-[hsl(var(--foreground))] transition-colors duration-300" />
             </button>
-            <div onClick={handleMakwinClick} className={`cursor-pointer flex items-center gap-2 ml-1 min-w-0 overflow-hidden phone:min-h-11 ${isGallery ? 'max-sm:ml-2' : ''}`}>
-              <span className={`logo-makwin tracking-widest hover:opacity-80 transition-opacity duration-200 whitespace-nowrap leading-tight max-[374px]:!text-base ${hideSearch ? 'text-base sm:text-lg' : 'text-lg sm:text-xl md:text-2xl'}`}>
+            <div onClick={handleMakwinClick} className={`cursor-pointer flex items-center gap-2 ml-1 min-w-0 overflow-hidden phone:min-h-11 ${isGallery ? 'max-sm:ml-2 max-[359px]:ml-1' : ''}`}>
+              <span className={`logo-makwin tracking-widest hover:opacity-80 transition-opacity duration-200 whitespace-nowrap leading-tight max-[374px]:!text-sm ${hideSearch ? 'text-base sm:text-lg' : 'text-lg sm:text-xl md:text-2xl'}`}>
                 MAKWIN
               </span>
               {breadcrumb && <>
@@ -180,7 +182,7 @@ export default function Header({ showSearch = true, showSearchCentered = false, 
           {/* Center: search */}
           <div className={`${isHomePage || hideSearch || !showSearch ? 'hidden sm:flex' : 'flex'} order-last col-span-2 sm:order-none sm:col-span-1 items-center justify-center`} ref={searchRef}>
             {!hideSearch && showSearch && (
-              <form role="search" onSubmit={handleSearchSubmit} className="flex items-center w-full sm:max-w-xl">
+              <form role="search" onSubmit={handleSearchSubmit} className="relative flex items-stretch w-full sm:max-w-xl">
                 <input
                   id="site-search-input"
                   type="search"
@@ -189,25 +191,15 @@ export default function Header({ showSearch = true, showSearchCentered = false, 
                   onChange={(e) => handleSearchChange(e.target.value)}
                   onFocus={() => setIsSearching(true)}
                   aria-label={t('search.placeholder')}
-                  className="flex-1 min-w-0 phone:h-11 px-3 sm:px-4 py-2 text-sm bg-[hsl(var(--popover))/0.6] backdrop-blur-sm border border-[rgba(120,120,120,0.25)] rounded-lg focus:outline-none focus:ring-1 focus:ring-[hsl(var(--ring))] transition-all placeholder:text-[hsl(var(--muted-foreground))]"
+                  className={`flex-1 min-w-0 phone:h-11 px-3 sm:px-4 py-2 text-sm bg-transparent border border-[rgba(120,120,120,0.25)] rounded-lg focus:outline-none focus:ring-1 focus:ring-[hsl(var(--ring))] transition-all placeholder:text-[hsl(var(--muted-foreground))] ${filterExpanded ? 'max-xl:invisible' : ''}`}
                 />
-                {isGallery && (
-                  <button
-                    id="filter-btn"
-                    type="button"
-                    aria-label={es ? 'Filtrar' : 'Filter'}
-                    className="ml-2 p-2 phone:w-11 phone:h-11 shrink-0 inline-flex items-center justify-center border border-[rgba(120,120,120,0.25)] rounded-lg hover:bg-[hsl(var(--muted))] transition-colors duration-200"
-                    onClick={() => document.dispatchEvent(new Event('toggleFilterPopup'))}
-                  >
-                    <Filter size={16} className="text-[hsl(var(--muted-foreground))]" />
-                  </button>
-                )}
+                {isGallery && <GalleryFilter onExpand={setFilterExpanded} />}
               </form>
             )}
           </div>
 
           {/* Right: lang + music + user */}
-          <div className={`${isHomePage ? 'col-span-3 flex justify-center' : 'col-span-1 flex justify-end'} flex items-center gap-1 sm:gap-3`}>
+          <div className={`${isHomePage ? 'col-span-3 flex justify-center' : 'col-span-1 flex justify-end'} flex items-center gap-1`}>
             <div id="lang-selector-wrap" className="whitespace-nowrap">
               <LanguageSelector />
             </div>
@@ -232,14 +224,14 @@ export default function Header({ showSearch = true, showSearchCentered = false, 
             )}
 
             {/* Light / dark */}
-            <button type="button" onClick={toggleTheme} className="ios-press inline-flex items-center justify-center shrink-0 p-2 phone:p-0 phone:w-11 phone:h-11 max-[374px]:!w-9 rounded-lg hover:bg-[hsl(var(--muted))] transition-colors" aria-label={isDark ? (es ? 'Modo claro' : 'Light mode') : (es ? 'Modo oscuro' : 'Dark mode')}>
+            <button type="button" onClick={toggleTheme} className="ios-press header-button inline-flex items-center justify-center shrink-0 p-2 phone:p-0 phone:w-11 phone:h-11 max-[429px]:!w-9 max-[374px]:!w-8" aria-label={isDark ? (es ? 'Modo claro' : 'Light mode') : (es ? 'Modo oscuro' : 'Dark mode')}>
               <span key={String(isDark)} className="theme-icon">
                 {isDark ? <Sun className="w-4 h-4 phone:w-5 phone:h-5 text-[hsl(var(--foreground))]" /> : <Moon className="w-4 h-4 phone:w-5 phone:h-5 text-[hsl(var(--foreground))]" />}
               </span>
             </button>
 
             {/* Upload shortcut */}
-            <Link to={user || authLoading ? '/subir-obra' : '/login'} className="ios-press inline-flex items-center justify-center shrink-0 p-2 phone:p-0 phone:w-11 phone:h-11 max-[374px]:!w-9 rounded-lg hover:bg-[hsl(var(--muted))] transition-colors" aria-label={es ? 'Subir obra' : 'Upload work'}>
+            <Link to={user || authLoading ? '/subir-obra' : '/login'} className="ios-press header-button inline-flex items-center justify-center shrink-0 p-2 phone:p-0 phone:w-11 phone:h-11 max-[429px]:!w-9 max-[374px]:!w-8" aria-label={es ? 'Subir obra' : 'Upload work'}>
               <Upload className="w-4 h-4 phone:w-5 phone:h-5 text-[hsl(var(--foreground))]" />
             </Link>
 
@@ -324,8 +316,8 @@ export default function Header({ showSearch = true, showSearchCentered = false, 
               </button>
             ) : (
               <Link to="/login"
-                className="text-xs phone:text-sm font-medium text-[hsl(var(--foreground))] border border-[rgba(120,120,120,0.25)] px-3 max-[374px]:!px-2 max-[374px]:!text-xs py-1.5 phone:py-2.5 rounded-lg hover:bg-[hsl(var(--muted))] transition-colors duration-200 whitespace-nowrap">
-                {es ? 'Entrar' : 'Sign in'}
+                className="header-button text-xs phone:text-sm font-medium text-[hsl(var(--foreground))] border border-[rgba(120,120,120,0.25)] px-3 max-[429px]:!px-2.5 max-[429px]:!text-xs py-1.5 phone:py-2.5 whitespace-nowrap">
+                {es ? 'Iniciar sesión' : 'Sign in'}
               </Link>
             )}
           </div>

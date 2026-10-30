@@ -10,6 +10,8 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import AuthModal from '@/components/AuthModal';
 import ReportModal from '@/components/ReportModal';
+import LikeBurst from '@/components/LikeBurst';
+import { useDoubleTap } from '@/hooks/use-double-tap';
 import FollowButton from '@/components/FollowButton';
 import { Button } from '@/components/ui/button';
 import { Heart, Bookmark, Share2, Flag, Loader2, ArrowLeft } from 'lucide-react';
@@ -227,6 +229,12 @@ export default function WorkDetail() {
     await worksContext.toggleLike(work.id, user.id);
   };
 
+  const [likeBursts, setLikeBursts] = useState(0);
+  const handleImageTap = useDoubleTap(() => {
+    if (user) setLikeBursts((count) => count + 1);
+    if (!user || !liked) handleLike();
+  });
+
   const handleSave = async () => {
     if (!user) {
       setAuthModalAction('save');
@@ -302,7 +310,7 @@ export default function WorkDetail() {
             {/* Primary Image/Cover */}
             {work.cover_url && (
               <div className="flex items-start justify-center pt-12" style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'center', minHeight: '50vh' }}>
-                <img src={work.cover_url} alt={work.title} className="rounded-lg border border-[rgba(255,255,255,0.1)] max-h-[80vh] w-auto h-auto object-contain" />
+                <img src={work.cover_url} alt={work.title} onClick={handleImageTap} className="touch-manipulation select-none rounded-lg border border-[rgba(255,255,255,0.1)] max-h-[80vh] w-auto h-auto object-contain" />
               </div>
             )}
 
@@ -321,7 +329,7 @@ export default function WorkDetail() {
             {/* Pintura/Fotografia secondary image */}
             {(work.work_type === 'pintura' || work.work_type === 'fotografia') && work.file_url && work.file_url !== work.cover_url && (
               <div className="flex items-center justify-center" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '80vh' }}>
-                <img src={work.file_url} alt={work.title} className="rounded-lg border border-[rgba(255,255,255,0.1)] max-h-[80vh] max-w-full w-auto h-auto object-contain" loading="lazy" />
+                <img src={work.file_url} alt={work.title} onClick={handleImageTap} className="touch-manipulation select-none rounded-lg border border-[rgba(255,255,255,0.1)] max-h-[80vh] max-w-full w-auto h-auto object-contain" loading="lazy" />
               </div>
             )}
 
@@ -451,6 +459,8 @@ export default function WorkDetail() {
           title={authModalTitle}
           description={authModalDescription}
         />
+
+        <LikeBurst count={likeBursts} className="fixed" />
 
         {/* Report Modal */}
         <ReportModal

@@ -132,7 +132,7 @@ export default function HelpModal({ isOpen, onClose }: HelpModalProps) {
         className="glass-panel w-full max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain"
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="sticky top-0 z-10 bg-[hsl(var(--background))] border-b border-[rgba(120,120,120,0.25)] p-4 flex items-center justify-between">
+        <div className="sticky top-0 z-10 bg-[hsl(var(--popover)/0.35)] backdrop-blur-xl border-b border-[hsl(var(--foreground)/0.1)] p-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <HelpCircle className="w-5 h-5 text-[hsl(var(--primary))]" />
             <h2 id="help-modal-title" className="font-bold text-lg">

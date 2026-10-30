@@ -110,7 +110,6 @@ export default function WorkOptionsMenu({ label, options, onArtwork = true }: Pr
         <svg className="work-fold-shape" width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
           <path d="M-1.2 1.2L16.8 19.2H2.3Q-1.2 19.2-1.2 15.7Z" fill="rgba(0,0,0,0.16)" />
           <path d="M0 0L18 18H3.5Q0 18 0 14.5Z" fill="var(--fold-paper)" />
-          <path d="M0 0H18V18Z" fill="hsl(var(--background))" />
         </svg>
         <X className="work-fold-close" strokeWidth={2.25} />
       </button>

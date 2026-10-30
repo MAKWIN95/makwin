@@ -7,7 +7,6 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import WorkCard from '@/components/WorkCard';
 import MasonryGrid, { type MasonryColumns } from '@/components/MasonryGrid';
-import { Filter } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
 import { useStarsBackground } from '@/hooks/use-stars-background';
 
@@ -61,11 +60,8 @@ export default function Gallery() {
   // The address is the single source of the search, so it survives reloads and shared links.
   const searchTerm = (new URLSearchParams(location.search).get('search') ?? '').replace(/^#/, '').trim();
   const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [filters, setFilters] = useState({ workType: '', sort: 'score' });
-  const [showFilterPopup, setShowFilterPopup] = useState(false);
+  const workType = new URLSearchParams(location.search).get('tipo') ?? '';
   const [showItems, setShowItems] = useState(false);
-  const [filterBtnPos, setFilterBtnPos] = useState({ top: 0, left: 0 });
-  const filterRef = useRef<HTMLDivElement>(null);
   const loaderRef = useRef<HTMLDivElement>(null);
   const requestSequenceRef = useRef(0);
   const activeUserIdRef = useRef<string | null>(user?.id ?? null);
@@ -210,37 +206,6 @@ export default function Gallery() {
     return () => clearTimeout(t);
   }, [searchTerm]);
 
-  // ── Filter popup positioning ──────────────────────────────────────────────
-  useEffect(() => {
-    const onToggle = () => {
-      const btn = document.getElementById('filter-btn');
-      if (!btn) return;
-      
-      // Calculate button position
-      const rect = btn.getBoundingClientRect();
-      setFilterBtnPos({
-        top: rect.bottom + window.scrollY + 8,    // 8px below the button
-        left: rect.right - 220 + window.scrollX,  // Align to right (popup width 220px)
-      });
-      
-      setShowFilterPopup(p => !p);
-    };
-    const onClickOutside = (e: PointerEvent) => {
-      if (filterRef.current && !filterRef.current.contains(e.target as Node)) {
-        const btn = document.getElementById('filter-btn');
-        if (btn && !btn.contains(e.target as Node)) {
-          setShowFilterPopup(false);
-        }
-      }
-    };
-    document.addEventListener('toggleFilterPopup', onToggle as EventListener);
-    if (showFilterPopup) document.addEventListener('pointerdown', onClickOutside);
-    return () => {
-      document.removeEventListener('toggleFilterPopup', onToggle as EventListener);
-      document.removeEventListener('pointerdown', onClickOutside);
-    };
-  }, [showFilterPopup]);
-
   // ── Client-side filter + search (on already-fetched data) ─────────────────
   const filtered = useMemo(() => {
     const lower = debouncedSearch.toLowerCase();
@@ -254,15 +219,15 @@ export default function Gallery() {
           (item.hashtags ?? []).some(h => h.toLowerCase().includes(lower))
         );
       })
-      .filter(item => !filters.workType || item.work_type === filters.workType);
-  }, [works, debouncedSearch, filters.workType]);
+      .filter(item => !workType || item.work_type === workType);
+  }, [works, debouncedSearch, workType]);
 
   // Fade on filter/search change
   useEffect(() => {
     setShowItems(false);
     const t = setTimeout(() => setShowItems(true), 300);
     return () => clearTimeout(t);
-  }, [debouncedSearch, filters.workType]);
+  }, [debouncedSearch, workType]);
 
   const pad2 = (n: number) => String(n).padStart(2, '0');
   const formatDate = (item: any) => {
@@ -282,26 +247,6 @@ export default function Gallery() {
 
         <main className="w-full page-enter">
           <div className="px-4 sm:px-8 py-4 sm:py-6">
-
-            {/* Filter popup */}
-            {showFilterPopup && (
-              <div ref={filterRef} className="fixed z-50 glass-surface p-3 flex flex-col gap-2 animate-in fade-in slide-in-from-top-2 duration-200"
-                style={{ top: `${filterBtnPos.top}px`, left: `${Math.max(10, filterBtnPos.left)}px`, width: '200px' }}>
-                <select value={filters.workType} onChange={e => setFilters(f => ({ ...f, workType: e.target.value }))}
-                  className="phone:h-11 w-full px-2 py-2 border border-[hsl(var(--border))] rounded bg-[hsl(var(--input))] text-sm focus:outline-none focus:ring-0 focus:border-[hsl(var(--border))]">
-                  <option value="">{t('filter.allTypes')}</option>
-                  <option value="pintura">{t('filter.painting')}</option>
-                  <option value="fotografia">{t('filter.photography')}</option>
-                  <option value="poema">{t('filter.poem')}</option>
-                  <option value="cancion">{t('filter.song')}</option>
-                  <option value="video">{t('filter.video')}</option>
-                </select>
-                <button onClick={() => setFilters({ workType: '', sort: 'score' })}
-                  className="glass-button w-full">
-                  {t('filter.clear')}
-                </button>
-              </div>
-            )}
 
             {/* Loading skeleton - only show if we don't have cached data */}
             {loadingInitial && works.length === 0 && (
@@ -348,12 +293,16 @@ export default function Gallery() {
 
             {!loadingInitial && !loadError && filtered.length === 0 && !debouncedSearch && (
               <div className="w-full py-16 text-center text-sm text-[hsl(var(--muted-foreground))]">
-                {filters.workType ? (
+                {workType ? (
                   <>
                     <p className="mb-4">{currentLang === 'es' ? 'No hay obras de este tipo todavía.' : 'There are no works of this type yet.'}</p>
                     <button
-                      onClick={() => setFilters({ workType: '', sort: 'score' })}
-                      className="px-4 py-2 border border-[hsl(var(--border))] rounded-lg hover:bg-[hsl(var(--muted))] transition-colors"
+                      onClick={() => {
+                        const params = new URLSearchParams(location.search);
+                        params.delete('tipo');
+                        navigate({ search: params.toString() }, { replace: true });
+                      }}
+                      className="glass-button"
                     >
                       {t('filter.clear')}
                     </button>

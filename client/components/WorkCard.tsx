@@ -10,6 +10,8 @@ import ReportModal from '@/components/ReportModal';
 import EditWorkModal from '@/components/EditWorkModal';
 import DeleteWorkModal from '@/components/DeleteWorkModal';
 import WorkOptionsMenu, { type WorkOption } from '@/components/WorkOptionsMenu';
+import LikeBurst from '@/components/LikeBurst';
+import { useDoubleTap } from '@/hooks/use-double-tap';
 import { shareWork } from '@/lib/shareWork';
 
 interface Props {
@@ -44,6 +46,7 @@ export default function WorkCard({ work, priorityImage = false, imageDimensions,
   const [showReportModal, setShowReportModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [likeBursts, setLikeBursts] = useState(0);
 
   // Use context as source of truth
   const liked = worksContext.isLiked(work.id);
@@ -79,6 +82,25 @@ export default function WorkCard({ work, priorityImage = false, imageDimensions,
     const result = await worksContext.toggleLike(work.id, user.id);
     onLikeToggle?.(work.id, result.liked);
   };
+
+  const linkPath = `/work/${work.id}`;
+
+  // Double tap only ever likes: repeating it on a liked work never takes the like away.
+  const handleWorkTap = useDoubleTap(
+    () => {
+      if (!user) {
+        setAuthModalAction('like');
+        setShowAuthModal(true);
+        return;
+      }
+      setLikeBursts((count) => count + 1);
+      if (liked || isPendingLike) return;
+      setLikeAnimating(true);
+      setTimeout(() => setLikeAnimating(false), 400);
+      worksContext.toggleLike(work.id, user.id).then((result) => onLikeToggle?.(work.id, result.liked));
+    },
+    () => navigate(linkPath, { state: { from: 'gallery' } }),
+  );
 
   const handleSave = async (e: React.MouseEvent) => {
     e.preventDefault();
@@ -118,8 +140,6 @@ export default function WorkCard({ work, priorityImage = false, imageDimensions,
     ? (authModalAction === 'like' ? 'Necesitas una cuenta para activar el like.' : authModalAction === 'save' ? 'Necesitas una cuenta para guardar obras en tu perfil.' : authModalAction === 'report' ? 'Necesitas una cuenta para reportar esta obra.' : 'Necesitas una cuenta para hacer esto.')
     : (authModalAction === 'like' ? 'You need an account to like this work.' : authModalAction === 'save' ? 'You need an account to save works to your profile.' : authModalAction === 'report' ? 'You need an account to report a work.' : 'You need an account to do this.');
 
-  const linkPath = `/work/${work.id}`;
-
   const es = currentLang === 'es';
   const optionIcon = 'w-4 h-4 shrink-0';
   const options: WorkOption[] = [
@@ -138,7 +158,7 @@ export default function WorkCard({ work, priorityImage = false, imageDimensions,
         are invalid and make phones ignore or repeat taps. */}
     <div className="group relative z-0 block rounded-xl hover:z-20 focus-within:z-20">
       {/* Image/Media area */}
-      <div className="relative rounded-2xl transition-[transform,box-shadow] duration-300 ease-out group-hover:shadow-xl group-hover:scale-[1.014] group-focus-within:scale-[1.014]">
+      <div className="relative rounded-2xl transition-transform duration-300 ease-out group-hover:scale-[1.014] group-focus-within:scale-[1.014]">
 
         {/* Options: a folded corner that grows with the work and covers almost nothing */}
         <WorkOptionsMenu
@@ -148,14 +168,14 @@ export default function WorkCard({ work, priorityImage = false, imageDimensions,
         />
 
         {/* Media content */}
-        <Link to={linkPath} state={{ from: 'gallery' }} aria-label={work.title} className="block rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))] focus-visible:ring-offset-2 focus-visible:ring-offset-[hsl(var(--background))]">
+        <Link to={linkPath} state={{ from: 'gallery' }} aria-label={work.title} onClick={handleWorkTap} className="block rounded-2xl touch-manipulation select-none transition-[filter] duration-300 ease-out group-hover:[filter:drop-shadow(0_10px_16px_rgba(0,0,0,0.22))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))] focus-visible:ring-offset-2 focus-visible:ring-offset-[hsl(var(--background))]">
         {hasImage ? (
           <img
             src={work.cover_url ?? work.file_url ?? ''}
             alt={work.title}
             width={imageDimensions?.width}
             height={imageDimensions?.height}
-            className={`block h-auto w-full rounded-2xl object-contain transition-opacity duration-300 ease-out ${
+            className={`work-art block h-auto w-full rounded-2xl object-contain ${
               imageLoaded ? 'opacity-100' : 'opacity-0'
             }`}
             loading={priorityImage ? 'eager' : 'lazy'}
@@ -169,11 +189,12 @@ export default function WorkCard({ work, priorityImage = false, imageDimensions,
             </p>
           </div>
         ) : (
-          <div className="flex min-h-40 w-full items-center justify-center text-4xl bg-gradient-to-br from-[hsl(var(--muted))] to-[hsl(var(--muted))]">
+          <div className="work-art flex min-h-40 w-full items-center justify-center rounded-2xl text-4xl bg-gradient-to-br from-[hsl(var(--muted))] to-[hsl(var(--muted))]">
             {WORK_TYPE_ICONS[work.work_type] ?? '🎨'}
           </div>
         )}
         </Link>
+        <LikeBurst count={likeBursts} className="absolute" />
       </div>
 
       <div className="transition-transform duration-300 ease-out group-hover:translate-y-0.5 group-focus-within:translate-y-0.5">
@@ -183,39 +204,39 @@ export default function WorkCard({ work, priorityImage = false, imageDimensions,
             <Link to={linkPath} state={{ from: 'gallery' }} tabIndex={-1} className="block min-w-0">
               <p className="text-sm font-medium text-[hsl(var(--foreground))] truncate leading-tight">{work.title}</p>
             </Link>
-            {/* On phones each button is finger-sized but only takes up the icon's
-                height, and it grows downwards so it never catches a tap on the work. */}
-            <div className="flex shrink-0 items-center gap-3 phone:gap-0 phone:-mr-2">
+            {/* Each button is comfortable to hit but only takes up the icon's height.
+                On phones it grows downwards, so it never catches a tap on the work. */}
+            <div className="relative z-10 flex shrink-0 items-center -mr-2 phone:-mr-2.5">
               <button
                 onClick={handleLike}
                 disabled={isPendingLike}
-                className={`ios-press flex items-center gap-1 phone:h-11 phone:min-w-9 phone:justify-center phone:items-start phone:pt-1 phone:-mt-1 phone:-mb-[22px] text-xs transition-colors duration-200 ease-out ${liked ? 'text-rose-500' : 'text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))]'}`}
+                className={`ios-press work-action min-w-9 h-9 -my-1.5 phone:my-0 phone:min-w-10 phone:h-11 phone:-mb-[22px] flex items-center phone:items-start justify-center gap-1 text-xs transition-colors duration-200 ease-out ${liked ? 'text-rose-500' : 'text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))]'}`}
                 aria-label={es ? 'Me gusta' : 'Like'}
                 aria-pressed={liked}
               >
-                <Heart className={`w-3.5 h-3.5 phone:w-[18px] phone:h-[18px] ${likeAnimating ? 'icon-pop' : ''} ${liked ? 'fill-current stroke-current' : ''}`} />
+                <Heart className={`w-5 h-5 phone:w-[22px] phone:h-[22px] ${likeAnimating ? 'icon-pop' : ''} ${liked ? 'fill-current stroke-current' : ''}`} />
                 {/* Only show count if > 0 — keeps feed clean */}
                 {likeCount > 0 && <span>{likeCount}</span>}
               </button>
               <button
                 onClick={handleSave}
-                className={`ios-press flex items-center phone:h-11 phone:w-9 phone:justify-center phone:items-start phone:pt-1 phone:-mt-1 phone:-mb-[22px] transition-colors duration-200 ease-out ${saved ? 'text-[hsl(var(--foreground))]' : 'text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))]'}`}
+                className={`ios-press work-action w-9 h-9 -my-1.5 phone:my-0 phone:w-10 phone:h-11 phone:-mb-[22px] flex items-center phone:items-start justify-center transition-colors duration-200 ease-out ${saved ? 'text-[hsl(var(--foreground))]' : 'text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))]'}`}
                 aria-label={es ? 'Guardar' : 'Save'}
                 aria-pressed={saved}
               >
-                <Bookmark className={`w-3.5 h-3.5 phone:w-[18px] phone:h-[18px] ${saveAnimating ? 'icon-pop' : ''} ${saved ? 'fill-current stroke-current' : ''}`} />
+                <Bookmark className={`w-5 h-5 phone:w-[22px] phone:h-[22px] ${saveAnimating ? 'icon-pop' : ''} ${saved ? 'fill-current stroke-current' : ''}`} />
               </button>
             </div>
           </div>
           {work.profiles?.username ? (
             <Link
               to={`/u/${work.profiles.username}`}
-              className="relative block w-fit max-w-full mt-0.5 leading-tight text-xs text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] transition-colors duration-200 phone:after:absolute phone:after:inset-x-0 phone:after:top-0 phone:after:-bottom-2.5 phone:after:content-['']"
+              className="relative block w-fit max-w-full leading-tight text-xs text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] transition-colors duration-200 phone:after:absolute phone:after:inset-x-0 phone:after:top-0 phone:after:-bottom-2.5 phone:after:content-['']"
             >
               <span className="block truncate">@{work.profiles.username}</span>
             </Link>
           ) : (
-            <span className="block mt-0.5 leading-tight truncate text-xs text-[hsl(var(--muted-foreground))]">{es ? 'Usuario no encontrado' : 'User not found'}</span>
+            <span className="block leading-tight truncate text-xs text-[hsl(var(--muted-foreground))]">{es ? 'Usuario no encontrado' : 'User not found'}</span>
           )}
         </div>
       </div>
