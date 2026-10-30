@@ -138,17 +138,19 @@ export interface WorkToCheck {
   workType: string;
   fileUrl?: string | null;
   coverUrl?: string | null;
+  extraImages?: string[];
   texts: string[];
 }
 
 // Returns policy flags: an empty list means the work can be published directly.
-export async function moderateWork({ workType, fileUrl, coverUrl, texts }: WorkToCheck): Promise<string[]> {
+export async function moderateWork({ workType, fileUrl, coverUrl, extraImages = [], texts }: WorkToCheck): Promise<string[]> {
   const flags = findBlockedTerms(texts.filter(Boolean).join('\n')).map((term) => `text:${term}`);
 
   const media: Array<{ url: string; kind: 'image' | 'video'; label: string }> = [];
   if (fileUrl && (workType === 'pintura' || workType === 'fotografia')) media.push({ url: fileUrl, kind: 'image', label: 'image' });
   if (fileUrl && workType === 'video') media.push({ url: fileUrl, kind: 'video', label: 'video' });
   if (coverUrl) media.push({ url: coverUrl, kind: 'image', label: 'cover' });
+  extraImages.forEach((url, index) => media.push({ url, kind: 'image', label: `image${index + 2}` }));
 
   for (const { url, kind, label } of media) {
     try {

@@ -11,6 +11,7 @@ import Footer from '@/components/Footer';
 import AuthModal from '@/components/AuthModal';
 import ReportModal from '@/components/ReportModal';
 import LikeBurst from '@/components/LikeBurst';
+import WorkCarousel from '@/components/WorkCarousel';
 import { useDoubleTap } from '@/hooks/use-double-tap';
 import FollowButton from '@/components/FollowButton';
 import { Button } from '@/components/ui/button';
@@ -146,6 +147,7 @@ export default function WorkDetail() {
             work_type,
             file_url,
             cover_url,
+            extra_images,
             lyrics,
             hashtags,
             is_for_sale,
@@ -327,7 +329,11 @@ export default function WorkDetail() {
             )}
 
             {/* Pintura/Fotografia secondary image */}
-            {(work.work_type === 'pintura' || work.work_type === 'fotografia') && work.file_url && work.file_url !== work.cover_url && (
+            {(work.work_type === 'pintura' || work.work_type === 'fotografia') && work.file_url && !!work.extra_images?.length && (
+              <WorkCarousel images={[work.file_url, ...work.extra_images]} alt={work.title} onImageClick={handleImageTap} />
+            )}
+
+            {(work.work_type === 'pintura' || work.work_type === 'fotografia') && work.file_url && !work.extra_images?.length && work.file_url !== work.cover_url && (
               <div className="flex items-center justify-center" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '80vh' }}>
                 <img src={work.file_url} alt={work.title} onClick={handleImageTap} className="touch-manipulation select-none rounded-lg border border-[rgba(255,255,255,0.1)] max-h-[80vh] max-w-full w-auto h-auto object-contain" loading="lazy" />
               </div>

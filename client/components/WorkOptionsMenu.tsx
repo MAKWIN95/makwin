@@ -107,10 +107,7 @@ export default function WorkOptionsMenu({ label, options, onArtwork = true }: Pr
         onClick={() => (open ? hide() : show())}
         className="work-fold tap-area absolute top-0 right-0 w-10 h-10 pointer-events-auto outline-none"
       >
-        <svg className="work-fold-shape" width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
-          <path d="M-1.2 1.2L16.8 19.2H2.3Q-1.2 19.2-1.2 15.7Z" fill="rgba(0,0,0,0.16)" />
-          <path d="M0 0L18 18H3.5Q0 18 0 14.5Z" fill="var(--fold-paper)" />
-        </svg>
+        <i className="work-fold-shape" aria-hidden="true"><i className="work-fold-paper" /></i>
         <X className="work-fold-close" strokeWidth={2.25} />
       </button>
     </div>

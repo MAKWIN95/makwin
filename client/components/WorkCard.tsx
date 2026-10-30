@@ -47,6 +47,7 @@ export default function WorkCard({ work, priorityImage = false, imageDimensions,
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [likeBursts, setLikeBursts] = useState(0);
+  const [tapped, setTapped] = useState(false);
 
   // Use context as source of truth
   const liked = worksContext.isLiked(work.id);
@@ -158,7 +159,7 @@ export default function WorkCard({ work, priorityImage = false, imageDimensions,
         are invalid and make phones ignore or repeat taps. */}
     <div className="group relative z-0 block rounded-xl hover:z-20 focus-within:z-20">
       {/* Image/Media area */}
-      <div className="relative rounded-2xl transition-transform duration-300 ease-out group-hover:scale-[1.014] group-focus-within:scale-[1.014]">
+      <div onAnimationEnd={(event) => { if (event.animationName === 'work-tapped') setTapped(false); }} className={`relative rounded-2xl transition-transform duration-300 ease-out group-hover:scale-[1.014] group-focus-within:scale-[1.014] ${tapped ? 'work-tapped' : ''}`}>
 
         {/* Options: a folded corner that grows with the work and covers almost nothing */}
         <WorkOptionsMenu
@@ -168,7 +169,7 @@ export default function WorkCard({ work, priorityImage = false, imageDimensions,
         />
 
         {/* Media content */}
-        <Link to={linkPath} state={{ from: 'gallery' }} aria-label={work.title} onClick={handleWorkTap} className="block rounded-2xl touch-manipulation select-none transition-[filter] duration-300 ease-out group-hover:[filter:drop-shadow(0_10px_16px_rgba(0,0,0,0.22))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))] focus-visible:ring-offset-2 focus-visible:ring-offset-[hsl(var(--background))]">
+        <Link to={linkPath} state={{ from: 'gallery' }} aria-label={work.title} onClick={(event) => { setTapped(true); handleWorkTap(event); }} className="block rounded-2xl touch-manipulation select-none transition-[filter] duration-300 ease-out group-hover:[filter:drop-shadow(0_10px_16px_rgba(0,0,0,0.22))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))] focus-visible:ring-offset-2 focus-visible:ring-offset-[hsl(var(--background))]">
         {hasImage ? (
           <img
             src={work.cover_url ?? work.file_url ?? ''}

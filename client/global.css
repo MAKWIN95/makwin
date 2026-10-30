@@ -246,26 +246,17 @@ html.theme-switching * {
 
 /* A corner of the work folded inwards, like the corner of a page. The corner really
    is cut out of the work, so whatever is behind shows through, in any theme and at any
-   moment of a theme change. It lives inside the work, so it grows with it; on its own
-   hover it grows a little more. The cut and the paper move together. */
+   moment of a theme change. The cut and the paper are the same animation on the same
+   property, frame by frame, and the cut reaches a hair under the paper, so no sliver of
+   the work can show beside the fold while it moves. It lives inside the work, so it
+   grows with it; on its own hover it grows a little more. */
 .work-art {
-  clip-path: polygon(0 0, calc(100% - 18px) 0, 100% 18px, 100% 100%, 0 100%);
+  clip-path: polygon(0 0, calc(100% - 18.6px) 0, 100% 18.6px, 100% 100%, 0 100%);
   transition: clip-path 0.3s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.3s ease-out;
 }
 
 .group:has(.work-fold[aria-expanded="true"]) .work-art {
   clip-path: polygon(0 0, 100% 0, 100% 0, 100% 100%, 0 100%);
-}
-
-@media (hover: hover) {
-  .group:has(.work-fold[aria-expanded="false"]:hover) .work-art {
-    clip-path: polygon(0 0, calc(100% - 27px) 0, 100% 27px, 100% 100%, 0 100%);
-  }
-}
-
-.group:has(.work-fold[aria-expanded="false"]:active) .work-art,
-.group:has(.work-fold[aria-expanded="false"]:focus-visible) .work-art {
-  clip-path: polygon(0 0, calc(100% - 27px) 0, 100% 27px, 100% 100%, 0 100%);
 }
 
 .work-fold {
@@ -280,9 +271,19 @@ html.theme-switching * {
   position: absolute;
   top: 0;
   right: 0;
-  overflow: visible;
-  transform-origin: top right;
-  transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.18s ease;
+  width: 27px;
+  height: 27px;
+  filter: drop-shadow(-1px 1px 1px rgba(0, 0, 0, 0.16));
+  transition: opacity 0.18s ease;
+}
+
+.work-fold-paper {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: var(--fold-paper);
+  clip-path: polygon(9px 0, 27px 18px, 12.5px 18px, 10.6px 17.6px, 9.4px 16.4px, 9px 14.5px);
+  transition: clip-path 0.3s cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 .work-fold-close {
@@ -300,7 +301,10 @@ html.theme-switching * {
 
 .work-fold[aria-expanded="true"] .work-fold-shape {
   opacity: 0;
-  transform: scale(0.5);
+}
+
+.work-fold[aria-expanded="true"] .work-fold-paper {
+  clip-path: polygon(27px 0, 27px 0, 27px 0, 27px 0, 27px 0, 27px 0);
 }
 
 .work-fold[aria-expanded="true"] .work-fold-close {
@@ -309,14 +313,63 @@ html.theme-switching * {
 }
 
 @media (hover: hover) {
-  .work-fold[aria-expanded="false"]:hover .work-fold-shape {
-    transform: scale(1.5);
+  .group:has(.work-fold[aria-expanded="false"]:hover) .work-art {
+    clip-path: polygon(0 0, calc(100% - 27.6px) 0, 100% 27.6px, 100% 100%, 0 100%);
+  }
+
+  .work-fold[aria-expanded="false"]:hover .work-fold-paper {
+    clip-path: polygon(0 0, 27px 27px, 3.5px 27px, 1.6px 26.6px, 0.4px 25.4px, 0 23.5px);
   }
 }
 
-.work-fold[aria-expanded="false"]:active .work-fold-shape,
-.work-fold[aria-expanded="false"]:focus-visible .work-fold-shape {
-  transform: scale(1.5);
+.group:has(.work-fold[aria-expanded="false"]:active) .work-art,
+.group:has(.work-fold[aria-expanded="false"]:focus-visible) .work-art {
+  clip-path: polygon(0 0, calc(100% - 27.6px) 0, 100% 27.6px, 100% 100%, 0 100%);
+}
+
+.work-fold[aria-expanded="false"]:active .work-fold-paper,
+.work-fold[aria-expanded="false"]:focus-visible .work-fold-paper {
+  clip-path: polygon(0 0, 27px 27px, 3.5px 27px, 1.6px 26.6px, 0.4px 25.4px, 0 23.5px);
+}
+
+/* Tapping a work: no grey flash from the phone, just the work answering with a small lift. */
+.group a,
+.group button {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.work-tapped {
+  animation: work-tapped 0.26s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+@keyframes work-tapped {
+  45% { transform: scale(1.03); }
+}
+
+/* Upload */
+.upload-stage {
+  transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.upload-stage--over {
+  background: hsl(var(--foreground) / 0.08);
+  border-color: hsl(var(--foreground) / 0.3);
+  transform: scale(1.01);
+}
+
+.upload-progress {
+  background: hsl(var(--popover) / 0.55);
+  -webkit-backdrop-filter: blur(20px) saturate(170%);
+  backdrop-filter: blur(20px) saturate(170%);
+  animation: fade-in-soft 0.24s ease both;
+}
+
+@keyframes fade-in-soft {
+  from { opacity: 0; }
+}
+
+.work-tag {
+  background: hsl(var(--foreground) / 0.08);
 }
 
 /* It opens into a line along the top of the work, right to left. */
@@ -408,6 +461,7 @@ html.theme-switching * {
   .work-options-bar,
   .work-options-bar[data-closing],
   .filter-slot,
+  .work-tapped,
   .like-burst,
   .glass-panel,
   .theme-icon,

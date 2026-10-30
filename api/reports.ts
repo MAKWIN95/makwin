@@ -75,7 +75,7 @@ async function loadPanel(res: VercelResponse, role: AdminRole) {
     supabaseAdmin.from('policy_reports').select(REPORTS_QUERY).order('created_at', { ascending: false }),
     supabaseAdmin
       .from('works')
-      .select('id, title, description, lyrics, hashtags, work_type, file_url, cover_url, policy_flags, created_at, user:profiles!works_user_id_fkey(username)')
+      .select('id, title, description, lyrics, hashtags, work_type, file_url, cover_url, extra_images, policy_flags, created_at, user:profiles!works_user_id_fkey(username)')
       .eq('status', 'removed_policy')
       .contains('policy_flags', [PENDING_REVIEW_FLAG])
       .order('created_at', { ascending: false }),
@@ -125,7 +125,7 @@ async function decideHeldWork(req: VercelRequest, res: VercelResponse) {
 
   const { data: work, error } = await supabaseAdmin
     .from('works')
-    .select('id, user_id, title, file_url, cover_url, policy_flags')
+    .select('id, user_id, title, file_url, cover_url, extra_images, policy_flags')
     .eq('id', id)
     .maybeSingle();
   if (error) throw error;
@@ -137,7 +137,7 @@ async function decideHeldWork(req: VercelRequest, res: VercelResponse) {
   } else {
     const { error: deleteError } = await supabaseAdmin.from('works').delete().eq('id', id);
     if (deleteError) throw deleteError;
-    const paths = [work.file_url, work.cover_url].map(storagePath).filter((path): path is string => !!path);
+    const paths = [work.file_url, work.cover_url, ...(work.extra_images ?? [])].map(storagePath).filter((path): path is string => !!path);
     if (paths.length) {
       const { error: storageError } = await supabaseAdmin.storage.from('works').remove(paths);
       if (storageError) console.warn('[REPORTS] Could not remove held files:', storageError.message);

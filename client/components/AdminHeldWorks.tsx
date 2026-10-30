@@ -14,6 +14,7 @@ export interface HeldWork {
   work_type: string;
   file_url: string | null;
   cover_url: string | null;
+  extra_images?: string[];
   policy_flags: string[];
   created_at: string;
   user: { username: string } | null;
@@ -121,6 +122,15 @@ export default function AdminHeldWorks({ works, setWorks }: { works: HeldWork[];
                 {work.description && <p className="text-sm whitespace-pre-wrap mb-2">{work.description}</p>}
                 {work.lyrics && (
                   <p className="text-sm whitespace-pre-wrap mb-2 max-h-40 overflow-y-auto text-[hsl(var(--muted-foreground))]">{work.lyrics}</p>
+                )}
+                {!!work.extra_images?.length && (
+                  <div className="flex flex-wrap gap-2 mb-3">
+                    {work.extra_images.map((url) => (
+                      <div key={url} className="w-16 h-16 overflow-hidden rounded bg-[hsl(var(--muted))]">
+                        <img src={url} alt="" className={`w-full h-full object-cover ${isRevealed ? '' : 'blur-md scale-110'}`} />
+                      </div>
+                    ))}
+                  </div>
                 )}
                 {work.work_type !== 'video' && work.file_url && !image && <audio src={work.file_url} controls className="w-full mb-3" />}
                 <div className="flex flex-wrap gap-2 mt-3">

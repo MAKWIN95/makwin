@@ -16,6 +16,8 @@ const supabaseAdmin = createClient(
 const PENDING_REVIEW_FLAG = 'pending_review';
 const WORK_TYPES = ['pintura', 'fotografia', 'poema', 'cancion', 'video'];
 const REQUIRES_FILE = ['pintura', 'fotografia', 'video'];
+const PHOTO_TYPES = ['pintura', 'fotografia'];
+const MAX_EXTRA_IMAGES = 9;
 
 function cleanText(value: unknown, max: number): string {
   return String(value ?? '').trim().slice(0, max);
@@ -41,6 +43,8 @@ async function createWork(req: VercelRequest, res: VercelResponse, userId: strin
   const hashtags = cleanHashtags(body.hashtags);
   const fileUrl = body.fileUrl ? ownFileUrl(body.fileUrl, userId) : null;
   const coverUrl = body.coverUrl ? ownFileUrl(body.coverUrl, userId) : null;
+  const rawExtraImages = Array.isArray(body.extraImages) ? body.extraImages : [];
+  const extraImages = rawExtraImages.map((url) => ownFileUrl(url, userId)).filter((url): url is string => !!url);
   const isForSale = body.isForSale === true;
   const price = isForSale ? Number(body.price) : null;
 
@@ -48,6 +52,8 @@ async function createWork(req: VercelRequest, res: VercelResponse, userId: strin
     !title || !description || !WORK_TYPES.includes(workType) ||
     (body.fileUrl && !fileUrl) || (body.coverUrl && !coverUrl) ||
     (REQUIRES_FILE.includes(workType) && !fileUrl) ||
+    extraImages.length !== rawExtraImages.length || extraImages.length > MAX_EXTRA_IMAGES ||
+    (extraImages.length > 0 && !PHOTO_TYPES.includes(workType)) ||
     (isForSale && !(Number(price) > 0))
   ) {
     return res.status(400).json({ error: 'Datos no válidos' });
@@ -55,7 +61,7 @@ async function createWork(req: VercelRequest, res: VercelResponse, userId: strin
 
   // Loaded here so the model never slows down or breaks the rest of the API.
   const { moderateWork } = await import('../server/lib/moderation.js');
-  const flags = await moderateWork({ workType, fileUrl, coverUrl, texts: [title, description, lyrics, hashtags.join(' ')] });
+  const flags = await moderateWork({ workType, fileUrl, coverUrl, extraImages, texts: [title, description, lyrics, hashtags.join(' ')] });
   const held = flags.length > 0;
 
   const { data, error } = await supabaseAdmin
@@ -67,6 +73,7 @@ async function createWork(req: VercelRequest, res: VercelResponse, userId: strin
       work_type: workType,
       file_url: fileUrl,
       cover_url: coverUrl,
+      extra_images: extraImages,
       lyrics: lyrics || null,
       hashtags,
       is_for_sale: isForSale,

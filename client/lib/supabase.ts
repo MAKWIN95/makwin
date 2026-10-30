@@ -47,6 +47,8 @@ export interface Work {
   work_type: string;
   file_url: string | null;
   cover_url: string | null;
+  /** Carousel: the rest of the photos, after file_url. */
+  extra_images?: string[];
   lyrics: string | null;
   hashtags: string[];
   is_for_sale: boolean;
