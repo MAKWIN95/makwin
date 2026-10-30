@@ -280,7 +280,7 @@ export default function ResetPassword() {
           {es ? '¿Ya tienes contraseña?' : 'Already have a password?'}{' '}
           <button
             onClick={() => navigate('/login')}
-            className="text-[hsl(var(--foreground))] hover:underline font-medium"
+            className="tap-area text-[hsl(var(--foreground))] hover:underline font-medium"
           >
             {es ? 'Inicia sesión' : 'Sign in'}
           </button>

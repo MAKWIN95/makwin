@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { X, LogIn, UserPlus } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
 import { Button } from '@/components/ui/button';
+import { useBodyScrollLock } from '@/hooks/use-body-scroll-lock';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -21,6 +22,8 @@ export default function AuthModal({
   const { language: currentLang } = useI18n();
   const es = currentLang === 'es';
 
+  useBodyScrollLock(isOpen);
+
   if (!isOpen) return null;
 
   const handleLogin = () => {
@@ -37,12 +40,12 @@ export default function AuthModal({
   // effects must not clip or reposition this fixed overlay.
   return createPortal(
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="relative bg-[hsl(var(--card))] border border-[hsl(var(--border))] rounded-lg max-w-sm w-full p-6 animate-in fade-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
+      <div className="max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain relative bg-[hsl(var(--card))] border border-[hsl(var(--border))] rounded-lg max-w-sm w-full p-6 animate-in fade-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
         {/* Close button */}
         <button
           onClick={onClose}
           aria-label={es ? 'Cerrar' : 'Close'}
-          className="absolute top-4 right-4 p-1 hover:bg-[hsl(var(--muted))] rounded-lg transition-colors"
+          className="tap-area absolute top-4 right-4 p-1 hover:bg-[hsl(var(--muted))] rounded-lg transition-colors"
         >
           <X className="w-5 h-5 text-[hsl(var(--muted-foreground))]" />
         </button>

@@ -5,6 +5,7 @@ import { useI18n } from '@/lib/i18n';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/lib/AuthContext';
 import { authHeaders } from '@/lib/adminApi';
+import { useBodyScrollLock } from '@/hooks/use-body-scroll-lock';
 
 interface HelpModalProps {
   isOpen: boolean;
@@ -56,6 +57,8 @@ export default function HelpModal({ isOpen, onClose }: HelpModalProps) {
     document.addEventListener('keydown', onKeyDown);
     return () => document.removeEventListener('keydown', onKeyDown);
   }, [isOpen]);
+
+  useBodyScrollLock(isOpen);
 
   if (!isOpen) return null;
 
@@ -126,7 +129,7 @@ export default function HelpModal({ isOpen, onClose }: HelpModalProps) {
         role="dialog"
         aria-modal="true"
         aria-labelledby="help-modal-title"
-        className="bg-[hsl(var(--background))] rounded-lg shadow-lg w-full max-w-md max-h-[90vh] overflow-y-auto border border-[hsl(var(--border))] animate-in fade-in zoom-in-95 duration-200"
+        className="bg-[hsl(var(--background))] rounded-lg shadow-lg w-full max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain border border-[hsl(var(--border))] animate-in fade-in zoom-in-95 duration-200"
         onClick={(event) => event.stopPropagation()}
       >
         <div className="sticky top-0 z-10 bg-[hsl(var(--background))] border-b border-[rgba(120,120,120,0.25)] p-4 flex items-center justify-between">
@@ -140,7 +143,7 @@ export default function HelpModal({ isOpen, onClose }: HelpModalProps) {
             type="button"
             onClick={handleClose}
             aria-label={es ? 'Cerrar' : 'Close'}
-            className="text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] transition"
+            className="tap-area text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] transition"
           >
             <X className="w-5 h-5" />
           </button>

@@ -273,7 +273,7 @@ export default function GoogleOnboardingPage() {
               the only way out for someone who picked the wrong Google account. */}
           <p className="mt-5 text-center text-xs text-[hsl(var(--muted-foreground))]">
             {user?.email && <span className="block mb-1">{es ? 'Has entrado como' : 'Signed in as'} {user.email}</span>}
-            <button type="button" onClick={handleUseAnotherAccount} disabled={loading} className="underline underline-offset-2 hover:text-[hsl(var(--foreground))] disabled:opacity-50">
+            <button type="button" onClick={handleUseAnotherAccount} disabled={loading} className="tap-area underline underline-offset-2 hover:text-[hsl(var(--foreground))] disabled:opacity-50">
               {es ? 'Usar otra cuenta' : 'Use another account'}
             </button>
           </p>

@@ -107,7 +107,7 @@ export default function Home() {
     <div className="border-b border-[rgba(120,120,120,0.25)] py-4">
       <button
         onClick={() => setExpandedFaq(expandedFaq === item.q ? null : item.q)}
-        className="w-full flex items-start justify-between gap-4 text-left hover:text-[hsl(var(--foreground))] transition-colors"
+        className="w-full phone:min-h-11 phone:items-center flex items-start justify-between gap-4 text-left hover:text-[hsl(var(--foreground))] transition-colors"
       >
         <span className="font-medium text-[hsl(var(--foreground))] flex-1">{item.q}</span>
         <ChevronDown

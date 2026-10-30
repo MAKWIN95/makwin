@@ -18,7 +18,7 @@ const NotFound = () => {
       <div className="text-center">
         <h1 className="text-4xl font-bold mb-4 text-[hsl(var(--foreground))]">404</h1>
         <p className="text-xl text-[hsl(var(--muted-foreground))] mb-4">{t('songNotFound')}</p>
-        <Link to="/" className="text-[hsl(var(--muted-foreground))] underline underline-offset-2 hover:text-[hsl(var(--foreground))] transition-colors">
+        <Link to="/" className="tap-area text-[hsl(var(--muted-foreground))] underline underline-offset-2 hover:text-[hsl(var(--foreground))] transition-colors">
           {t('returnToHome')}
         </Link>
       </div>

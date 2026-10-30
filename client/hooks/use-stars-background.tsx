@@ -10,14 +10,15 @@ export function useStarsBackground(containerId: string = 'stars-background') {
     // Detect current theme
     const isDarkMode = document.documentElement.classList.contains('dark');
 
-    // Create 80 main stars
-    for (let i = 0; i < 80; i++) {
+    // Every star is a running animation: phones get fewer so scrolling stays smooth.
+    const mainStars = window.matchMedia('(max-width: 640px), (pointer: coarse)').matches ? 30 : 80;
+    for (let i = 0; i < mainStars; i++) {
       const star = document.createElement('div');
       star.className = isDarkMode ? 'star' : 'star star--light';
       
       // bias more stars towards the left side for composition
       let x: number;
-      if (i < 60) {
+      if (i < mainStars * 0.75) {
         x = Math.random() * 40; // left-heavy
       } else {
         x = 40 + Math.random() * 60;

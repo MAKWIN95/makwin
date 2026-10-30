@@ -229,7 +229,7 @@ export default function Register() {
               ? `Hemos enviado un enlace de confirmación a ${form.email}. Haz clic en él para activar tu cuenta.`
               : `We sent a confirmation link to ${form.email}. Click it to activate your account.`}
           </p>
-          <Link to="/login" className="text-sm text-[hsl(var(--foreground))] underline underline-offset-2">
+          <Link to="/login" className="tap-area text-sm text-[hsl(var(--foreground))] underline underline-offset-2">
             {es ? 'Ir al inicio de sesión' : 'Go to login'}
           </Link>
         </div>
@@ -361,7 +361,7 @@ export default function Register() {
 
           <p className="text-center text-xs text-[hsl(var(--muted-foreground))] mt-6">
             {es ? '¿Ya tienes cuenta?' : 'Already have an account?'}{' '}
-            <Link to="/login" className="text-[hsl(var(--foreground))] underline underline-offset-2">
+            <Link to="/login" className="tap-area text-[hsl(var(--foreground))] underline underline-offset-2">
               {es ? 'Iniciar sesión' : 'Sign in'}
             </Link>
           </p>

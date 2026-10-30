@@ -149,21 +149,21 @@ export default function AdminHelpMessages({ messages, setMessages }: Props) {
               </div>
 
               <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm">
-                <label className="flex items-center gap-2 cursor-pointer">
+                <label className="flex items-center gap-2 phone:gap-3 phone:min-h-11 cursor-pointer">
                   <Checkbox
                     checked={msg.status !== 'new'}
                     onCheckedChange={(checked) => updateStatus(msg, checked ? 'read' : 'new')}
                   />
                   {es ? 'Leído' : 'Read'}
                 </label>
-                <label className="flex items-center gap-2 cursor-pointer">
+                <label className="flex items-center gap-2 phone:gap-3 phone:min-h-11 cursor-pointer">
                   <Checkbox
                     checked={msg.status === 'resolved'}
                     onCheckedChange={(checked) => updateStatus(msg, checked ? 'resolved' : 'read')}
                   />
                   {es ? 'Resuelto' : 'Resolved'}
                 </label>
-                <Button variant="outline" size="sm" className="h-8" onClick={() => openReply(msg.id)}>
+                <Button variant="outline" size="sm" className="h-8 phone:h-11" onClick={() => openReply(msg.id)}>
                   <Reply className="w-3.5 h-3.5 mr-1.5" />
                   {es ? 'Responder' : 'Reply'}
                 </Button>
@@ -174,7 +174,7 @@ export default function AdminHelpMessages({ messages, setMessages }: Props) {
                     disabled={deleting === msg.id}
                     variant="ghost"
                     size="sm"
-                    className="h-7 px-2"
+                    className="h-7 phone:h-11 px-2 phone:w-11"
                     aria-label={es ? 'Eliminar mensaje' : 'Delete message'}
                   >
                     {deleting === msg.id ? <Loader className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}

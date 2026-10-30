@@ -1,4 +1,6 @@
 import { Link } from 'react-router-dom';
+import { X } from 'lucide-react';
+import { useBodyScrollLock } from '@/hooks/use-body-scroll-lock';
 import { useI18n } from '@/lib/i18n';
 import { useSidebar } from '@/lib/SidebarContext';
 
@@ -6,6 +8,7 @@ export default function NavMenu() {
   const { isOpen, closeSidebar } = useSidebar();
   const { language } = useI18n();
   const es = language === 'es';
+  useBodyScrollLock(isOpen);
 
   const menuItems = [
     { 
@@ -35,14 +38,14 @@ export default function NavMenu() {
       {/* Overlay - FULL VIEWPORT */}
       {isOpen && (
         <div
-          className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm transition-opacity duration-300 ease-out"
+          className="fixed inset-0 z-40 phone:z-[60] bg-black/50 backdrop-blur-sm transition-opacity duration-300 ease-out"
           onClick={closeSidebar}
         />
       )}
 
       {/* Sidebar - FIXED VIEWPORT */}
       <div
-        className={`fixed top-0 left-0 h-screen w-80 z-50 transition-transform duration-300 ease-out bg-[hsl(var(--background))] border-r border-[rgba(120,120,120,0.25)] flex flex-col overflow-hidden ${
+        className={`fixed top-0 left-0 h-screen w-80 max-w-[85vw] z-50 phone:z-[70] transition-transform duration-300 ease-out bg-[hsl(var(--background))] border-r border-[rgba(120,120,120,0.25)] flex flex-col overflow-hidden ${
           isOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
         style={{
@@ -50,14 +53,21 @@ export default function NavMenu() {
         }}
       >
         {/* Header */}
-        <div className="px-4 py-5 border-b border-[rgba(120,120,120,0.25)] bg-[hsl(var(--background))] flex-shrink-0">
+        <div className="px-4 py-5 phone:py-3 border-b border-[rgba(120,120,120,0.25)] bg-[hsl(var(--background))] flex-shrink-0 flex items-center justify-between">
           <h2 className="text-xl font-black uppercase tracking-wider text-[hsl(var(--foreground))]">
             {es ? 'Explorar' : 'Explore'}
           </h2>
+          <button
+            onClick={closeSidebar}
+            aria-label={es ? 'Cerrar menú' : 'Close menu'}
+            className="hidden phone:flex w-11 h-11 -mr-2 items-center justify-center rounded-lg"
+          >
+            <X className="w-5 h-5 text-[hsl(var(--muted-foreground))]" />
+          </button>
         </div>
 
         {/* Menu Items - Scrollable Center */}
-        <nav className="flex-1 overflow-y-auto p-4 space-y-2 bg-[hsl(var(--background))]">
+        <nav className="flex-1 overflow-y-auto overscroll-contain p-4 space-y-2 bg-[hsl(var(--background))]">
           {menuItems.map((item) => (
             <Link
               key={item.path}

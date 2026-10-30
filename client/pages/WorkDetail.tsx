@@ -291,7 +291,7 @@ export default function WorkDetail() {
       <main className="w-full max-w-7xl mx-auto px-4 py-6 sm:py-8">
         <button
           onClick={() => navigate(-1)}
-          className="flex items-center gap-2 text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] mb-4"
+          className="phone:min-h-11 phone:-ml-1 phone:px-1 flex items-center gap-2 text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] mb-4"
         >
           <ArrowLeft className="w-4 h-4" />
           {currentLang === 'es' ? 'Atrás' : 'Back'}
@@ -392,7 +392,7 @@ export default function WorkDetail() {
                     <Link
                       key={tag}
                       to={`/galeria?search=${encodeURIComponent(cleaned)}`}
-                      className="text-sm text-[hsl(var(--foreground))] bg-[hsl(var(--muted))] hover:bg-[hsl(var(--muted))]/80 px-3 py-1 rounded-full transition-all duration-200 ease-out cursor-pointer"
+                      className="phone:py-2.5 text-sm text-[hsl(var(--foreground))] bg-[hsl(var(--muted))] hover:bg-[hsl(var(--muted))]/80 px-3 py-1 rounded-full transition-all duration-200 ease-out cursor-pointer"
                     >
                       #{cleaned}
                     </Link>

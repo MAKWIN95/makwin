@@ -1,5 +1,14 @@
 import { useState, useEffect, useCallback } from 'react';
 
+// The fade only exists while switching, see global.css.
+let switchingTimer: ReturnType<typeof setTimeout> | undefined;
+function fadeThemeChange() {
+  const root = document.documentElement;
+  root.classList.add('theme-switching');
+  clearTimeout(switchingTimer);
+  switchingTimer = setTimeout(() => root.classList.remove('theme-switching'), 600);
+}
+
 export function useTheme() {
   const [isDark, setIsDark] = useState<boolean | null>(null);
 
@@ -32,6 +41,7 @@ export function useTheme() {
     setIsDark(prev => {
       const newValue = !prev;
       const root = document.documentElement;
+      fadeThemeChange();
       if (newValue) {
         root.classList.add('dark');
         try { localStorage.setItem('theme', 'dark'); } catch(e) {}
@@ -47,6 +57,7 @@ export function useTheme() {
     const isDarkTheme = theme === 'dark';
     setIsDark(isDarkTheme);
     const root = document.documentElement;
+    fadeThemeChange();
     if (isDarkTheme) {
       root.classList.add('dark');
       try { localStorage.setItem('theme', 'dark'); } catch(e) {}

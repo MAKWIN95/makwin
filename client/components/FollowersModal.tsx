@@ -95,9 +95,9 @@ export default function FollowersModal({ isOpen, onClose, userId, type, userName
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-sm max-h-96 overflow-y-auto">
+      <DialogContent className="max-w-sm max-h-96 overflow-y-auto" onOpenAutoFocus={(event) => event.preventDefault()}>
         <DialogHeader>
-          <DialogTitle>
+          <DialogTitle className="pr-8 text-left">
             {type === 'followers' ? (es ? 'Seguidores' : 'Followers') : (es ? 'Siguiendo' : 'Following')}
             {userName && ` · ${userName}`}
           </DialogTitle>

@@ -57,7 +57,7 @@ export default function Marketplace() {
             </div>
             <button
               onClick={() => setShowFilters(!showFilters)}
-              className="shrink-0 p-2 rounded-lg border border-[hsl(var(--border))] hover:bg-[hsl(var(--muted))] transition-colors"
+              className="phone:w-11 phone:h-11 phone:flex phone:items-center phone:justify-center shrink-0 p-2 rounded-lg border border-[hsl(var(--border))] hover:bg-[hsl(var(--muted))] transition-colors"
               aria-label={es ? 'Filtrar' : 'Filter'}
             >
               <Filter size={16} className="text-[hsl(var(--muted-foreground))]" />

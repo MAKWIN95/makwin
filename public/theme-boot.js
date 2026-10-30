@@ -13,4 +13,7 @@
     // Default to dark on any error
     document.documentElement.classList.add('dark');
   }
+
+  // iOS Safari ignores :active until the page listens for touches.
+  document.addEventListener('touchstart', function () {}, { passive: true });
 })();

@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { authHeaders } from '@/lib/adminApi';
 import { toast } from 'sonner';
+import { useBodyScrollLock } from '@/hooks/use-body-scroll-lock';
 
 interface ReportModalProps {
   isOpen: boolean;
@@ -37,6 +38,8 @@ export default function ReportModal({
   const [customReason, setCustomReason] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+
+  useBodyScrollLock(isOpen);
 
   if (!isOpen) return null;
 
@@ -87,11 +90,11 @@ export default function ReportModal({
   // This ensures it's truly fixed and not constrained by parent grid
   const modalContent = (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="relative bg-[hsl(var(--card))] border border-[hsl(var(--border))] rounded-lg max-w-md w-full max-h-[90vh] overflow-y-auto p-6 animate-in fade-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
+      <div className="relative bg-[hsl(var(--card))] border border-[hsl(var(--border))] rounded-lg max-w-md w-full max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain p-6 animate-in fade-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
         {/* Close button */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 p-1 hover:bg-[hsl(var(--muted))] rounded-lg transition-colors"
+          className="tap-area absolute top-4 right-4 p-1 hover:bg-[hsl(var(--muted))] rounded-lg transition-colors"
           disabled={loading}
           aria-label={currentLang === 'es' ? 'Cerrar' : 'Close'}
         >

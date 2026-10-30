@@ -1,6 +1,9 @@
 import type { Config } from "tailwindcss";
+import plugin from "tailwindcss/plugin";
 
 export default {
+  // Hover styles stay on phones after a tap, and iOS spends the first tap on them.
+  future: { hoverOnlyWhenSupported: true },
   darkMode: ["class"],
   content: ["./client/**/*.{ts,tsx}"],
   prefix: "",
@@ -109,5 +112,9 @@ export default {
       },
     },
   },
-  plugins: [require("tailwindcss-animate")],
+  plugins: [
+    require("tailwindcss-animate"),
+    // Phones, tablets and very narrow windows.
+    plugin(({ addVariant }) => addVariant("phone", "@media (max-width: 640px), (pointer: coarse)")),
+  ],
 } satisfies Config;

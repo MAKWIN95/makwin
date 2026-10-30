@@ -130,22 +130,25 @@ export default function WorkCard({ work, priorityImage = false, imageDimensions,
 
   return (
     <>
-    <Link to={linkPath} state={{ from: 'gallery' }} className="group relative z-0 block rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))] focus-visible:ring-offset-2 focus-visible:ring-offset-[hsl(var(--background))] hover:z-20 focus-within:z-20">
+    {/* Links and buttons sit side by side, never one inside another: nested ones
+        are invalid and make phones ignore or repeat taps. */}
+    <div className="group relative z-0 block rounded-xl hover:z-20 focus-within:z-20">
       {/* Image/Media area */}
       <div className="relative rounded-2xl transition-shadow duration-300 ease-out group-hover:shadow-xl">
 
         {/* Save button — top right */}
         <button
           onClick={handleSave}
-          className="absolute top-2 right-2 z-10 w-7 h-7 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 [@media(hover:none)]:opacity-100 transition-opacity duration-200 hover:bg-black/60"
+          className="tap-area absolute top-2 right-2 z-30 w-7 h-7 phone:top-1.5 phone:right-1.5 phone:w-9 phone:h-9 rounded-full bg-black/40 backdrop-blur-sm phone:backdrop-blur-none phone:bg-black/55 flex items-center justify-center opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 phone:opacity-100 transition-opacity duration-200 hover:bg-black/60"
           aria-label={currentLang === 'es' ? 'Guardar' : 'Save'}
         >
           <Bookmark
-            className={`w-3.5 h-3.5 transition-all duration-200 ${saved ? 'fill-white stroke-white' : 'stroke-white'}`}
+            className={`w-3.5 h-3.5 phone:w-[18px] phone:h-[18px] transition-all duration-200 ${saved ? 'fill-white stroke-white' : 'stroke-white'}`}
           />
         </button>
 
         {/* Media content */}
+        <Link to={linkPath} state={{ from: 'gallery' }} aria-label={work.title} className="block rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))] focus-visible:ring-offset-2 focus-visible:ring-offset-[hsl(var(--background))]">
         {hasImage ? (
           <img
             src={work.cover_url ?? work.file_url ?? ''}
@@ -170,18 +173,21 @@ export default function WorkCard({ work, priorityImage = false, imageDimensions,
             {WORK_TYPE_ICONS[work.work_type] ?? '🎨'}
           </div>
         )}
+        </Link>
       </div>
 
       <div className="transition-transform duration-300 ease-out group-hover:translate-y-0.5 group-focus-within:translate-y-0.5">
         {/* Metadata */}
         <div className="mt-3 px-1">
-          <p className="text-sm font-medium text-[hsl(var(--foreground))] truncate leading-tight">{work.title}</p>
+          <Link to={linkPath} state={{ from: 'gallery' }} tabIndex={-1} className="block">
+            <p className="text-sm font-medium text-[hsl(var(--foreground))] truncate leading-tight">{work.title}</p>
+          </Link>
           <div className="flex items-center justify-between gap-2 mt-1.5">
             {work.profiles?.username ? (
               <Link
                 to={`/u/${work.profiles.username}`}
                 onClick={e => e.stopPropagation()}
-                className="min-w-0 truncate text-xs text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] transition-colors duration-200"
+                className="min-w-0 truncate phone:py-2 phone:-my-1.5 text-xs text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] transition-colors duration-200"
               >
                 @{work.profiles.username}
               </Link>
@@ -193,7 +199,7 @@ export default function WorkCard({ work, priorityImage = false, imageDimensions,
         </div>
 
         {/* Actions */}
-        <div className="mt-2 px-1 flex items-center justify-between gap-2">
+        <div className="mt-2 phone:mt-0 px-1 flex items-center justify-between gap-2">
         {isOwnProfile ? (
           <div className="flex gap-2 w-full">
             <button
@@ -202,10 +208,10 @@ export default function WorkCard({ work, priorityImage = false, imageDimensions,
                 e.stopPropagation();
                 setShowEditModal(true);
               }}
-              className="flex items-center gap-1 text-xs text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] transition-all duration-200 ease-out"
+              className="flex items-center gap-1 phone:h-11 phone:w-11 phone:-ml-2 phone:justify-center text-xs text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] transition-all duration-200 ease-out"
               title={currentLang === 'es' ? 'Editar' : 'Edit'}
             >
-              <Pencil className="w-3.5 h-3.5 transition-all duration-200" />
+              <Pencil className="w-3.5 h-3.5 phone:w-[18px] phone:h-[18px] transition-all duration-200" />
             </button>
             <button
               onClick={(e) => {
@@ -213,10 +219,10 @@ export default function WorkCard({ work, priorityImage = false, imageDimensions,
                 e.stopPropagation();
                 setShowDeleteModal(true);
               }}
-              className="flex items-center gap-1 text-xs text-[hsl(var(--muted-foreground))] hover:text-red-500 transition-all duration-200 ease-out"
+              className="flex items-center gap-1 phone:h-11 phone:w-11 phone:justify-center text-xs text-[hsl(var(--muted-foreground))] hover:text-red-500 transition-all duration-200 ease-out"
               title={currentLang === 'es' ? 'Eliminar' : 'Delete'}
             >
-              <Trash2 className="w-3.5 h-3.5 transition-all duration-200" />
+              <Trash2 className="w-3.5 h-3.5 phone:w-[18px] phone:h-[18px] transition-all duration-200" />
             </button>
           </div>
         ) : (
@@ -225,11 +231,11 @@ export default function WorkCard({ work, priorityImage = false, imageDimensions,
             <button
               onClick={handleLike}
               disabled={isPendingLike}
-              className={`flex items-center gap-1 text-xs transition-all duration-200 ease-out ${liked ? 'text-rose-500' : 'text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))]'} ${isPendingLike ? 'opacity-50' : ''}`}
+              className={`flex items-center gap-1 phone:h-11 phone:min-w-11 phone:-ml-2 phone:px-2 phone:justify-center text-xs phone:text-sm transition-all duration-200 ease-out ${liked ? 'text-rose-500' : 'text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))]'} ${isPendingLike ? 'opacity-50' : ''}`}
               aria-label={currentLang === 'es' ? 'Me gusta' : 'Like'}
             >
               <Heart
-                className={`w-3.5 h-3.5 transition-all duration-200 ${likeAnimating ? 'scale-125' : 'scale-100'} ${liked ? 'fill-current stroke-current' : ''}`}
+                className={`w-3.5 h-3.5 phone:w-[18px] phone:h-[18px] transition-all duration-200 ${likeAnimating ? 'scale-125' : 'scale-100'} ${liked ? 'fill-current stroke-current' : ''}`}
               />
               {/* Only show count if > 0 — keeps feed clean */}
               {likeCount > 0 && <span className="transition-all duration-200">{likeCount}</span>}
@@ -238,18 +244,18 @@ export default function WorkCard({ work, priorityImage = false, imageDimensions,
             {/* Report button — opens modal, doesn't render dropdown */}
             <button
               onClick={handleReport}
-              className="text-xs text-[hsl(var(--muted-foreground))] hover:text-red-500 transition-all duration-200 ease-out"
+              className="phone:h-11 phone:w-11 phone:-mr-2 phone:flex phone:items-center phone:justify-center text-xs text-[hsl(var(--muted-foreground))] hover:text-red-500 transition-all duration-200 ease-out"
               aria-label={currentLang === 'es' ? 'Reportar' : 'Report'}
               title={currentLang === 'es' ? 'Reportar obra' : 'Report work'}
             >
-              <Flag className="w-3.5 h-3.5" />
+              <Flag className="w-3.5 h-3.5 phone:w-[18px] phone:h-[18px]" />
             </button>
           </>
         )}
         </div>
       </div>
 
-    </Link>
+    </div>
 
     {/* Modals OUTSIDE Link to prevent navigation interference */}
     <AuthModal

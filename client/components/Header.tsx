@@ -60,18 +60,20 @@ export default function Header({ showSearch = true, showSearchCentered = false, 
   const handleMakwinClick = () => navigate('/');
   const handleGoHome = () => navigate('/');
   const handleGoBack = () => {
-    // Navigate to home instead of using browser history to avoid 404
-    // This ensures users always have a safe place to go back to
-    navigate('/', { replace: true });
+    // Back to where you were, and to the gallery when there is nothing to go back to.
+    if ((window.history.state?.idx ?? 0) > 0) navigate(-1);
+    else navigate('/', { replace: true });
   };
 
   useEffect(() => {
-    const onDown = (e: MouseEvent) => {
+    // Pointer events: iOS only sends mousedown for elements it considers clickable,
+    // so tapping empty space would never close the menu.
+    const onDown = (e: PointerEvent) => {
       if (searchRef.current && !searchRef.current.contains(e.target as Node)) setIsSearching(false);
       if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) setShowUserMenu(false);
     };
-    document.addEventListener('mousedown', onDown);
-    return () => document.removeEventListener('mousedown', onDown);
+    document.addEventListener('pointerdown', onDown);
+    return () => document.removeEventListener('pointerdown', onDown);
   }, []);
 
   const isGallery = location.pathname === '/' || location.pathname.startsWith('/galeria');
@@ -132,18 +134,18 @@ export default function Header({ showSearch = true, showSearchCentered = false, 
   const isGalleryish = location.pathname.startsWith('/galeria') || location.pathname.startsWith('/merch') || location.pathname.startsWith('/marketplace');
   const isHomePage = location.pathname === '/home';
   const headerRootClass = showSearchCentered
-    ? `sticky top-4 z-50 bg-transparent border-none fast-theme w-full transition-all duration-500 px-4 ${isGalleryish ? 'gallery-navbar header-offset' : ''}`
+    ? `sticky top-4 phone:top-0 z-50 bg-transparent phone:bg-[hsl(var(--background))] phone:py-1.5 border-none fast-theme w-full transition-all duration-500 px-4 phone:px-2 ${isGalleryish ? 'gallery-navbar header-offset' : ''}`
     : isHomePage
     ? `fixed top-0 left-0 right-0 z-50 bg-[hsl(var(--popover))/0.95] backdrop-blur-md border-b shadow-sm fast-theme w-full transition-all duration-300 ease-out animate-in fade-in slide-in-from-top-1 border-[rgba(80,80,80,0.2)] px-4`
-    : `sticky top-4 z-50 bg-[hsl(var(--popover))/0.95] backdrop-blur-md border-b shadow-sm fast-theme w-full transition-all duration-500 border-[rgba(80,80,80,0.2)] px-4`;
+    : `sticky top-4 phone:top-0 z-50 bg-[hsl(var(--popover))/0.95] phone:bg-[hsl(var(--background))] backdrop-blur-md phone:backdrop-blur-none border-b shadow-sm fast-theme w-full transition-all duration-500 border-[rgba(80,80,80,0.2)] px-4 phone:px-2`;
 
   const innerContainerClass = showSearchCentered
-    ? 'w-full px-4 sm:px-6 py-2 sm:py-3 flex flex-col pointer-events-auto mx-auto max-w-6xl bg-[hsl(var(--popover))/0.95] backdrop-blur-md rounded-3xl sm:rounded-full border border-[rgba(120,120,120,0.25)] shadow-md transition-all duration-500'
+    ? 'w-full px-4 sm:px-6 phone:px-2 py-2 sm:py-3 phone:py-1.5 flex flex-col pointer-events-auto mx-auto max-w-6xl bg-[hsl(var(--popover))/0.95] phone:bg-[hsl(var(--popover))] backdrop-blur-md phone:backdrop-blur-none rounded-3xl sm:rounded-full border border-[rgba(120,120,120,0.25)] shadow-md transition-all duration-500'
     : isHomePage
     ? 'w-full px-4 sm:px-6 py-4 sm:py-5 flex flex-col transition-all duration-500'
     : breadcrumb
-    ? 'w-full px-4 sm:px-6 py-4 sm:py-5 flex flex-col transition-all duration-500'
-    : 'w-full px-4 sm:px-6 py-3 sm:py-4 flex flex-col transition-all duration-500';
+    ? 'w-full px-4 sm:px-6 phone:px-1 py-4 sm:py-5 phone:py-1.5 flex flex-col transition-all duration-500'
+    : 'w-full px-4 sm:px-6 phone:px-1 py-3 sm:py-4 phone:py-1.5 flex flex-col transition-all duration-500';
 
   return (
     <header className={headerRootClass}>
@@ -159,23 +161,23 @@ export default function Header({ showSearch = true, showSearchCentered = false, 
           </div>
         ) : (
           /* NORMAL LAYOUT */
-        <div className="w-full relative grid grid-cols-[minmax(0,1fr)_auto] sm:grid-cols-3 items-center gap-2 sm:gap-4">
+        <div className="w-full relative grid grid-cols-[minmax(0,1fr)_auto] sm:grid-cols-3 sm:phone:grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 sm:gap-4">
 
           {/* Left: navigation + logo */}
           <div className={`${isHomePage ? 'hidden' : 'col-span-1'} flex items-center gap-1 sm:gap-2 min-w-0 relative`}>
-            <button onClick={toggleSidebar} className="p-0 w-10 h-10 rounded-lg transition-all duration-200 ease-out flex items-center justify-center shrink-0 hover:scale-105 hover:bg-[hsl(var(--muted))] active:scale-95" aria-label={es ? 'Menú' : 'Menu'}>
+            <button onClick={toggleSidebar} className="p-0 w-10 h-10 phone:w-11 phone:h-11 rounded-lg transition-all duration-200 ease-out flex items-center justify-center shrink-0 hover:scale-105 hover:bg-[hsl(var(--muted))] active:scale-95" aria-label={es ? 'Menú' : 'Menu'}>
               <Menu className="w-5 h-5 text-[hsl(var(--muted-foreground))] transition-colors duration-300" />
             </button>
-            <button onClick={handleGoBack} className="p-0 w-10 h-10 rounded-lg transition-all duration-200 ease-out flex items-center justify-center shrink-0 hover:scale-105 hover:bg-[hsl(var(--muted))] active:scale-95" aria-label={es ? 'Atrás' : 'Back'}>
+            <button onClick={handleGoBack} className={`${isGallery ? 'max-sm:hidden' : ''} p-0 w-10 h-10 phone:w-11 phone:h-11 rounded-lg transition-all duration-200 ease-out flex items-center justify-center shrink-0 hover:scale-105 hover:bg-[hsl(var(--muted))] active:scale-95`} aria-label={es ? 'Atrás' : 'Back'}>
               <ArrowLeft className="w-5 h-5 text-[hsl(var(--muted-foreground))] transition-colors duration-300" />
             </button>
-            <div onClick={handleMakwinClick} className="cursor-pointer flex items-center gap-2 ml-1 min-w-0">
+            <div onClick={handleMakwinClick} className="cursor-pointer flex items-center gap-2 ml-1 min-w-0 overflow-hidden phone:min-h-11">
               <span className={`logo-makwin tracking-widest hover:opacity-80 transition-opacity duration-200 whitespace-nowrap leading-tight ${hideSearch ? 'text-base sm:text-lg' : 'text-lg sm:text-xl md:text-2xl'}`}>
                 MAKWIN
               </span>
               {breadcrumb && <>
-                <span className="text-[hsl(var(--muted-foreground))] font-light">/</span>
-                <span className="text-base sm:text-lg text-[hsl(var(--muted-foreground))] font-light truncate">{breadcrumb}</span>
+                <span className="max-sm:hidden text-[hsl(var(--muted-foreground))] font-light">/</span>
+                <span className="max-sm:hidden text-base sm:text-lg text-[hsl(var(--muted-foreground))] font-light truncate">{breadcrumb}</span>
               </>}
             </div>
           </div>
@@ -192,14 +194,14 @@ export default function Header({ showSearch = true, showSearchCentered = false, 
                   onChange={(e) => handleSearchChange(e.target.value)}
                   onFocus={() => setIsSearching(true)}
                   aria-label={t('search.placeholder')}
-                  className="flex-1 px-3 sm:px-4 py-2 text-sm bg-[hsl(var(--popover))/0.6] backdrop-blur-sm border border-[rgba(120,120,120,0.25)] rounded-lg focus:outline-none focus:ring-1 focus:ring-[hsl(var(--ring))] transition-all placeholder:text-[hsl(var(--muted-foreground))]"
+                  className="flex-1 min-w-0 phone:h-11 px-3 sm:px-4 py-2 text-sm bg-[hsl(var(--popover))/0.6] backdrop-blur-sm border border-[rgba(120,120,120,0.25)] rounded-lg focus:outline-none focus:ring-1 focus:ring-[hsl(var(--ring))] transition-all placeholder:text-[hsl(var(--muted-foreground))]"
                 />
                 {isGallery && (
                   <button
                     id="filter-btn"
                     type="button"
                     aria-label={es ? 'Filtrar' : 'Filter'}
-                    className="ml-2 p-2 inline-flex border border-[rgba(120,120,120,0.25)] rounded-lg hover:bg-[hsl(var(--muted))] transition-colors duration-200"
+                    className="ml-2 p-2 phone:w-11 phone:h-11 shrink-0 inline-flex items-center justify-center border border-[rgba(120,120,120,0.25)] rounded-lg hover:bg-[hsl(var(--muted))] transition-colors duration-200"
                     onClick={() => document.dispatchEvent(new Event('toggleFilterPopup'))}
                   >
                     <Filter size={16} className="text-[hsl(var(--muted-foreground))]" />
@@ -210,7 +212,7 @@ export default function Header({ showSearch = true, showSearchCentered = false, 
           </div>
 
           {/* Right: lang + music + user */}
-          <div className={`${isHomePage ? 'col-span-3 flex justify-center' : 'col-span-1 flex justify-end'} flex items-center gap-2 sm:gap-3`}>
+          <div className={`${isHomePage ? 'col-span-3 flex justify-center' : 'col-span-1 flex justify-end'} flex items-center gap-1 sm:gap-3`}>
             <div id="lang-selector-wrap" className="whitespace-nowrap">
               <LanguageSelector />
             </div>
@@ -247,7 +249,7 @@ export default function Header({ showSearch = true, showSearchCentered = false, 
                 <button
                   onClick={() => setShowUserMenu(p => !p)}
                   aria-label={es ? 'Menú de usuario' : 'User menu'}
-                  className="h-8 w-8 rounded-xl p-0 transition-opacity hover:bg-transparent hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))] focus-visible:ring-offset-2 focus-visible:ring-offset-[hsl(var(--background))]"
+                  className="h-8 w-8 phone:h-11 phone:w-11 flex items-center justify-center shrink-0 rounded-xl p-0 transition-opacity hover:bg-transparent hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))] focus-visible:ring-offset-2 focus-visible:ring-offset-[hsl(var(--background))]"
                 >
                   <div className="w-8 h-8 rounded-xl overflow-hidden bg-[hsl(var(--muted))] border border-[rgba(120,120,120,0.25)] flex items-center justify-center text-sm font-medium">
                     {profile?.avatar_url
@@ -258,40 +260,40 @@ export default function Header({ showSearch = true, showSearchCentered = false, 
                 </button>
 
                 {showUserMenu && (
-                  <div className="absolute right-0 top-full mt-2 w-52 bg-[hsl(var(--popover))] border border-[rgba(120,120,120,0.25)] rounded-xl shadow-xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-150">
+                  <div className="absolute right-0 top-full mt-2 w-52 max-h-[calc(100dvh-5rem)] overflow-y-auto overscroll-contain bg-[hsl(var(--popover))] border border-[rgba(120,120,120,0.25)] rounded-xl shadow-xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-150">
                     <div className="px-4 py-3 border-b border-[rgba(120,120,120,0.25)]">
                       <p className="text-sm font-medium text-[hsl(var(--foreground))] truncate">{profile?.display_name}</p>
                       <p className="text-xs text-[hsl(var(--muted-foreground))] truncate">@{profile?.username}</p>
                     </div>
                     <div className="py-1">
                       <Link to={`/u/${profile?.username}`} onClick={() => setShowUserMenu(false)}
-                        className="flex items-center gap-3 px-4 py-2.5 text-sm text-[hsl(var(--foreground))] hover:bg-[hsl(var(--muted))] transition-colors">
+                        className="flex items-center gap-3 px-4 py-2.5 phone:py-3 text-sm text-[hsl(var(--foreground))] hover:bg-[hsl(var(--muted))] transition-colors">
                         <User className="w-4 h-4" /> {es ? 'Mi perfil' : 'My profile'}
                       </Link>
                       <Link to="/favoritos" onClick={() => setShowUserMenu(false)}
-                        className="flex items-center gap-3 px-4 py-2.5 text-sm text-[hsl(var(--foreground))] hover:bg-[hsl(var(--muted))] transition-colors">
+                        className="flex items-center gap-3 px-4 py-2.5 phone:py-3 text-sm text-[hsl(var(--foreground))] hover:bg-[hsl(var(--muted))] transition-colors">
                         <Bookmark className="w-4 h-4" /> {es ? 'Guardados' : 'Saved works'}
                       </Link>
                       <Link to="/siguiendo" onClick={() => setShowUserMenu(false)}
-                        className="flex items-center gap-3 px-4 py-2.5 text-sm text-[hsl(var(--foreground))] hover:bg-[hsl(var(--muted))] transition-colors">
+                        className="flex items-center gap-3 px-4 py-2.5 phone:py-3 text-sm text-[hsl(var(--foreground))] hover:bg-[hsl(var(--muted))] transition-colors">
                         <Heart className="w-4 h-4" /> {es ? 'Siguiendo' : 'Following'}
                       </Link>
                       <Link to="/subir-obra" onClick={() => setShowUserMenu(false)}
-                        className="flex items-center gap-3 px-4 py-2.5 text-sm text-[hsl(var(--foreground))] hover:bg-[hsl(var(--muted))] transition-colors">
+                        className="flex items-center gap-3 px-4 py-2.5 phone:py-3 text-sm text-[hsl(var(--foreground))] hover:bg-[hsl(var(--muted))] transition-colors">
                         <Upload className="w-4 h-4" /> {es ? 'Subir obra' : 'Upload work'}
                       </Link>
                       <Link to="/configuracion" onClick={() => setShowUserMenu(false)}
-                        className="flex items-center gap-3 px-4 py-2.5 text-sm text-[hsl(var(--foreground))] hover:bg-[hsl(var(--muted))] transition-colors">
+                        className="flex items-center gap-3 px-4 py-2.5 phone:py-3 text-sm text-[hsl(var(--foreground))] hover:bg-[hsl(var(--muted))] transition-colors">
                         <Settings className="w-4 h-4" /> {es ? 'Configuración' : 'Settings'}
                       </Link>
                       {isAdmin && (
                         <Link to="/admin" onClick={() => setShowUserMenu(false)}
-                          className="flex items-center gap-3 px-4 py-2.5 text-sm text-[hsl(var(--foreground))] hover:bg-[hsl(var(--muted))] transition-colors">
+                          className="flex items-center gap-3 px-4 py-2.5 phone:py-3 text-sm text-[hsl(var(--foreground))] hover:bg-[hsl(var(--muted))] transition-colors">
                           <Shield className="w-4 h-4" /> {es ? 'Administración' : 'Administration'}
                         </Link>
                       )}
                       <button onClick={() => { toggleTheme(); }}
-                        className="flex items-center gap-3 px-4 py-2.5 text-sm text-[hsl(var(--foreground))] hover:bg-[hsl(var(--muted))] transition-colors w-full text-left">
+                        className="flex items-center gap-3 px-4 py-2.5 phone:py-3 text-sm text-[hsl(var(--foreground))] hover:bg-[hsl(var(--muted))] transition-colors w-full text-left">
                         {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
                         {isDark ? (es ? 'Modo claro' : 'Light mode') : (es ? 'Modo oscuro' : 'Dark mode')}
                       </button>
@@ -311,7 +313,7 @@ export default function Header({ showSearch = true, showSearchCentered = false, 
                           navigate(shouldStayOnRoute ? location.pathname : '/galeria', { replace: true });
                         }}
                           disabled={isLoggingOut}
-                          className="flex items-center gap-3 px-4 py-2.5 text-sm text-[hsl(var(--foreground))] hover:bg-[hsl(var(--muted))] transition-colors w-full text-left disabled:opacity-50">
+                          className="flex items-center gap-3 px-4 py-2.5 phone:py-3 text-sm text-[hsl(var(--foreground))] hover:bg-[hsl(var(--muted))] transition-colors w-full text-left disabled:opacity-50">
                           <LogOut className="w-4 h-4" /> {isLoggingOut ? (es ? 'Cerrando...' : 'Signing out...') : (es ? 'Cerrar sesión' : 'Sign out')}
                         </button>
                       </div>
@@ -322,12 +324,12 @@ export default function Header({ showSearch = true, showSearchCentered = false, 
             ) : authLoading ? (
               <div aria-label={es ? 'Comprobando sesión' : 'Checking session'} className="h-8 w-14 rounded-lg bg-[hsl(var(--muted))]/40 animate-pulse" />
             ) : initializationError ? (
-              <button type="button" onClick={retryInitialization} className="rounded-lg px-2 py-1 text-xs text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[hsl(var(--ring))]">
+              <button type="button" onClick={retryInitialization} className="rounded-lg px-2 py-1 phone:py-2.5 text-xs text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[hsl(var(--ring))]">
                 {es ? 'Reintentar sesión' : 'Retry session'}
               </button>
             ) : (
               <Link to="/login"
-                className="text-xs font-medium text-[hsl(var(--foreground))] border border-[rgba(120,120,120,0.25)] px-3 py-1.5 rounded-lg hover:bg-[hsl(var(--muted))] transition-colors duration-200 whitespace-nowrap">
+                className="text-xs phone:text-sm font-medium text-[hsl(var(--foreground))] border border-[rgba(120,120,120,0.25)] px-3 py-1.5 phone:py-2.5 rounded-lg hover:bg-[hsl(var(--muted))] transition-colors duration-200 whitespace-nowrap">
                 {es ? 'Entrar' : 'Sign in'}
               </Link>
             )}

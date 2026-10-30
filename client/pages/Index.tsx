@@ -109,12 +109,12 @@ export default function Index() {
       setSearchTerm(customEvent.detail?.searchTerm || "");
     };
     if (showFilterPopup) {
-      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('pointerdown', handleClickOutside);
     }
     document.addEventListener('toggleFilterPopup', handleToggleFilter);
     document.addEventListener('updateSearchTerm', handleUpdateSearch);
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('pointerdown', handleClickOutside);
       document.removeEventListener('toggleFilterPopup', handleToggleFilter);
       document.removeEventListener('updateSearchTerm', handleUpdateSearch);
     };

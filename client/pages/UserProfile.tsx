@@ -278,7 +278,7 @@ export default function UserProfile() {
       <div className="flex-1 flex items-center justify-center text-center px-4">
         <div>
           <p className="text-[hsl(var(--foreground))] mb-4">{es ? 'Usuario no encontrado' : 'User not found'}</p>
-          <Link to="/galeria" className="text-sm underline text-[hsl(var(--muted-foreground))]">← {es ? 'Volver a la galería' : 'Back to the gallery'}</Link>
+          <Link to="/galeria" className="tap-area text-sm underline text-[hsl(var(--muted-foreground))]">← {es ? 'Volver a la galería' : 'Back to the gallery'}</Link>
         </div>
       </div>
       <Footer />
@@ -347,11 +347,11 @@ export default function UserProfile() {
                 {editError && <p className="text-xs text-red-500">{editError}</p>}
                 <div className="flex gap-2">
                   <button onClick={handleSaveEdit} disabled={saving}
-                    className="flex items-center gap-1 px-4 py-2 rounded-lg bg-[hsl(var(--foreground))] text-[hsl(var(--background))] text-sm hover:opacity-90 disabled:opacity-50">
+                    className="phone:min-h-11 flex items-center gap-1 px-4 py-2 rounded-lg bg-[hsl(var(--foreground))] text-[hsl(var(--background))] text-sm hover:opacity-90 disabled:opacity-50">
                     <Check className="w-4 h-4" /> {es ? 'Guardar' : 'Save'}
                   </button>
                   <button onClick={() => setEditing(false)}
-                    className="flex items-center gap-1 px-4 py-2 rounded-lg border border-[hsl(var(--border))] text-sm hover:bg-[hsl(var(--muted))]">
+                    className="phone:min-h-11 flex items-center gap-1 px-4 py-2 rounded-lg border border-[hsl(var(--border))] text-sm hover:bg-[hsl(var(--muted))]">
                     <X className="w-4 h-4" /> {es ? 'Cancelar' : 'Cancel'}
                   </button>
                 </div>
@@ -404,12 +404,12 @@ export default function UserProfile() {
                 </div>
 
                 {/* Stats */}
-                <div className="flex gap-6 justify-center sm:justify-start text-sm mb-4">
+                <div className="flex items-center gap-6 phone:gap-4 justify-center sm:justify-start text-sm mb-4">
                   <span><strong>{works.length}</strong> <span className="text-[hsl(var(--muted-foreground))]">{es ? 'obras' : 'works'}</span></span>
-                  <button onClick={() => setShowFollowersModal('followers')} className="group transition-all duration-200 ease-out cursor-pointer">
+                  <button onClick={() => setShowFollowersModal('followers')} className="phone:min-h-11 phone:px-1 group transition-all duration-200 ease-out cursor-pointer">
                     <strong className="group-hover:text-[hsl(var(--foreground))] text-[hsl(var(--foreground))] transition-colors">{followerCount}</strong> <span className="text-[hsl(var(--muted-foreground))] group-hover:text-[hsl(var(--foreground))] transition-colors">{es ? 'seguidores' : 'followers'}</span>
                   </button>
-                  <button onClick={() => setShowFollowersModal('following')} className="group transition-all duration-200 ease-out cursor-pointer">
+                  <button onClick={() => setShowFollowersModal('following')} className="phone:min-h-11 phone:px-1 group transition-all duration-200 ease-out cursor-pointer">
                     <strong className="group-hover:text-[hsl(var(--foreground))] text-[hsl(var(--foreground))] transition-colors">{followingCount}</strong> <span className="text-[hsl(var(--muted-foreground))] group-hover:text-[hsl(var(--foreground))] transition-colors">{es ? 'siguiendo' : 'following'}</span>
                   </button>
                 </div>
@@ -418,12 +418,12 @@ export default function UserProfile() {
                 <div className="flex gap-2 justify-center sm:justify-start">
                   {isOwnProfile ? (
                     <button onClick={() => setEditing(true)}
-                      className="px-4 py-2 rounded-lg border border-[hsl(var(--border))] text-sm hover:bg-[hsl(var(--muted))] transition-colors">
+                      className="phone:min-h-11 px-4 py-2 rounded-lg border border-[hsl(var(--border))] text-sm hover:bg-[hsl(var(--muted))] transition-colors">
                       {es ? 'Editar perfil' : 'Edit profile'}
                     </button>
                   ) : (
                     <button onClick={handleFollow}
-                      className={`px-5 py-2 rounded-lg text-sm font-medium transition-all duration-200 ease-out ${isFollowing
+                      className={`phone:min-h-11 px-5 py-2 rounded-lg text-sm font-medium transition-all duration-200 ease-out ${isFollowing
                         ? 'border border-[hsl(var(--border))] hover:bg-[hsl(var(--muted))]'
                         : 'bg-[hsl(var(--foreground))] text-[hsl(var(--background))] hover:opacity-80'}`}>
                       {isFollowing ? (es ? 'Siguiendo' : 'Following') : (es ? 'Seguir' : 'Follow')}
@@ -444,7 +444,7 @@ export default function UserProfile() {
                     </p>
                     <button 
                       onClick={() => setEditing(true)}
-                      className="text-xs underline hover:opacity-80 transition-opacity"
+                      className="tap-area text-xs underline hover:opacity-80 transition-opacity"
                     >
                       {es ? 'Editar perfil →' : 'Edit profile →'}
                     </button>
@@ -464,7 +464,7 @@ export default function UserProfile() {
                 : (es ? 'Este artista aún no ha publicado obras.' : 'This artist has not published any works yet.')}
             </p>
             {isOwnProfile && (
-              <Link to="/subir-obra" className="mt-4 inline-block text-sm text-[hsl(var(--foreground))] underline underline-offset-2">
+              <Link to="/subir-obra" className="tap-area mt-4 inline-block text-sm text-[hsl(var(--foreground))] underline underline-offset-2">
                 {es ? 'Subir mi primera obra →' : 'Upload my first work →'}
               </Link>
             )}

@@ -51,9 +51,10 @@ export default function LanguageSelector() {
   };
 
   return (
-    <DropdownMenu>
+    // Not modal: a modal menu locks the page and spends the next tap on closing itself.
+    <DropdownMenu modal={false}>
       <DropdownMenuTrigger asChild>
-        <button id="lang-selector-btn" aria-label={language === 'es' ? 'Cambiar idioma' : 'Change language'} className="!border-0 !bg-transparent p-1.5 rounded-md !shadow-none transition-opacity hover:!border-0 hover:!bg-transparent hover:opacity-70 focus:outline-none focus:ring-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[hsl(var(--ring))]" onMouseDown={(e)=>e.preventDefault()}>
+        <button id="lang-selector-btn" aria-label={language === 'es' ? 'Cambiar idioma' : 'Change language'} className="!border-0 !bg-transparent p-1.5 phone:p-3.5 rounded-md !shadow-none transition-opacity hover:!border-0 hover:!bg-transparent hover:opacity-70 focus:outline-none focus:ring-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[hsl(var(--ring))]" onMouseDown={(e)=>e.preventDefault()}>
           <Globe className="w-4 h-4 text-[hsl(var(--foreground))]" />
         </button>
       </DropdownMenuTrigger>
@@ -63,14 +64,14 @@ export default function LanguageSelector() {
       >
         <DropdownMenuItem
           onClick={() => handleLanguageChange('es')}
-          className="focus:bg-[hsl(var(--muted))] focus:text-[hsl(var(--foreground))] data-[highlighted]:bg-[hsl(var(--muted))]"
+          className="phone:min-h-11 focus:bg-[hsl(var(--muted))] focus:text-[hsl(var(--foreground))] data-[highlighted]:bg-[hsl(var(--muted))]"
         >
           {t('languages.es')}
           <span className="ml-auto opacity-80">{language === 'es' ? <Check className="w-4 h-4" /> : null}</span>
         </DropdownMenuItem>
         <DropdownMenuItem
           onClick={() => handleLanguageChange('en')}
-          className="focus:bg-[hsl(var(--muted))] focus:text-[hsl(var(--foreground))] data-[highlighted]:bg-[hsl(var(--muted))]"
+          className="phone:min-h-11 focus:bg-[hsl(var(--muted))] focus:text-[hsl(var(--foreground))] data-[highlighted]:bg-[hsl(var(--muted))]"
         >
           {t('languages.en')}
           <span className="ml-auto opacity-80">{language === 'en' ? <Check className="w-4 h-4" /> : null}</span>

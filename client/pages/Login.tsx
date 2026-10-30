@@ -172,7 +172,7 @@ export default function Login() {
 
                 {error && <p className="text-sm text-red-500">{error}</p>}
                 {needsConfirmation && !confirmationSent && (
-                  <button type="button" onClick={handleResendConfirmation} disabled={loading} className="text-sm text-[hsl(var(--foreground))] underline underline-offset-2 disabled:opacity-50">
+                  <button type="button" onClick={handleResendConfirmation} disabled={loading} className="tap-area text-sm text-[hsl(var(--foreground))] underline underline-offset-2 disabled:opacity-50">
                     {es ? 'Reenviar correo de confirmación' : 'Resend confirmation email'}
                   </button>
                 )}
@@ -193,14 +193,14 @@ export default function Login() {
 
               <button
                 onClick={() => { setMode('forgot'); setError(''); }}
-                className="w-full text-center text-xs text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] mt-4 transition-colors"
+                className="w-full text-center text-xs phone:text-sm phone:min-h-11 phone:mt-2 text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] mt-4 transition-colors"
               >
                 {es ? '¿Olvidaste tu contraseña?' : 'Forgot your password?'}
               </button>
 
               <p className="text-center text-xs text-[hsl(var(--muted-foreground))] mt-6">
                 {es ? '¿No tienes cuenta?' : "Don't have an account?"}{' '}
-                <Link to="/registro" className="text-[hsl(var(--foreground))] underline underline-offset-2">
+                <Link to="/registro" className="tap-area text-[hsl(var(--foreground))] underline underline-offset-2">
                   {es ? 'Registrarse' : 'Sign up'}
                 </Link>
               </p>

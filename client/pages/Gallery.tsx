@@ -43,6 +43,7 @@ function preloadImage(src: string): Promise<{ width: number; height: number } | 
 }
 
 const GRID_COLUMNS: MasonryColumns = { base: 2, sm: 3, lg: 4, xl: 5, '2xl': 6 };
+const SKELETON_ITEMS = Array.from({ length: 12 }, (_, i) => i);
 
 export default function Gallery() {
   const { user } = useAuth();
@@ -224,7 +225,7 @@ export default function Gallery() {
       
       setShowFilterPopup(p => !p);
     };
-    const onClickOutside = (e: MouseEvent) => {
+    const onClickOutside = (e: PointerEvent) => {
       if (filterRef.current && !filterRef.current.contains(e.target as Node)) {
         const btn = document.getElementById('filter-btn');
         if (btn && !btn.contains(e.target as Node)) {
@@ -233,10 +234,10 @@ export default function Gallery() {
       }
     };
     document.addEventListener('toggleFilterPopup', onToggle as EventListener);
-    if (showFilterPopup) document.addEventListener('mousedown', onClickOutside);
+    if (showFilterPopup) document.addEventListener('pointerdown', onClickOutside);
     return () => {
       document.removeEventListener('toggleFilterPopup', onToggle as EventListener);
-      document.removeEventListener('mousedown', onClickOutside);
+      document.removeEventListener('pointerdown', onClickOutside);
     };
   }, [showFilterPopup]);
 
@@ -287,7 +288,7 @@ export default function Gallery() {
               <div ref={filterRef} className="fixed z-50 bg-[hsl(var(--popover))] border border-[hsl(var(--border))] rounded-xl shadow-lg p-3 flex flex-col gap-2 animate-in fade-in slide-in-from-top-2 duration-200"
                 style={{ top: `${filterBtnPos.top}px`, left: `${Math.max(10, filterBtnPos.left)}px`, width: '200px' }}>
                 <select value={filters.workType} onChange={e => setFilters(f => ({ ...f, workType: e.target.value }))}
-                  className="w-full px-2 py-2 border border-[hsl(var(--border))] rounded bg-[hsl(var(--input))] text-sm focus:outline-none focus:ring-0 focus:border-[hsl(var(--border))]">
+                  className="phone:h-11 w-full px-2 py-2 border border-[hsl(var(--border))] rounded bg-[hsl(var(--input))] text-sm focus:outline-none focus:ring-0 focus:border-[hsl(var(--border))]">
                   <option value="">{t('filter.allTypes')}</option>
                   <option value="pintura">{t('filter.painting')}</option>
                   <option value="fotografia">{t('filter.photography')}</option>
@@ -296,7 +297,7 @@ export default function Gallery() {
                   <option value="video">{t('filter.video')}</option>
                 </select>
                 <button onClick={() => setFilters({ workType: '', sort: 'score' })}
-                  className="w-full px-2 py-2 text-sm rounded border border-[hsl(var(--border))] bg-[hsl(var(--popover))]">
+                  className="phone:h-11 w-full px-2 py-2 text-sm rounded border border-[hsl(var(--border))] bg-[hsl(var(--popover))]">
                   {t('filter.clear')}
                 </button>
               </div>
@@ -304,15 +305,18 @@ export default function Gallery() {
 
             {/* Loading skeleton - only show if we don't have cached data */}
             {loadingInitial && works.length === 0 && (
-              <div className="columns-2 gap-4 sm:columns-3 lg:columns-4 xl:columns-5 2xl:columns-6">
-                {Array.from({ length: 12 }).map((_, i) => (
-                  <div key={i} className="mb-4 inline-block w-full break-inside-avoid">
+              <MasonryGrid
+                items={SKELETON_ITEMS}
+                columns={GRID_COLUMNS}
+                getKey={String}
+                renderItem={(i) => (
+                  <div className="mb-4 w-full">
                     <div className={`rounded-2xl bg-[hsl(var(--muted))] animate-pulse ${i % 3 === 0 ? 'h-56' : i % 3 === 1 ? 'h-40' : 'h-72'}`} />
                     <div className="mt-2 h-3 bg-[hsl(var(--muted))] rounded animate-pulse w-3/4" />
                     <div className="mt-1 h-2 bg-[hsl(var(--muted))] rounded animate-pulse w-1/2" />
                   </div>
-                ))}
-              </div>
+                )}
+              />
             )}
 
             {loadError && (

@@ -169,7 +169,7 @@ export default function Saved() {
             <p className="text-[hsl(var(--muted-foreground))] text-sm mb-4">
               {es ? 'Aún no has guardado ninguna obra.' : "You haven't saved any works yet."}
             </p>
-            <Link to="/galeria" className="text-sm text-[hsl(var(--foreground))] underline underline-offset-2">
+            <Link to="/galeria" className="tap-area text-sm text-[hsl(var(--foreground))] underline underline-offset-2">
               {es ? 'Explorar galería →' : 'Explore gallery →'}
             </Link>
           </div>

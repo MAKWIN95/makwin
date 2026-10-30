@@ -23,10 +23,91 @@ html {
 /* Smooth theme transition. Inherited properties (color, fill, stroke) stay out:
    animating them on every element chains the delay level by level, which left
    text dark on the dark background for seconds after each page load. */
-html,
-html * {
+@media (hover: hover) and (pointer: fine) {
+  html,
+  html * {
+    transition: background-color 0.5s cubic-bezier(0.4, 0, 0.2, 1),
+                border-color 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+}
+
+/* On touch screens it only runs while switching theme: a permanent half-second
+   fade on every element makes each press feel late. */
+html.theme-switching,
+html.theme-switching * {
   transition: background-color 0.5s cubic-bezier(0.4, 0, 0.2, 1),
               border-color 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Tailwind's 100vh is taller than the visible area in iOS Safari. */
+@supports (height: 100dvh) {
+  .h-screen { height: 100dvh; }
+  .min-h-screen { min-height: 100dvh; }
+}
+
+html.scroll-locked,
+html.scroll-locked body {
+  overflow: hidden;
+}
+
+@media (max-width: 640px), (pointer: coarse) {
+  html {
+    background: hsl(var(--background));
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    overflow-x: clip;
+  }
+
+  .dark {
+    color-scheme: dark;
+  }
+
+  /* iOS zooms the whole page when a field under 16px gets focus. */
+  input:not([type="checkbox"], [type="radio"], [type="range"], [type="file"]),
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+
+  /* No double-tap-zoom wait, and our own pressed state instead of the grey flash. */
+  a,
+  button,
+  label,
+  select,
+  summary,
+  [role="button"],
+  [role="tab"],
+  [role="checkbox"],
+  [role="switch"],
+  [role="menuitem"] {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  a:active,
+  button:not(:disabled):active,
+  [role="button"]:active,
+  [role="tab"]:active,
+  [role="menuitem"]:active {
+    opacity: 0.65;
+  }
+
+  /* Reaches 44px under the finger without changing how the element looks. */
+  .tap-area:not(.absolute, .fixed) {
+    position: relative;
+  }
+
+  .tap-area::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: max(100%, 44px);
+    height: max(100%, 44px);
+    transform: translate(-50%, -50%);
+  }
 }
 
 .glass-effect {
@@ -150,7 +231,7 @@ html * {
   transform: translateX(-50%);
   top: 64px; /* justo debajo de la navbar */
   z-index: 60;
-  min-width: 320px;
+  min-width: min(320px, calc(100% - 2rem));
   max-width: calc(100% - 2rem);
   border-radius: 10px;
   box-shadow: 0 10px 30px rgba(2,6,23,0.12);
@@ -225,8 +306,10 @@ html * {
   border: 1px solid rgba(255,255,255,0.12);
 }
 
-.theme-bulb:hover,
-.submit-like:hover { transform: scale(1.03); }
+@media (hover: hover) {
+  .theme-bulb:hover,
+  .submit-like:hover { transform: scale(1.03); }
+}
 
 /* spotlight effect inside element */
 .theme-bulb::before,
@@ -545,8 +628,10 @@ html * {
   transition: opacity 0.12s ease;
   border-radius: 9999px;
 }
-.theme-bulb:hover::after { opacity: 1; }
-.theme-bulb:hover { transform: scale(1.06); }
+@media (hover: hover) {
+  .theme-bulb:hover::after { opacity: 1; }
+  .theme-bulb:hover { transform: scale(1.06); }
+}
 
 /* Transiciones instantáneas para header y contenido principal, excepto hovers */
 .sticky.top-0,
@@ -674,6 +759,7 @@ html.dark body {
   position: absolute;
   inset: 0;
   z-index: 0;
+  overflow: hidden;
   pointer-events: none;
 }
 

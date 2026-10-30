@@ -3,11 +3,14 @@ import { useTheme } from '@/hooks/use-theme';
 
 const generateStars = (isDark: boolean) => {
   const stars = [];
+  // Every star is a running animation: phones get fewer so scrolling stays smooth.
+  const onPhone = window.matchMedia('(max-width: 640px), (pointer: coarse)').matches;
+  const mainStars = onPhone ? 30 : 80;
   
   // Create 80 main stars
-  for (let i = 0; i < 80; i++) {
+  for (let i = 0; i < mainStars; i++) {
     let x: number;
-    if (i < 60) {
+    if (i < mainStars * 0.75) {
       x = Math.random() * 40;
     } else {
       x = 40 + Math.random() * 60;
@@ -32,7 +35,7 @@ const generateStars = (isDark: boolean) => {
   
   // Extra stars in light mode
   if (!isDark) {
-    for (let i = 0; i < 40; i++) {
+    for (let i = 0; i < (onPhone ? 15 : 40); i++) {
       const x = Math.random() * 100;
       const y = Math.random() * 100;
       const size = Math.random() * 2 + 0.5;
