@@ -1,3 +1,4 @@
+import { rememberOpening } from '@/lib/work-opening';
 import { useEffect, useState } from 'react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
@@ -100,7 +101,7 @@ export default function Marketplace() {
                 const image = item.cover_url ?? (isImageWork ? item.file_url : null);
                 return (
                   <article key={item.id} className="rounded-lg border border-[hsl(var(--border))] overflow-hidden bg-[hsl(var(--card))]">
-                    <Link to={`/work/${item.id}`} className="block h-56 bg-[hsl(var(--muted))]">
+                    <Link to={`/work/${item.id}`} state={{ work: item }} onClick={(event) => rememberOpening(item.id, event.currentTarget.querySelector('img') ?? event.currentTarget)} className="block h-56 bg-[hsl(var(--muted))]">
                       {image ? (
                         <img src={image} alt={item.title} className="w-full h-full object-cover" loading="lazy" />
                       ) : (

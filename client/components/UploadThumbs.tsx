@@ -13,7 +13,7 @@ export interface UploadMedia {
 }
 
 interface Props {
-  photos: UploadMedia[];
+  photos: Array<Pick<UploadMedia, 'id' | 'url'>>;
   selected: number;
   max: number;
   onSelect: (index: number) => void;

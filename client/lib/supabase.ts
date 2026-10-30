@@ -56,6 +56,7 @@ export interface Work {
   is_for_sale: boolean;
   price: number | null;
   status: 'published' | 'removed_policy' | 'removed_user';
+  policy_flags?: string[];
   like_count: number;
   view_count: number;
   language: string;

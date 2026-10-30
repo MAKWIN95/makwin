@@ -24,19 +24,21 @@ export default function DeleteWorkModal({ isOpen, onClose, workId, workTitle, on
     setError('');
     setLoading(true);
 
-    const { error: deleteError } = await supabase
-      .from('works')
-      .delete()
-      .eq('id', workId);
-
-    setLoading(false);
-
-    if (deleteError) {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const response = await fetch(`/api/publish-work?id=${encodeURIComponent(workId)}`, {
+        method: 'DELETE',
+        headers: session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {},
+      });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    } catch (deleteError) {
       console.error('[DeleteWorkModal] Could not delete:', deleteError);
       setError(es ? 'No se ha podido eliminar la obra. Inténtalo de nuevo.' : 'The work could not be deleted. Please try again.');
+      setLoading(false);
       return;
     }
 
+    setLoading(false);
     onSuccess();
     onClose();
   };

@@ -23,6 +23,7 @@ const WORK_TYPES = ['pintura', 'fotografia', 'poema', 'cancion', 'video'];
 const REQUIRES_FILE = ['pintura', 'fotografia', 'video'];
 const PHOTO_TYPES = ['pintura', 'fotografia'];
 const MAX_EXTRA_IMAGES = 9;
+const CHECK_GIVEN_UP_MS = 3 * 60 * 1000;
 
 function cleanText(value: unknown, max: number): string {
   return String(value ?? '').trim().slice(0, max);
@@ -37,6 +38,17 @@ function ownFileUrl(value: unknown, userId: string): string | null {
   const url = String(value ?? '');
   const prefix = `${supabaseUrl.replace(/\/$/, '')}/storage/v1/object/public/works/${userId}/`;
   return url.startsWith(prefix) ? url : null;
+}
+
+// A file that fails to go is only wasted space, so it never fails what was asked.
+async function removeOwnFiles(urls: Array<string | null>, userId: string) {
+  const prefix = `${supabaseUrl.replace(/\/$/, '')}/storage/v1/object/public/works/`;
+  const paths = urls
+    .filter((url): url is string => !!url && !!ownFileUrl(url, userId))
+    .map((url) => decodeURIComponent(url.slice(prefix.length)));
+  if (!paths.length) return;
+  const { error } = await supabaseAdmin.storage.from('works').remove(paths);
+  if (error) console.error('[PUBLISH-WORK] Could not remove files:', error.message);
 }
 
 function cleanPoemFont(value: unknown): string | null {
@@ -76,7 +88,7 @@ interface WorkInCheck {
   texts: string[];
 }
 
-async function finishCheck(work: WorkInCheck, baseUrl: string) {
+async function finishCheck(work: WorkInCheck, baseUrl: string, tellAuthor = true) {
   // Loaded only for images and video: while the model starts up, this instance answers
   // nobody else, and a work that is only text has no need of it.
   const hasMedia = !!work.coverUrl || work.extraImages.length > 0 || (!!work.fileUrl && REQUIRES_FILE.includes(work.workType));
@@ -100,7 +112,7 @@ async function finishCheck(work: WorkInCheck, baseUrl: string) {
 
   if (held && data?.length) {
     await alertIfBacklogReached(baseUrl);
-    await notifyWorkHeld(work.userId, work.title);
+    if (tellAuthor) await notifyWorkHeld(work.userId, work.title);
   }
 }
 
@@ -162,7 +174,9 @@ async function createWork(req: VercelRequest, res: VercelResponse, userId: strin
   return res.status(200).json({ id: data.id });
 }
 
-// Editing cannot be a way around the filter, so changed text is checked too.
+// Editing cannot be a way around the filter. Changed text is checked here and now.
+// New photos go through the same background check as a new work, and a work waiting
+// for review is checked again whole: one that still fails simply stays held.
 async function editWork(req: VercelRequest, res: VercelResponse, userId: string) {
   const body = (req.body || {}) as Record<string, unknown>;
   const id = String(body.id ?? '');
@@ -173,31 +187,111 @@ async function editWork(req: VercelRequest, res: VercelResponse, userId: string)
 
   const { data: work, error: readError } = await supabaseAdmin
     .from('works')
-    .select('id, user_id, status')
+    .select('id, user_id, status, work_type, file_url, cover_url, extra_images, lyrics, policy_flags, updated_at')
     .eq('id', id)
     .maybeSingle();
   if (readError) throw readError;
-  if (!work || work.user_id !== userId) return res.status(404).json({ error: 'Obra no encontrada' });
+  if (!work || work.user_id !== userId || work.status === 'removed_user') return res.status(404).json({ error: 'Obra no encontrada' });
 
-  const flags = findBlockedTerms([title, description, hashtags.join(' ')].join('\n')).map((term) => `text:${term}`);
-  const held = flags.length > 0;
-  const { error } = await supabaseAdmin
+  const currentFlags: string[] = work.policy_flags ?? [];
+  const wasHeld = work.status === 'removed_policy' && currentFlags.includes(PENDING_REVIEW_FLAG);
+  // Taken down by the team: changing it must not be a way back.
+  if (work.status === 'removed_policy' && !wasHeld) return res.status(403).json({ error: 'removed' });
+  // One check at a time, or an older result could publish newer photos.
+  if (currentFlags.includes(CHECKING_FLAG) && Date.now() - Date.parse(work.updated_at) < CHECK_GIVEN_UP_MS) {
+    return res.status(409).json({ error: 'checking' });
+  }
+
+  if (work.work_type === 'poema' && !work.file_url && !description) return res.status(400).json({ error: 'Datos no válidos' });
+
+  const oldImages: string[] = PHOTO_TYPES.includes(work.work_type)
+    ? [work.file_url, ...(work.extra_images ?? [])].filter(Boolean)
+    : [];
+  let images = oldImages;
+  if (Array.isArray(body.images)) {
+    images = body.images.map(String);
+    const valid = PHOTO_TYPES.includes(work.work_type)
+      && images.length > 0 && images.length <= MAX_EXTRA_IMAGES + 1
+      && new Set(images).size === images.length
+      && images.every((url) => oldImages.includes(url) || ownFileUrl(url, userId));
+    if (!valid) return res.status(400).json({ error: 'Datos no válidos' });
+  }
+  const added = images.filter((url) => !oldImages.includes(url));
+  const removed = oldImages.filter((url) => !images.includes(url));
+
+  const lyrics = work.work_type === 'cancion' && body.lyrics !== undefined ? cleanText(body.lyrics, 20000) : work.lyrics;
+  const isForSale = body.isForSale === true;
+  const price = isForSale ? Number(body.price) : null;
+  if (body.isForSale !== undefined && isForSale && !(Number(price) > 0)) return res.status(400).json({ error: 'Datos no válidos' });
+
+  const texts = [title, description, lyrics ?? '', hashtags.join(' ')];
+  const textFlags = findBlockedTerms(texts.filter(Boolean).join('\n')).map((term) => `text:${term}`);
+  const held = textFlags.length > 0;
+  const checking = !held && (added.length > 0 || wasHeld);
+
+  const { data: saved, error } = await supabaseAdmin
     .from('works')
     .update({
       title,
       description,
       hashtags,
+      lyrics,
+      updated_at: new Date().toISOString(),
+      ...(images !== oldImages ? { file_url: images[0], extra_images: images.slice(1) } : {}),
+      ...(body.isForSale !== undefined ? { is_for_sale: isForSale, price } : {}),
       ...(body.poemFont ? { poem_font: cleanPoemFont(body.poemFont) } : {}),
-      ...(held ? { status: 'removed_policy', policy_flags: [PENDING_REVIEW_FLAG, ...flags] } : {}),
+      ...(held ? { status: 'removed_policy', policy_flags: [PENDING_REVIEW_FLAG, ...textFlags] } : {}),
+      ...(checking ? { status: 'removed_policy', policy_flags: [PENDING_REVIEW_FLAG, CHECKING_FLAG] } : {}),
     })
-    .eq('id', id);
+    .eq('id', id)
+    .select('*')
+    .single();
   if (error) throw error;
 
-  if (held) {
-    await alertIfBacklogReached(requestBaseUrl(req.headers));
+  await removeOwnFiles(removed, userId);
+
+  const baseUrl = requestBaseUrl(req.headers);
+  if (held && !wasHeld) {
+    await alertIfBacklogReached(baseUrl);
     await notifyWorkHeld(userId, title);
   }
-  return res.status(200).json({ id, held });
+  if (checking) {
+    waitUntil(
+      finishCheck(
+        {
+          id,
+          userId,
+          title,
+          workType: work.work_type,
+          // Photos already through the check are not asked about again, unless the work is on hold.
+          fileUrl: wasHeld ? saved.file_url : null,
+          coverUrl: wasHeld ? saved.cover_url : null,
+          extraImages: wasHeld ? saved.extra_images ?? [] : added,
+          texts,
+        },
+        baseUrl,
+        !wasHeld,
+      ).catch((checkError) => console.error('[PUBLISH-WORK] Check did not finish:', checkError)),
+    );
+  }
+  return res.status(200).json({ work: saved, held, checking });
+}
+
+// Through here rather than directly so the files go too, not only the row.
+async function deleteWork(req: VercelRequest, res: VercelResponse, userId: string) {
+  const id = String(req.query.id ?? '');
+  const { data: work, error: readError } = await supabaseAdmin
+    .from('works')
+    .select('id, user_id, file_url, cover_url, extra_images')
+    .eq('id', id)
+    .maybeSingle();
+  if (readError) throw readError;
+  if (!work || work.user_id !== userId) return res.status(404).json({ error: 'Obra no encontrada' });
+
+  const { error } = await supabaseAdmin.from('works').delete().eq('id', id);
+  if (error) throw error;
+  await removeOwnFiles([work.file_url, work.cover_url, ...(work.extra_images ?? [])], userId);
+  return res.status(200).json({ id });
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -206,6 +300,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (!user) return res.status(401).json({ error: 'No autorizado' });
     if (req.method === 'POST') return await createWork(req, res, user.id);
     if (req.method === 'PATCH') return await editWork(req, res, user.id);
+    if (req.method === 'DELETE') return await deleteWork(req, res, user.id);
     return res.status(405).json({ error: 'Method not allowed' });
   } catch (error) {
     console.error('[PUBLISH-WORK] Error:', error);

@@ -30,6 +30,9 @@ const safeExternalUrl = (value?: string | null): string | null => {
   }
 };
 
+const CHECK_POLL_MS = 2500;
+const CHECK_GIVEN_UP_MS = 3 * 60 * 1000;
+
 export default function UserProfile() {
   const { username } = useParams<{ username: string }>();
   const { user, profile: myProfile, updateProfile, refreshProfile } = useAuth();
@@ -72,6 +75,14 @@ export default function UserProfile() {
   }, [username, user?.id]);
 
   // Refreshing after an edit keeps the page on screen instead of flashing a spinner.
+  // A work being checked comes back on its own, with no need to reload the page.
+  useEffect(() => {
+    const beingChecked = works.some((work) => work.policy_flags?.includes('checking') && Date.now() - Date.parse(work.updated_at) < CHECK_GIVEN_UP_MS);
+    if (!beingChecked) return;
+    const timer = setTimeout(() => loadProfile(true), CHECK_POLL_MS);
+    return () => clearTimeout(timer);
+  }, [works]);
+
   const loadProfile = async (silent = false) => {
     if (!silent) setLoading(true);
 
@@ -97,7 +108,8 @@ export default function UserProfile() {
       .from('works')
       .select('*')
       .eq('user_id', profileData.id)
-      .eq('status', 'published')
+      // Your own works can be seen and changed while they wait for review.
+      .in('status', user?.id === profileData.id ? ['published', 'removed_policy'] : ['published'])
       .order('created_at', { ascending: false });
     
     // Map profile data to each work
@@ -478,7 +490,6 @@ export default function UserProfile() {
               <div className="mb-4 phone:mb-3 w-full">
                 <WorkCard
                   work={work}
-                  isOwnProfile={isOwnProfile}
                   onWorkChange={() => loadProfile(true)}
                 />
               </div>

@@ -22,11 +22,13 @@ interface Props {
   edit: PhotoEdit;
   onEdit: (edit: PhotoEdit) => void;
   onStyle: (style: FrameStyle) => void;
+  /** For a photo joining a carousel that already has its shape. */
+  lockedShape?: boolean;
 }
 
 // The photo as it will be published. Drag it to place it, pinch or use the slider
 // to bring it closer; the shape and the borders are the same for the whole work.
-export default function PhotoEditor({ url, size, ratio, style, edit, onEdit, onStyle }: Props) {
+export default function PhotoEditor({ url, size, ratio, style, edit, onEdit, onStyle, lockedShape }: Props) {
   const { language } = useI18n();
   const es = language === 'es';
   const stage = useRef<HTMLDivElement>(null);
@@ -138,27 +140,29 @@ export default function PhotoEditor({ url, size, ratio, style, edit, onEdit, onS
         </button>
       </div>
 
-      <div className="flex flex-wrap gap-1.5" role="radiogroup" aria-label={es ? 'Formato' : 'Shape'}>
-        {RATIOS.map((option) => (
-          <button
-            key={option.id}
-            type="button"
-            role="radio"
-            aria-checked={style.ratio === option.id}
-            onClick={() => onStyle({ ...style, ratio: option.id })}
-            className={cn(chip, style.ratio === option.id && 'glass-button--primary')}
-          >
-            {option.value > 0 && (
-              <i
-                aria-hidden="true"
-                className="inline-block rounded-[2px] border border-current"
-                style={option.value >= 1 ? { width: 13, height: 13 / option.value } : { height: 13, width: 13 * option.value }}
-              />
-            )}
-            {option.label}
-          </button>
-        ))}
-      </div>
+      {!lockedShape && (
+        <div className="flex flex-wrap gap-1.5" role="radiogroup" aria-label={es ? 'Formato' : 'Shape'}>
+          {RATIOS.map((option) => (
+            <button
+              key={option.id}
+              type="button"
+              role="radio"
+              aria-checked={style.ratio === option.id}
+              onClick={() => onStyle({ ...style, ratio: option.id })}
+              className={cn(chip, style.ratio === option.id && 'glass-button--primary')}
+            >
+              {option.value > 0 && (
+                <i
+                  aria-hidden="true"
+                  className="inline-block rounded-[2px] border border-current"
+                  style={option.value >= 1 ? { width: 13, height: 13 / option.value } : { height: 13, width: 13 * option.value }}
+                />
+              )}
+              {option.label}
+            </button>
+          ))}
+        </div>
+      )}
 
       <div className="flex flex-wrap gap-1.5" role="radiogroup" aria-label={es ? 'Cómo se adapta la foto' : 'How the photo fits'}>
         <button type="button" role="radio" aria-checked={style.fit === 'contain'} onClick={() => onStyle({ ...style, fit: 'contain' })} className={cn(chip, style.fit === 'contain' && 'glass-button--primary')}>

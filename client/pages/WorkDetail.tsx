@@ -1,5 +1,5 @@
-import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
-import { useState, useEffect } from 'react';
+import { useParams, Link, useNavigate, useLocation, useNavigationType } from 'react-router-dom';
+import { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { supabase, Work, Profile } from '@/lib/supabase';
 import { useAuth } from '@/lib/AuthContext';
 import { useWorks } from '@/lib/WorksContext';
@@ -12,12 +12,18 @@ import AuthModal from '@/components/AuthModal';
 import ReportModal from '@/components/ReportModal';
 import LikeBurst from '@/components/LikeBurst';
 import WorkCarousel from '@/components/WorkCarousel';
+import EditWorkModal from '@/components/EditWorkModal';
+import DeleteWorkModal from '@/components/DeleteWorkModal';
+import { flyFrom, openingOf } from '@/lib/work-opening';
 import { loadPoemFont, poemFontStyle } from '@/lib/poem-fonts';
 import { useDoubleTap } from '@/hooks/use-double-tap';
 import FollowButton from '@/components/FollowButton';
 import { Button } from '@/components/ui/button';
-import { Heart, Bookmark, Share2, Flag, Loader2, ArrowLeft } from 'lucide-react';
+import { Heart, Bookmark, Share2, Flag, Loader2, ArrowLeft, Pencil, Trash2 } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
+
+const CHECK_POLL_MS = 2500;
+const CHECK_GIVEN_UP_MS = 3 * 60 * 1000;
 
 function AudioPlayer({ src }: { src: string }) {
   const [playing, setPlaying] = useState(false);
@@ -99,12 +105,24 @@ export default function WorkDetail() {
   const worksContext = useWorks();
   const { isFollowing, setFollowing } = useFollow();
   
-  // Check if work data was passed via navigation state (from UploadWork)
+  // A work opened from its card brings what the card knew, and shows at once.
   const initialWorkData = (location.state as any)?.work || null;
   
   const [work, setWork] = useState<Work | null>(initialWorkData as Work | null);
   const [author, setAuthor] = useState<Profile | null>(initialWorkData?.profiles as Profile | null);
   const [loading, setLoading] = useState(!initialWorkData);
+  const navigationType = useNavigationType();
+  const page = useRef<HTMLDivElement>(null);
+  const [opening] = useState(() => (initialWorkData ? openingOf(id) : null));
+
+  // Before the first paint: a new page starts at the top, and its work starts from where the card was.
+  useLayoutEffect(() => {
+    if (navigationType === 'PUSH') window.scrollTo(0, 0);
+    const hero = page.current?.querySelector<HTMLElement>('[data-work-hero]');
+    if (!opening || !hero) return;
+    flyFrom(hero.querySelector<HTMLElement>('img, video') ?? hero, opening);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // The stars' layer only exists once the work has loaded.
   useStarsBackground('detail-stars-background');
@@ -119,11 +137,14 @@ export default function WorkDetail() {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authModalAction, setAuthModalAction] = useState<'like' | 'save' | 'report' | null>(null);
   const [showReportModal, setShowReportModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [recheck, setRecheck] = useState(0);
 
   // Use context as source of truth
   const liked = id ? worksContext.isLiked(id) : false;
   const saved = id ? worksContext.isSaved(id) : false;
-  const likeCount = id ? worksContext.getLikeCount(id) : 0;
+  const likeCount = id ? worksContext.likeCounts[id] ?? (Number(work?.like_count) || 0) : 0;
 
   useEffect(() => {
     const fetchWork = async () => {
@@ -133,13 +154,11 @@ export default function WorkDetail() {
         return;
       }
 
-      // If we already have work data from state, skip initial fetch but still sync
-      if (initialWorkData && !loading) {
-        return;
-      }
+      // With the work on screen this only brings it up to date, out of sight.
+      const onScreen = !!work;
 
       try {
-        setLoading(true);
+        if (!onScreen) setLoading(true);
         setError('');
         
         // Fetch work from database only
@@ -160,6 +179,7 @@ export default function WorkDetail() {
             is_for_sale,
             price,
             status,
+            policy_flags,
             like_count,
             view_count,
             language,
@@ -173,6 +193,7 @@ export default function WorkDetail() {
           console.error('[WorkDetail] Work fetch error:', workError);
           
           // Retry only on real network errors, not bad queries
+          if (onScreen && workError?.code !== 'PGRST116') return;
           if (retrying < 3 && workError?.code !== 'PGRST116') {
             const delays = [1500, 2500, 3500];
             setRetrying(retrying + 1);
@@ -188,38 +209,44 @@ export default function WorkDetail() {
         setWork(workData as unknown as Work);
         // Update context with like count
         worksContext.updateLikeCount(workData.id, workData.like_count || 0);
+        // The work is shown now; its artist and your like arrive when they arrive.
+        setLoading(false);
 
-        // ISSUE 1 FIX: Fetch profile SEPARATELY in a second query
-        const { data: profileData, error: profileError } = await supabase
-          .from('profiles')
-          .select('id, username, display_name, avatar_url, bio, website, instagram_url, tiktok_url, is_verified, is_banned')
-          .eq('id', workData.user_id)
-          .single();
+        const [{ data: profileData, error: profileError }] = await Promise.all([
+          supabase
+            .from('profiles')
+            .select('id, username, display_name, avatar_url, bio, website, instagram_url, tiktok_url, is_verified, is_banned')
+            .eq('id', workData.user_id)
+            .single(),
+          // Check if user liked/saved this work (load into context)
+          user
+            ? worksContext.loadUserInteractions([workData.id], user.id, { [workData.id]: Number(workData.like_count) || 0 })
+            : Promise.resolve(),
+        ]);
 
         if (!profileError && profileData) {
           setAuthor(profileData as Profile);
         } else {
           console.warn('[WorkDetail] Profile fetch failed:', profileError);
         }
-
-        // Check if user liked/saved this work (load into context)
-        if (user && workData.id) {
-          await worksContext.loadUserInteractions(
-            [workData.id],
-            user.id,
-            { [workData.id]: Number(workData.like_count) || 0 }
-          );
-        }
       } catch (err: any) {
         console.error('[WorkDetail] Error:', err);
-        setError(currentLang === 'es' ? 'No se pudo cargar la obra. Inténtalo de nuevo.' : 'The work could not be loaded. Please try again.');
+        if (!onScreen) setError(currentLang === 'es' ? 'No se pudo cargar la obra. Inténtalo de nuevo.' : 'The work could not be loaded. Please try again.');
       } finally {
         setLoading(false);
       }
     };
 
     fetchWork();
-  }, [id, user]);
+  }, [id, user, recheck]);
+
+  // While its check runs, the author sees it finish without reloading.
+  const isChecking = !!work && user?.id === work.user_id && !!work.policy_flags?.includes('checking');
+  useEffect(() => {
+    if (!isChecking || Date.now() - Date.parse(work?.updated_at ?? '') > CHECK_GIVEN_UP_MS) return;
+    const timer = setTimeout(() => setRecheck((count) => count + 1), CHECK_POLL_MS);
+    return () => clearTimeout(timer);
+  }, [isChecking, recheck]);
 
   // Follow state is already loaded by FollowContext, no need to check again
   // The isFollowing(author.id) call below will use the global context state
@@ -303,12 +330,18 @@ export default function WorkDetail() {
     );
   }
 
+  const es = currentLang === 'es';
+  const isMine = !!user && user.id === work.user_id;
+  const takenDown = work.status === 'removed_policy' && !work.policy_flags?.includes('pending_review');
+  const restClass = opening ? 'work-open-rest' : '';
+  const carouselImages = work.file_url ? [work.file_url, ...(work.extra_images ?? [])] : [];
+
   return (
-    <div className="relative w-full min-h-screen bg-[hsl(var(--background))]">
+    <div ref={page} className="relative w-full min-h-screen bg-[hsl(var(--background))]">
       {/* STARS BACKGROUND */}
       <div id="detail-stars-background" className="fixed inset-0 z-0 stars-background pointer-events-none" />
       {/* CONTENIDO */}
-      <div className="relative z-20 page-enter">
+      <div className={`relative z-20 ${opening ? '' : 'page-enter'}`}>
       <Header hideSearch breadcrumb={work.title} />
 
       <main className="w-full max-w-7xl mx-auto px-4 py-6 sm:py-8">
@@ -318,8 +351,8 @@ export default function WorkDetail() {
           <div className="lg:col-span-2 space-y-6">
             {/* Primary Image/Cover */}
             {work.cover_url && (
-              <div className="flex items-start justify-center pt-12" style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'center', minHeight: '50vh' }}>
-                <img src={work.cover_url} alt={work.title} onClick={handleImageTap} className="touch-manipulation select-none rounded-lg border border-[rgba(255,255,255,0.1)] max-h-[80vh] w-auto h-auto object-contain" />
+              <div data-work-hero className="flex items-start justify-center pt-12" style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'center', minHeight: '50vh' }}>
+                <img src={work.cover_url} alt={work.title} decoding="sync" onClick={handleImageTap} className="touch-manipulation select-none rounded-lg border border-[rgba(255,255,255,0.1)] max-h-[80vh] w-auto h-auto object-contain" />
               </div>
             )}
 
@@ -330,25 +363,27 @@ export default function WorkDetail() {
 
             {/* Video */}
             {work.work_type === 'video' && work.file_url && (
-              <div className="flex items-center justify-center" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '80vh' }}>
+              <div data-work-hero={work.cover_url ? undefined : ''} className="flex items-center justify-center" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '80vh' }}>
                 <video src={work.file_url} controls playsInline className="rounded-lg border border-[rgba(255,255,255,0.1)] max-h-[80vh] max-w-full w-auto object-contain" />
               </div>
             )}
 
             {/* Pintura/Fotografia secondary image */}
             {(work.work_type === 'pintura' || work.work_type === 'fotografia') && work.file_url && !!work.extra_images?.length && (
-              <WorkCarousel images={[work.file_url, ...work.extra_images]} alt={work.title} onImageClick={handleImageTap} />
+              <div data-work-hero={work.cover_url ? undefined : ''}>
+                <WorkCarousel key={carouselImages.join('|')} images={carouselImages} alt={work.title} onImageClick={handleImageTap} />
+              </div>
             )}
 
             {(work.work_type === 'pintura' || work.work_type === 'fotografia') && work.file_url && !work.extra_images?.length && work.file_url !== work.cover_url && (
-              <div className="flex items-center justify-center" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '80vh' }}>
-                <img src={work.file_url} alt={work.title} onClick={handleImageTap} className="touch-manipulation select-none rounded-lg border border-[rgba(255,255,255,0.1)] max-h-[80vh] max-w-full w-auto h-auto object-contain" loading="lazy" />
+              <div data-work-hero={work.cover_url ? undefined : ''} className="flex items-center justify-center" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '80vh' }}>
+                <img src={work.file_url} alt={work.title} decoding="sync" onClick={handleImageTap} className="touch-manipulation select-none rounded-lg border border-[rgba(255,255,255,0.1)] max-h-[80vh] max-w-full w-auto h-auto object-contain" />
               </div>
             )}
 
             {/* A poem is its text: show it where the media would be */}
             {work.work_type === 'poema' && work.description && (
-              <div className="relative flex items-center justify-center rounded-xl border border-[rgba(120,120,120,0.25)] bg-[hsl(var(--background))] p-8 sm:p-14 min-h-[40vh]">
+              <div data-work-hero={work.cover_url ? undefined : ''} className="relative flex items-center justify-center rounded-xl border border-[rgba(120,120,120,0.25)] bg-[hsl(var(--background))] p-8 sm:p-14 min-h-[40vh]">
                 <p data-poem-text style={poemFontStyle(work.poem_font, 1.2)} className="whitespace-pre-wrap text-center leading-relaxed text-[hsl(var(--foreground))]">{work.description}</p>
               </div>
             )}
@@ -365,7 +400,16 @@ export default function WorkDetail() {
           </div>
 
           {/* RIGHT: Info (40%) */}
-          <div className="lg:col-span-1 space-y-6">
+          <div className={`lg:col-span-1 space-y-6 ${restClass}`}>
+            {isMine && work.status !== 'published' && (
+              <p role="status" className="rounded-lg border border-[rgba(120,120,120,0.25)] px-3 py-2 text-sm text-[hsl(var(--muted-foreground))]">
+                {takenDown
+                  ? (es ? 'El equipo ha retirado esta obra. Solo la ves tú.' : 'The team has taken this work down. Only you can see it.')
+                  : isChecking
+                    ? (es ? 'Estamos comprobando esta obra. Se publicará en unos segundos si todo está bien.' : 'We are checking this work. It will be published in a few seconds if all is well.')
+                    : (es ? 'Esta obra está en revisión. Solo la ves tú hasta que la revisemos.' : 'This work is in review. Only you can see it until we have reviewed it.')}
+              </p>
+            )}
             <div>
               <h1 className="text-3xl font-bold text-[hsl(var(--foreground))] leading-tight">{work.title}</h1>
               {workDate && <p className="mt-2 text-sm text-[hsl(var(--muted-foreground))]">{workDate}</p>}
@@ -447,10 +491,25 @@ export default function WorkDetail() {
                 {currentLang === 'es' ? 'Compartir' : 'Share'}
               </Button>
 
-              <Button onClick={handleReport} variant="outline" className="w-full transition-all duration-250 ease-out">
-                <Flag className="w-4 h-4 mr-2" />
-                {currentLang === 'es' ? 'Reportar' : 'Report'}
-              </Button>
+              {isMine ? (
+                <>
+                  {!takenDown && (
+                    <Button onClick={() => setShowEditModal(true)} variant="outline" className="w-full transition-all duration-250 ease-out">
+                      <Pencil className="w-4 h-4 mr-2" />
+                      {es ? 'Editar' : 'Edit'}
+                    </Button>
+                  )}
+                  <Button onClick={() => setShowDeleteModal(true)} variant="outline" className="w-full transition-all duration-250 ease-out text-red-500 hover:text-red-500">
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    {es ? 'Eliminar' : 'Delete'}
+                  </Button>
+                </>
+              ) : (
+                <Button onClick={handleReport} variant="outline" className="w-full transition-all duration-250 ease-out">
+                  <Flag className="w-4 h-4 mr-2" />
+                  {es ? 'Reportar' : 'Report'}
+                </Button>
+              )}
             </div>
           </div>
         </div>
@@ -482,6 +541,24 @@ export default function WorkDetail() {
           workId={work?.id || ''}
           userId={user?.id}
         />
+
+        {isMine && (
+          <>
+            <EditWorkModal
+              isOpen={showEditModal}
+              onClose={() => setShowEditModal(false)}
+              work={work}
+              onSuccess={(saved) => setWork((current) => ({ ...current, ...saved }))}
+            />
+            <DeleteWorkModal
+              isOpen={showDeleteModal}
+              onClose={() => setShowDeleteModal(false)}
+              workId={work.id}
+              workTitle={work.title}
+              onSuccess={() => navigate(author ? `/u/${author.username}` : '/galeria', { replace: true })}
+            />
+          </>
+        )}
       </main>
       <Footer />
       </div>

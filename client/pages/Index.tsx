@@ -1,3 +1,4 @@
+import { rememberOpening } from '@/lib/work-opening';
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import WorkTypeIcon from '@/components/WorkTypeIcon';
@@ -249,6 +250,7 @@ export default function Index() {
                 <Link
                   key={linkId}
                   to={linkPath}
+                  onClick={(event) => rememberOpening(linkId, event.currentTarget.querySelector('img') ?? event.currentTarget)}
                   className={`group inline-block w-full mb-4 break-inside-avoid cursor-pointer transition-all duration-300 ${showItems ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}`}
                 >
                   {/* Imagen principal */}

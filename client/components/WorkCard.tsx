@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Heart, Bookmark, Flag, Pencil, Share2, Trash2 } from 'lucide-react';
 import { supabase, Work } from '@/lib/supabase';
@@ -15,6 +15,7 @@ import { useDoubleTap } from '@/hooks/use-double-tap';
 import { useWorkExtras } from '@/lib/work-extras';
 import { loadPoemFont, poemFontStyle } from '@/lib/poem-fonts';
 import { shareWork } from '@/lib/shareWork';
+import { rememberOpening } from '@/lib/work-opening';
 
 interface Props {
   work: Work;
@@ -22,7 +23,6 @@ interface Props {
   imageDimensions?: { width: number; height: number };
   onLikeToggle?: (workId: string, liked: boolean) => void;
   onSaveToggle?: (workId: string, saved: boolean) => void;
-  isOwnProfile?: boolean;
   onWorkChange?: () => void;
   onWorkDeleted?: () => Promise<void>;
 }
@@ -35,7 +35,7 @@ const WORK_TYPE_ICONS: Record<string, string> = {
   video: '🎬',
 };
 
-export default function WorkCard({ work, priorityImage = false, imageDimensions, onLikeToggle, onSaveToggle, isOwnProfile, onWorkChange, onWorkDeleted }: Props) {
+export default function WorkCard({ work: givenWork, priorityImage = false, imageDimensions, onLikeToggle, onSaveToggle, onWorkChange, onWorkDeleted }: Props) {
   const { user } = useAuth();
   const { language: currentLang } = useI18n();
   const navigate = useNavigate();
@@ -50,6 +50,12 @@ export default function WorkCard({ work, priorityImage = false, imageDimensions,
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [likeBursts, setLikeBursts] = useState(0);
   const [tapped, setTapped] = useState(false);
+  const mediaLink = useRef<HTMLAnchorElement>(null);
+  // Edited or deleted here shows straight away, whichever list this card is in.
+  const [edited, setEdited] = useState<Work | null>(null);
+  const [deleted, setDeleted] = useState(false);
+  useEffect(() => setEdited(null), [givenWork]);
+  const work = edited ? { ...givenWork, ...edited } : givenWork;
   const extras = useWorkExtras(work);
 
   // Use context as source of truth
@@ -97,6 +103,11 @@ export default function WorkCard({ work, priorityImage = false, imageDimensions,
   };
 
   const linkPath = `/work/${work.id}`;
+  // What the card already knows travels with the tap, so the work's page has no need to wait.
+  const linkState = {
+    from: 'gallery',
+    work: extras ? { ...work, extra_images: extras.extra_images, poem_font: extras.poem_font } : work,
+  };
 
   // Double tap only ever likes: repeating it on a liked work never takes the like away.
   const handleWorkTap = useDoubleTap(
@@ -112,7 +123,10 @@ export default function WorkCard({ work, priorityImage = false, imageDimensions,
       setTimeout(() => setLikeAnimating(false), 400);
       worksContext.toggleLike(work.id, user.id).then((result) => onLikeToggle?.(work.id, result.liked));
     },
-    () => navigate(linkPath, { state: { from: 'gallery' } }),
+    () => {
+      rememberOpening(work.id, mediaLink.current?.querySelector('img') ?? mediaLink.current);
+      navigate(linkPath, { state: linkState });
+    },
   );
 
   const handleSave = async (e: React.MouseEvent) => {
@@ -154,16 +168,20 @@ export default function WorkCard({ work, priorityImage = false, imageDimensions,
     : (authModalAction === 'like' ? 'You need an account to like this work.' : authModalAction === 'save' ? 'You need an account to save works to your profile.' : authModalAction === 'report' ? 'You need an account to report a work.' : 'You need an account to do this.');
 
   const es = currentLang === 'es';
+  const isMine = !!user && user.id === work.user_id;
+  const takenDown = work.status === 'removed_policy' && !work.policy_flags?.includes('pending_review');
   const optionIcon = 'w-4 h-4 shrink-0';
   const options: WorkOption[] = [
     { label: es ? 'Compartir' : 'Share', icon: <Share2 className={optionIcon} />, onSelect: () => shareWork(work, es) },
-    ...(isOwnProfile
+    ...(isMine
       ? [
-          { label: es ? 'Editar' : 'Edit', icon: <Pencil className={optionIcon} />, onSelect: () => setShowEditModal(true) },
+          ...(takenDown ? [] : [{ label: es ? 'Editar' : 'Edit', icon: <Pencil className={optionIcon} />, onSelect: () => setShowEditModal(true) }]),
           { label: es ? 'Eliminar' : 'Delete', icon: <Trash2 className={optionIcon} />, onSelect: () => setShowDeleteModal(true) },
         ]
       : [{ label: es ? 'Reportar' : 'Report', icon: <Flag className={optionIcon} />, onSelect: handleReport }]),
   ];
+
+  if (deleted) return null;
 
   return (
     <>
@@ -187,7 +205,7 @@ export default function WorkCard({ work, priorityImage = false, imageDimensions,
         />
 
         {/* Media content */}
-        <Link to={linkPath} state={{ from: 'gallery' }} aria-label={work.title} onClick={(event) => { setTapped(true); handleWorkTap(event); }} className="work-media-link relative block rounded-2xl touch-manipulation select-none transition-[filter] duration-300 ease-out group-hover:[filter:drop-shadow(0_10px_16px_rgba(0,0,0,0.22))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))] focus-visible:ring-offset-2 focus-visible:ring-offset-[hsl(var(--background))]">
+        <Link ref={mediaLink} to={linkPath} state={linkState} aria-label={work.title} onClick={(event) => { setTapped(true); handleWorkTap(event); }} className="work-media-link relative block rounded-2xl touch-manipulation select-none transition-[filter] duration-300 ease-out group-hover:[filter:drop-shadow(0_10px_16px_rgba(0,0,0,0.22))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))] focus-visible:ring-offset-2 focus-visible:ring-offset-[hsl(var(--background))]">
         {hasImage ? (
           <img
             src={work.cover_url ?? work.file_url ?? ''}
@@ -218,6 +236,11 @@ export default function WorkCard({ work, priorityImage = false, imageDimensions,
           </span>
         )}
         </Link>
+        {isMine && work.status !== 'published' && (
+          <span className="absolute top-2 left-2 z-10 rounded-full bg-black/55 px-2 py-0.5 text-[11px] leading-4 text-white backdrop-blur-sm pointer-events-none">
+            {takenDown ? (es ? 'Retirada' : 'Taken down') : (es ? 'En revisión' : 'In review')}
+          </span>
+        )}
         <LikeBurst count={likeBursts} className="absolute" />
         </div>
       </div>
@@ -226,7 +249,7 @@ export default function WorkCard({ work, priorityImage = false, imageDimensions,
         {/* Title with the two quick actions, artist right under it */}
         <div className="mt-2 px-1">
           <div className="flex items-center justify-between gap-2">
-            <Link to={linkPath} state={{ from: 'gallery' }} tabIndex={-1} className="block min-w-0">
+            <Link to={linkPath} state={linkState} tabIndex={-1} className="block min-w-0">
               <p className="text-sm font-medium text-[hsl(var(--foreground))] truncate leading-tight">{work.title}</p>
             </Link>
             {/* Each button is comfortable to hit but only takes up the icon's height.
@@ -290,7 +313,8 @@ export default function WorkCard({ work, priorityImage = false, imageDimensions,
       isOpen={showEditModal}
       onClose={() => setShowEditModal(false)}
       work={work}
-      onSuccess={() => {
+      onSuccess={(saved) => {
+        setEdited(saved);
         onWorkChange?.();
       }}
     />
@@ -301,6 +325,7 @@ export default function WorkCard({ work, priorityImage = false, imageDimensions,
       workId={work.id}
       workTitle={work.title}
       onSuccess={() => {
+        setDeleted(true);
         onWorkChange?.();
       }}
     />

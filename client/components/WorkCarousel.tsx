@@ -250,7 +250,7 @@ export default function WorkCarousel({ images, alt, onImageClick, className }: P
                 alt={position === 0 ? `${alt} (${slide + 1}/${count})` : ''}
                 aria-hidden={position !== 0}
                 draggable={false}
-                decoding="async"
+                decoding={slide === 0 ? 'sync' : 'async'}
                 onClick={onImageClick}
                 className="select-none rounded-lg max-w-full max-h-[80vh] w-auto h-auto object-contain"
               />

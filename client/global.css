@@ -527,6 +527,7 @@ a.work-media-link:active {
   .work-options-bar[data-closing],
   .filter-slot,
   .work-tapped,
+  .work-open-rest,
   .like-burst,
   .glass-panel,
   .theme-icon,
@@ -1313,4 +1314,20 @@ html:not(.dark) .star {
 
 .dark .logo-makwin {
   color: hsl(var(--foreground));
+}
+
+/* Everything around a work that has just flown into place. */
+.work-open-rest {
+  animation: work-open-rest 0.42s cubic-bezier(0.32, 0.72, 0, 1) both;
+}
+
+@keyframes work-open-rest {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }

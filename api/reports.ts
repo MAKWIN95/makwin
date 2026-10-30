@@ -90,7 +90,7 @@ async function loadPanel(res: VercelResponse, role: AdminRole) {
     supabaseAdmin.from('policy_reports').select(REPORTS_QUERY).order('created_at', { ascending: false }),
     supabaseAdmin
       .from('works')
-      .select('id, title, description, lyrics, hashtags, work_type, file_url, cover_url, extra_images, policy_flags, created_at, user:profiles!works_user_id_fkey(username)')
+      .select('id, title, description, lyrics, hashtags, work_type, file_url, cover_url, extra_images, policy_flags, created_at, updated_at, user:profiles!works_user_id_fkey(username)')
       .eq('status', 'removed_policy')
       .contains('policy_flags', [PENDING_REVIEW_FLAG])
       .order('created_at', { ascending: false }),
@@ -98,7 +98,7 @@ async function loadPanel(res: VercelResponse, role: AdminRole) {
   const failed = messages.error || reports.error || held.error;
   if (failed) throw failed;
   const decided = (held.data ?? []).filter((work) => (
-    !work.policy_flags?.includes(CHECKING_FLAG) || Date.now() - Date.parse(work.created_at) > CHECK_GIVEN_UP_MS
+    !work.policy_flags?.includes(CHECKING_FLAG) || Date.now() - Date.parse(work.updated_at ?? work.created_at) > CHECK_GIVEN_UP_MS
   ));
   return res.status(200).json({ role, messages: messages.data, reports: reports.data, held: decided });
 }
