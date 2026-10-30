@@ -3,4 +3,4 @@
  * Increment this version on each deployment
  */
 
-export const APP_VERSION = "v1.0.65";
+export const APP_VERSION = "v1.0.66";
