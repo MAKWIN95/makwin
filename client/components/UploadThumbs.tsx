@@ -7,6 +7,9 @@ export interface UploadMedia {
   id: string;
   file: File;
   url: string;
+  /** Photos only. */
+  width?: number;
+  height?: number;
 }
 
 interface Props {

@@ -349,26 +349,29 @@ a.work-media-link:active {
   45% { transform: scale(1.03); }
 }
 
-/* A carousel in the gallery: the cover gives up a little room, in its own space,
-   so the next photo shows behind it like the next card of a deck. */
+/* A carousel in the gallery: the cover gives up a sliver of its own space on the
+   right, and the next photo shows there, in shadow, like the next card of a deck. */
 .work-stack-top {
-  transform-origin: top center;
+  transform-origin: left center;
   transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 .work-stack-top[data-stacked] {
-  transform: scale(0.965);
+  transform: scale(0.976);
 }
 
 .work-stack-top[data-stacked] .work-media-link {
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.28));
+  filter: drop-shadow(2px 0 3px rgba(0, 0, 0, 0.45));
 }
 
 .work-stack-back {
   position: absolute;
-  inset: 12% 6% 0;
+  top: 4%;
+  bottom: 4%;
+  right: 0;
+  width: 30%;
   overflow: hidden;
-  border-radius: 1rem;
+  border-radius: 0.9rem;
   background: hsl(var(--muted));
   animation: fade-in-soft 0.3s ease both;
 }
@@ -377,12 +380,11 @@ a.work-media-link:active {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  object-position: bottom;
-  opacity: 0.85;
+  object-position: right;
+  filter: brightness(0.5);
 }
 
-/* A carousel on its page: photos passed like cards. The one on top flies out to
-   the side, slips behind the rest on its way, and the next one comes forward. */
+/* A carousel on its page: the movement itself lives in the component. */
 .deck {
   display: grid;
 }
@@ -393,42 +395,19 @@ a.work-media-link:active {
   display: flex;
   justify-content: center;
   max-width: 100%;
-  z-index: var(--deck-z);
-  opacity: var(--deck-opacity);
-  transform: var(--deck-rest);
-  transition: transform 0.5s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.4s ease;
-}
-
-.deck-card[data-dragging] {
-  transition: none;
-  cursor: grabbing;
-}
-
-.deck-card[data-flight="back"] {
-  animation: deck-send-back 0.58s cubic-bezier(0.32, 0.72, 0, 1) both;
-}
-
-.deck-card[data-flight="front"] {
-  animation: deck-bring-front 0.58s cubic-bezier(0.32, 0.72, 0, 1) both;
-}
-
-@keyframes deck-send-back {
-  0% { transform: var(--deck-from); opacity: 1; z-index: 30; }
-  48% { transform: translateX(-62%) rotate(-6deg) scale(0.96); opacity: 1; z-index: 30; }
-  49% { z-index: 0; }
-  100% { transform: var(--deck-rest); opacity: var(--deck-opacity); z-index: 0; }
-}
-
-@keyframes deck-bring-front {
-  0% { transform: var(--deck-from); opacity: 0.35; z-index: 0; }
-  1% { transform: translateY(20px) scale(0.9); opacity: 0.35; z-index: 0; }
-  48% { transform: translateX(-62%) rotate(-6deg) scale(0.96); opacity: 1; z-index: 0; }
-  49% { z-index: 30; }
-  100% { transform: none; opacity: 1; z-index: 30; }
+  will-change: transform;
+  backface-visibility: hidden;
 }
 
 .deck-dot {
   transition: opacity 0.3s ease;
+}
+
+/* Thirds, only while a photo is being placed. */
+.photo-grid {
+  background:
+    linear-gradient(to right, transparent calc(33.33% - 0.5px), rgba(255, 255, 255, 0.45) calc(33.33% - 0.5px), rgba(255, 255, 255, 0.45) calc(33.33% + 0.5px), transparent calc(33.33% + 0.5px), transparent calc(66.66% - 0.5px), rgba(255, 255, 255, 0.45) calc(66.66% - 0.5px), rgba(255, 255, 255, 0.45) calc(66.66% + 0.5px), transparent calc(66.66% + 0.5px)),
+    linear-gradient(to bottom, transparent calc(33.33% - 0.5px), rgba(255, 255, 255, 0.45) calc(33.33% - 0.5px), rgba(255, 255, 255, 0.45) calc(33.33% + 0.5px), transparent calc(33.33% + 0.5px), transparent calc(66.66% - 0.5px), rgba(255, 255, 255, 0.45) calc(66.66% - 0.5px), rgba(255, 255, 255, 0.45) calc(66.66% + 0.5px), transparent calc(66.66% + 0.5px));
 }
 
 /* Upload */
@@ -547,7 +526,6 @@ a.work-media-link:active {
   .work-options-bar,
   .work-options-bar[data-closing],
   .filter-slot,
-  .deck-card[data-flight],
   .work-tapped,
   .like-burst,
   .glass-panel,

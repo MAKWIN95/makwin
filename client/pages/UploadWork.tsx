@@ -2,7 +2,8 @@ import { useEffect, useRef, useState, type DragEvent, type KeyboardEvent, type R
 import { useNavigate } from 'react-router-dom';
 import { Check, Feather, ImagePlus, Loader2, Mic, Music, X } from 'lucide-react';
 import { useBodyScrollLock } from '@/hooks/use-body-scroll-lock';
-import { prepareImage } from '@/lib/compress-image';
+import { prepareImage, readImage } from '@/lib/compress-image';
+import { DEFAULT_FRAME, framePhoto, frameRatio, needsFraming, NO_EDIT, type FrameStyle, type PhotoEdit } from '@/lib/frame-photo';
 import { DEFAULT_POEM_FONT, loadPoemFont, poemFontStyle, POEM_FONTS } from '@/lib/poem-fonts';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/AuthContext';
@@ -10,7 +11,7 @@ import { useI18n } from '@/lib/i18n';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
-import WorkCarousel from '@/components/WorkCarousel';
+import PhotoEditor from '@/components/PhotoEditor';
 import UploadThumbs, { type UploadMedia } from '@/components/UploadThumbs';
 import { Switch } from '@/components/ui/switch';
 import { cn, normalizeHashtags } from '@/lib/utils';
@@ -53,6 +54,8 @@ export default function UploadWork() {
   const [kind, setKind] = useState<Kind | null>(null);
   const [photos, setPhotos] = useState<UploadMedia[]>([]);
   const [selected, setSelected] = useState(0);
+  const [frame, setFrame] = useState<FrameStyle>(DEFAULT_FRAME);
+  const [edits, setEdits] = useState<Record<string, PhotoEdit>>({});
   const [media, setMedia] = useState<UploadMedia | null>(null);
   const [cover, setCover] = useState<UploadMedia | null>(null);
   const [workType, setWorkType] = useState('');
@@ -117,7 +120,9 @@ export default function UploadWork() {
     for (const [position, file] of chosen.entries()) {
       setProgress({ step: 'preparing', done: position, total: chosen.length });
       try {
-        added.push(track(newMedia(await prepareImage(file))));
+        const ready = await prepareImage(file);
+        const { naturalWidth: width, naturalHeight: height } = await readImage(ready);
+        added.push({ ...track(newMedia(ready)), width, height });
       } catch {
         notify(es ? `No hemos podido abrir ${file.name}.` : `We could not open ${file.name}.`);
       }
@@ -195,6 +200,8 @@ export default function UploadWork() {
     setKind(null);
     setPhotos([]);
     setSelected(0);
+    setFrame(DEFAULT_FRAME);
+    setEdits({});
     setMedia(null);
     setCover(null);
     setWorkType('');
@@ -256,6 +263,25 @@ export default function UploadWork() {
     return null;
   };
 
+  // Every photo takes the chosen shape. A retry after a failure reuses what already went up.
+  const paintPhotos = async (): Promise<UploadMedia[]> => {
+    const first = photos[0];
+    if (!first?.width || !first.height) return photos;
+    const ratio = frameRatio(frame, { width: first.width, height: first.height });
+    const result: UploadMedia[] = [];
+    for (const [position, photo] of photos.entries()) {
+      const edit = edits[photo.id] ?? NO_EDIT;
+      if (!needsFraming({ width: photo.width!, height: photo.height! }, ratio, edit)) {
+        result.push(photo);
+        continue;
+      }
+      const id = `${photo.id}|${ratio}|${frame.fit}|${frame.border}|${edit.zoom}|${edit.x}|${edit.y}`;
+      setProgress({ step: 'preparing', done: position, total: photos.length });
+      result.push({ ...photo, id, file: uploaded.current.has(id) ? photo.file : await framePhoto(photo.file, ratio, frame, edit) });
+    }
+    return result;
+  };
+
   const publish = async () => {
     const problem = missing();
     if (problem) {
@@ -265,8 +291,17 @@ export default function UploadWork() {
     }
     if (!user) return;
 
-    const files = [...photos, ...(media ? [media] : []), ...(cover ? [cover] : [])];
     const stamp = Date.now();
+    let finalPhotos = photos;
+    try {
+      finalPhotos = await paintPhotos();
+    } catch (err) {
+      console.error('[UploadWork] Could not paint a photo:', err);
+      setProgress(null);
+      notify(es ? 'No hemos podido preparar una de las fotos.' : 'We could not prepare one of the photos.');
+      return;
+    }
+    const files = [...finalPhotos, ...(media ? [media] : []), ...(cover ? [cover] : [])];
     let done = 0;
     setProgress({ step: 'uploading', done, total: files.length });
     const send = async (item: UploadMedia, path: string) => {
@@ -277,7 +312,7 @@ export default function UploadWork() {
     };
 
     try {
-      const photoUrls = await inParallel(photos.map((photo, position) => () => send(photo, `${user.id}/${stamp}-${position}.${extensionOf(photo.file)}`)));
+      const photoUrls = await inParallel(finalPhotos.map((photo, position) => () => send(photo, `${user.id}/${stamp}-${position}.${extensionOf(photo.file)}`)));
       const mediaUrl = media ? await send(media, `${user.id}/${stamp}.${extensionOf(media.file)}`) : null;
       const coverUrl = cover ? await send(cover, `${user.id}/covers/${stamp}.${extensionOf(cover.file)}`) : null;
 
@@ -407,7 +442,18 @@ export default function UploadWork() {
                 <div className="p-4 sm:p-5 lg:border-r border-[hsl(var(--foreground)/0.1)] flex flex-col gap-4 min-w-0">
                   {kind === 'photos' && (
                     <>
-                      <WorkCarousel className="[&_img]:max-h-[44vh] lg:[&_img]:max-h-[56vh]" images={photos.map((photo) => photo.url)} alt={title || (es ? 'Tu obra' : 'Your work')} index={selected} onIndexChange={setSelected} />
+                      {photos[selected]?.width && photos[0]?.width && (
+                        <PhotoEditor
+                          key={photos[selected].id}
+                          url={photos[selected].url}
+                          size={{ width: photos[selected].width!, height: photos[selected].height! }}
+                          ratio={frameRatio(frame, { width: photos[0].width!, height: photos[0].height! })}
+                          style={frame}
+                          edit={edits[photos[selected].id] ?? NO_EDIT}
+                          onEdit={(edit) => setEdits((current) => ({ ...current, [photos[selected].id]: edit }))}
+                          onStyle={setFrame}
+                        />
+                      )}
                       <UploadThumbs
                         photos={photos}
                         selected={selected}

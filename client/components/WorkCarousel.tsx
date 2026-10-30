@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState, type CSSProperties, type MouseEvent, type PointerEvent } from 'react';
+import { useEffect, useRef, useState, type MouseEvent, type PointerEvent } from 'react';
+import { animate, motion, motionValue, useReducedMotion, type MotionValue } from 'framer-motion';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
@@ -6,60 +7,146 @@ import { cn } from '@/lib/utils';
 interface Props {
   images: string[];
   alt: string;
-  /** Slide to show when something outside chooses one, such as a thumbnail. */
-  index?: number;
-  onIndexChange?: (index: number) => void;
   onImageClick?: (event: MouseEvent) => void;
   className?: string;
 }
 
-const DRAG_START_PX = 8;
-const SWIPE_SHARE = 0.16;
+interface Card {
+  x: MotionValue<number>;
+  y: MotionValue<number>;
+  scale: MotionValue<number>;
+  rotate: MotionValue<number>;
+  opacity: MotionValue<number>;
+  z: MotionValue<number>;
+}
+
+const DRAG_START_PX = 6;
+const SWIPE_SHARE = 0.15;
+const FLICK_SPEED = 320;
+const FLY_SHARE = 0.68;
+const TUCK_MS = 110;
+const SPRING = { type: 'spring', stiffness: 560, damping: 44, mass: 0.7 } as const;
+const OUT = { type: 'spring', stiffness: 700, damping: 48, mass: 0.6 } as const;
 
 // Each photo sits behind the next, and the deck has no end.
 const RESTING = [
-  { transform: 'none', z: 20, opacity: 1 },
-  { transform: 'translateY(10px) scale(0.95)', z: 10, opacity: 0.7 },
-  { transform: 'translateY(20px) scale(0.9)', z: 5, opacity: 0.35 },
+  { y: 0, scale: 1, opacity: 1, z: 20 },
+  { y: 8, scale: 0.955, opacity: 0.75, z: 10 },
+  { y: 16, scale: 0.91, opacity: 0.4, z: 5 },
 ];
-const HIDDEN = { transform: 'translateY(20px) scale(0.9)', z: 0, opacity: 0 };
+const HIDDEN = { y: 16, scale: 0.91, opacity: 0, z: 0 };
 
-type Flight = { slide: number; kind: 'back' | 'front'; from: string };
+const between = (from: number, to: number, share: number) => from + (to - from) * share;
 
-// Several photos of one work, passed like a deck of cards: the one on top goes
-// to the back, and the last one of the deck is followed by the first again.
-export default function WorkCarousel({ images, alt, index, onIndexChange, onImageClick, className }: Props) {
+// Several photos of one work, passed like a deck of cards. Under the finger the
+// card goes exactly where the finger goes, and the springs start from whatever
+// speed it had when it was let go, so nothing ever jumps.
+export default function WorkCarousel({ images, alt, onImageClick, className }: Props) {
   const { language } = useI18n();
   const es = language === 'es';
+  const reduced = useReducedMotion();
   const count = images.length;
-  const [requested, setRequested] = useState(0);
-  const [flight, setFlight] = useState<Flight | null>(null);
-  const current = Math.min(requested, count - 1);
-  const topCard = useRef<HTMLDivElement>(null);
-  const drag = useRef<{ x: number; y: number; dx: number; id: number; moved: boolean } | null>(null);
+  const [current, setCurrent] = useState(0);
+  const currentRef = useRef(0);
+  const deck = useRef<HTMLDivElement>(null);
+  const drag = useRef<{ x: number; y: number; from: number; id: number; moved: boolean } | null>(null);
   const swallowClick = useRef(false);
+  const timers = useRef(new Map<string, ReturnType<typeof setTimeout>>());
+  const cards = useRef(new Map<string, Card>());
 
-  const show = (target: number, kind: 'back' | 'front', from = 'none', notify = true) => {
-    if (target === current || count < 2) return;
-    setFlight({ slide: kind === 'back' ? current : target, kind, from });
-    setRequested(target);
-    if (notify) onIndexChange?.(target);
+  const positionOf = (slide: number, top: number) => (slide - top + count) % count;
+  const restAt = (position: number) => RESTING[position] ?? HIDDEN;
+
+  const cardFor = (src: string, slide: number): Card => {
+    let card = cards.current.get(src);
+    if (!card) {
+      const rest = restAt(positionOf(slide, 0));
+      card = {
+        x: motionValue(0),
+        y: motionValue(rest.y),
+        scale: motionValue(rest.scale),
+        rotate: motionValue(0),
+        opacity: motionValue(rest.opacity),
+        z: motionValue(rest.z),
+      };
+      cards.current.set(src, card);
+    }
+    return card;
   };
-  const next = (from?: string) => show((current + 1) % count, 'back', from);
-  const previous = () => show((current - 1 + count) % count, 'front');
 
   useEffect(() => {
-    if (index === undefined || index === current) return;
-    show(index, index > current ? 'back' : 'front', 'none', false);
-    // Only a new request from outside moves it: passing a card updates `current` itself.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [index]);
+    const pending = timers.current;
+    return () => pending.forEach((timer) => clearTimeout(timer));
+  }, []);
 
-  const dragStyle = (dx: number) => `translateX(${dx}px) rotate(${dx * 0.015}deg)`;
+  const spring = (value: MotionValue<number>, target: number, velocity?: number, transition: typeof SPRING | typeof OUT = SPRING) => {
+    if (reduced) value.set(target);
+    else animate(value, target, { ...transition, ...(velocity === undefined ? {} : { velocity }) });
+  };
+
+  const settle = (src: string, position: number, velocity?: number) => {
+    const card = cards.current.get(src);
+    if (!card) return;
+    const rest = restAt(position);
+    clearTimeout(timers.current.get(src));
+    card.z.set(rest.z);
+    spring(card.x, 0, velocity);
+    spring(card.rotate, 0);
+    spring(card.y, rest.y);
+    spring(card.scale, rest.scale);
+    spring(card.opacity, rest.opacity);
+  };
+
+  const flyWidth = () => (deck.current?.offsetWidth ?? 320) * FLY_SHARE;
+
+  const moveTo = (target: number, special: string) => {
+    currentRef.current = target;
+    setCurrent(target);
+    images.forEach((src, slide) => {
+      if (src !== special) settle(src, positionOf(slide, target));
+    });
+  };
+
+  // The top card flies out on its side, slips behind the others and goes to the back.
+  const next = (side = -1, velocity = 0) => {
+    if (count < 2) return;
+    const top = currentRef.current;
+    const target = (top + 1) % count;
+    const src = images[top];
+    const card = cards.current.get(src);
+    if (!card || reduced) return moveTo(target, '');
+    moveTo(target, src);
+    clearTimeout(timers.current.get(src));
+    card.z.set(30);
+    spring(card.x, side * flyWidth(), velocity, OUT);
+    spring(card.rotate, side * 5, undefined, OUT);
+    timers.current.set(src, setTimeout(() => settle(src, positionOf(images.indexOf(src), currentRef.current)), TUCK_MS));
+  };
+
+  // The card from the back slips out on one side and lands on top.
+  const previous = (side = -1, velocity?: number) => {
+    if (count < 2) return;
+    const target = (currentRef.current - 1 + count) % count;
+    const src = images[target];
+    const card = cards.current.get(src);
+    const leaving = images[currentRef.current];
+    if (!card || reduced) return moveTo(target, '');
+    moveTo(target, src);
+    if (velocity !== undefined) settle(leaving, 1, velocity);
+    clearTimeout(timers.current.get(src));
+    card.z.set(0);
+    spring(card.opacity, 1);
+    spring(card.scale, 0.96);
+    spring(card.y, 0);
+    spring(card.x, side * flyWidth(), undefined, OUT);
+    spring(card.rotate, side * 5, undefined, OUT);
+    timers.current.set(src, setTimeout(() => settle(src, positionOf(images.indexOf(src), currentRef.current)), TUCK_MS));
+  };
 
   const handlePointerDown = (event: PointerEvent<HTMLDivElement>) => {
     if (count < 2 || (event.pointerType === 'mouse' && event.button !== 0)) return;
-    drag.current = { x: event.clientX, y: event.clientY, dx: 0, id: event.pointerId, moved: false };
+    const top = cards.current.get(images[currentRef.current]);
+    drag.current = { x: event.clientX, y: event.clientY, from: top?.x.get() ?? 0, id: event.pointerId, moved: false };
   };
 
   const handlePointerMove = (event: PointerEvent<HTMLDivElement>) => {
@@ -74,10 +161,32 @@ export default function WorkCarousel({ images, alt, index, onIndexChange, onImag
       }
       active.moved = true;
       event.currentTarget.setPointerCapture(event.pointerId);
-      topCard.current?.setAttribute('data-dragging', '');
     }
-    active.dx = dx;
-    topCard.current?.style.setProperty('--deck-rest', dragStyle(dx));
+    const topSlide = currentRef.current;
+    const top = cards.current.get(images[topSlide]);
+    if (!top) return;
+    const x = active.from + dx;
+    top.x.stop();
+    top.rotate.stop();
+    top.x.set(x);
+    top.rotate.set(x * 0.018);
+
+    // The rest of the deck comes forward as the card leaves.
+    const share = x < 0 ? Math.min(1, -x / flyWidth()) : 0;
+    images.forEach((src, slide) => {
+      const position = positionOf(slide, topSlide);
+      if (position === 0) return;
+      const card = cards.current.get(src);
+      if (!card) return;
+      const from = restAt(position);
+      const to = restAt(position - 1);
+      card.y.stop();
+      card.scale.stop();
+      card.opacity.stop();
+      card.y.set(between(from.y, to.y, share));
+      card.scale.set(between(from.scale, to.scale, share));
+      card.opacity.set(between(from.opacity, to.opacity, share));
+    });
   };
 
   const handlePointerEnd = (event: PointerEvent<HTMLDivElement>, cancelled = false) => {
@@ -86,13 +195,16 @@ export default function WorkCarousel({ images, alt, index, onIndexChange, onImag
     if (!active?.moved || active.id !== event.pointerId) return;
     swallowClick.current = true;
     window.setTimeout(() => { swallowClick.current = false; }, 0);
-    const card = topCard.current;
-    card?.removeAttribute('data-dragging');
-    card?.style.setProperty('--deck-rest', 'none');
-    const width = card?.offsetWidth ?? 300;
-    if (cancelled || Math.abs(active.dx) < width * SWIPE_SHARE) return;
-    if (active.dx < 0) next(dragStyle(active.dx));
-    else previous();
+    const topSlide = currentRef.current;
+    const top = cards.current.get(images[topSlide]);
+    if (!top) return;
+    const x = top.x.get();
+    const speed = top.x.getVelocity();
+    const width = deck.current?.offsetWidth ?? 320;
+    const goes = !cancelled && (Math.abs(x) > width * SWIPE_SHARE || Math.abs(speed) > FLICK_SPEED);
+    if (goes && (x < 0 || speed < -FLICK_SPEED) && speed < FLICK_SPEED) return next(-1, speed);
+    if (goes && (x > 0 || speed > FLICK_SPEED) && speed > -FLICK_SPEED) return previous(1, speed);
+    images.forEach((src, slide) => settle(src, positionOf(slide, topSlide), slide === topSlide ? speed : undefined));
   };
 
   const arrow = 'hover-animate glass-surface !rounded-full absolute top-1/2 -translate-y-1/2 z-40 w-10 h-10 flex items-center justify-center text-[hsl(var(--foreground))] phone:hidden opacity-0 group-hover/carousel:opacity-100 focus-visible:opacity-100 transition-opacity duration-200';
@@ -105,6 +217,7 @@ export default function WorkCarousel({ images, alt, index, onIndexChange, onImag
       aria-label={alt}
     >
       <div
+        ref={deck}
         tabIndex={0}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
@@ -120,25 +233,16 @@ export default function WorkCarousel({ images, alt, index, onIndexChange, onImag
           if (event.key === 'ArrowRight') next();
           if (event.key === 'ArrowLeft') previous();
         }}
-        className={cn('deck relative outline-none touch-pan-y select-none', count > 1 && 'pb-6')}
+        className={cn('deck relative outline-none touch-pan-y select-none cursor-grab active:cursor-grabbing', count > 1 && 'pb-5')}
       >
         {images.map((src, slide) => {
-          const position = (slide - current + count) % count;
-          const rest = RESTING[position] ?? HIDDEN;
-          const flying = flight?.slide === slide ? flight : null;
+          const position = positionOf(slide, current);
+          const card = cardFor(src, slide);
           return (
-            <div
+            <motion.div
               key={src}
-              ref={position === 0 ? topCard : undefined}
               data-position={position}
-              data-flight={flying?.kind}
-              onAnimationEnd={() => setFlight((now) => (now?.slide === slide ? null : now))}
-              style={{
-                '--deck-rest': rest.transform,
-                '--deck-from': flying?.from ?? 'none',
-                '--deck-z': rest.z,
-                '--deck-opacity': rest.opacity,
-              } as CSSProperties}
+              style={{ x: card.x, y: card.y, scale: card.scale, rotate: card.rotate, opacity: card.opacity, zIndex: card.z }}
               className={cn('deck-card', position !== 0 && 'pointer-events-none')}
             >
               <img
@@ -146,10 +250,11 @@ export default function WorkCarousel({ images, alt, index, onIndexChange, onImag
                 alt={position === 0 ? `${alt} (${slide + 1}/${count})` : ''}
                 aria-hidden={position !== 0}
                 draggable={false}
+                decoding="async"
                 onClick={onImageClick}
                 className="select-none rounded-lg max-w-full max-h-[80vh] w-auto h-auto object-contain"
               />
-            </div>
+            </motion.div>
           );
         })}
       </div>

@@ -5,7 +5,7 @@ const MAX_BYTES = 4 * 1024 * 1024;
 const QUALITIES = [0.92, 0.86, 0.8, 0.72, 0.62];
 const LEAVE_AS_IS_BYTES = 1024 * 1024;
 
-function decode(file: File): Promise<HTMLImageElement> {
+export function readImage(file: File): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const url = URL.createObjectURL(file);
     const image = new Image();
@@ -31,7 +31,7 @@ export async function prepareImage(file: File): Promise<File> {
   const isHeic = /image\/hei[cf]/i.test(file.type) || /\.hei[cf]$/i.test(file.name);
   if (!isHeic && file.size <= LEAVE_AS_IS_BYTES) return file;
 
-  const image = await decode(file);
+  const image = await readImage(file);
   const longest = Math.max(image.naturalWidth, image.naturalHeight);
   if (!isHeic && longest <= MAX_SIDE && file.size <= MAX_BYTES) return file;
 
