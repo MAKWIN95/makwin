@@ -8,6 +8,9 @@ import { Input } from '@/components/ui/input';
 import { AlertCircle, CheckCircle2, Loader2, Mail } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
 import { withPasswordNotificationLanguage } from '@/lib/passwordNotificationMetadata';
+import { getPasswordPolicyError } from '@/lib/passwordPolicy';
+import { getPasswordUpdateErrorMessage } from '@/lib/passwordUpdateError';
+import { toast } from 'sonner';
 
 export default function ResetPassword() {
   const navigate = useNavigate();
@@ -71,8 +74,9 @@ export default function ResetPassword() {
       return;
     }
 
-    if (newPassword.length < 6) {
-      setError(es ? 'La contraseña debe tener al menos 8 caracteres.' : 'Password must be at least 8 characters.');
+    const policyError = getPasswordPolicyError(newPassword, language);
+    if (policyError) {
+      setError(policyError);
       return;
     }
 
@@ -90,7 +94,7 @@ export default function ResetPassword() {
       });
 
       if (error) {
-        setError(error.message);
+        setError(getPasswordUpdateErrorMessage(error, language));
       } else {
         setSuccess(true);
         setNewPassword('');
@@ -102,7 +106,7 @@ export default function ResetPassword() {
         }, 2000);
       }
     } catch (err: any) {
-      setError(err?.message || (es ? 'Error al restablecer la contraseña.' : 'Unable to reset the password.'));
+      setError(getPasswordUpdateErrorMessage(err, language));
     } finally {
       setLoading(false);
     }
@@ -116,12 +120,12 @@ export default function ResetPassword() {
       const { error } = await resetPassword(user.email);
 
       if (error) {
-        alert('Error: ' + error);
+        toast.error(es ? 'No se pudo enviar el correo. Inténtalo más tarde.' : 'The email could not be sent. Please try again later.');
       } else {
-        alert(es ? 'Correo de restablecimiento enviado. Revisa tu bandeja.' : 'Password reset email sent. Check your inbox.');
+        toast.success(es ? 'Correo enviado. Revisa tu bandeja de entrada.' : 'Email sent. Check your inbox.');
       }
     } catch (err: any) {
-      alert(err?.message || (es ? 'Error al enviar el correo.' : 'Unable to send the email.'));
+      toast.error(es ? 'No se pudo enviar el correo. Inténtalo más tarde.' : 'The email could not be sent. Please try again later.');
     } finally {
       setSendingReset(false);
     }
@@ -159,7 +163,7 @@ export default function ResetPassword() {
             <div className="flex items-center gap-3 p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
               <AlertCircle className="w-5 h-5 text-yellow-500 shrink-0" />
               <p className="text-sm text-yellow-500">
-                {es ? 'Este enlace ya se ha usado o ha caducado. Los enlaces son de un solo uso y caducan en 24 horas.' : 'This link has already been used or has expired. Links can only be used once and expire after 24 hours.'}
+                {es ? 'Este enlace ya se ha usado o ha caducado. Los enlaces son de un solo uso y caducan al cabo de un tiempo.' : 'This link has already been used or has expired. Links can only be used once and expire after a while.'}
               </p>
             </div>
 
@@ -278,7 +282,7 @@ export default function ResetPassword() {
             onClick={() => navigate('/login')}
             className="text-[hsl(var(--foreground))] hover:underline font-medium"
           >
-            Inicia sesión
+            {es ? 'Inicia sesión' : 'Sign in'}
           </button>
         </p>
       </div>

@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/lib/AuthContext';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
 import Header from '@/components/Header';
+import Footer from '@/components/Footer';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { AlertCircle, CheckCircle2, Loader2, LogOut, Trash2, X } from 'lucide-react';
@@ -106,14 +108,14 @@ export default function Settings() {
 
       if (error) {
         console.error('[Settings] Password reset request failed:', error);
-        alert(es ? 'No se pudo enviar el correo de restablecimiento.' : 'The password reset email could not be sent.');
+        toast.error(es ? 'No se pudo enviar el correo de restablecimiento.' : 'The password reset email could not be sent.');
       } else {
         setEmailSuccess(true);
         setTimeout(() => setEmailSuccess(false), 3000);
       }
     } catch (err: any) {
         console.error('[Settings] Password reset request failed:', err);
-        alert(es ? 'No se pudo enviar el correo de restablecimiento.' : 'The password reset email could not be sent.');
+        toast.error(es ? 'No se pudo enviar el correo de restablecimiento.' : 'The password reset email could not be sent.');
     } finally {
       setEmailLoading(false);
     }
@@ -127,7 +129,7 @@ export default function Settings() {
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
       
       if (sessionError || !session?.access_token) {
-        alert(es ? 'Error: No hay una sesión activa. Inicia sesión de nuevo.' : 'Error: No active session. Please sign in again.');
+        toast.error(es ? 'Tu sesión ha caducado. Inicia sesión de nuevo.' : 'Your session has expired. Please sign in again.');
         setDeleteLoading(false);
         return;
       }
@@ -142,14 +144,12 @@ export default function Settings() {
       });
 
       if (!deleteResponse.ok) {
-        const errorData = await deleteResponse.json();
-        console.error('[Settings] Account deletion failed:', errorData.error);
-        alert(es ? 'No se pudo eliminar la cuenta.' : 'Could not delete the account.');
+        console.error('[Settings] Account deletion failed:', deleteResponse.status);
+        toast.error(es ? 'No se pudo eliminar la cuenta.' : 'Could not delete the account.');
         setDeleteLoading(false);
         return;
       }
 
-      console.log('[Settings] Account deleted successfully');
 
       // CRITICAL: Clear all auth data from storage BEFORE signing out
       // This prevents the ghost account issue
@@ -168,10 +168,11 @@ export default function Settings() {
       await signOut();
 
       // Navigate away
+      toast.success(es ? 'Tu cuenta se ha eliminado.' : 'Your account has been deleted.');
       navigate('/');
     } catch (err: any) {
       console.error('[Settings] Error deleting account:', err);
-      alert(es ? 'No se pudo eliminar la cuenta. Inténtalo más tarde.' : 'Could not delete the account. Please try again later.');
+      toast.error(es ? 'No se pudo eliminar la cuenta. Inténtalo más tarde.' : 'Could not delete the account. Please try again later.');
       setDeleteLoading(false);
     }
   };
@@ -340,13 +341,16 @@ export default function Settings() {
         </div>
       </div>
 
+      <Footer />
+
       {/* Delete Confirmation Modal */}
       {showDeleteModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-[hsl(var(--card))] border border-[hsl(var(--border))] rounded-lg max-w-sm w-full p-6 animate-in fade-in zoom-in-95 duration-200">
+          <div className="relative bg-[hsl(var(--card))] border border-[hsl(var(--border))] rounded-lg max-w-sm w-full max-h-[90vh] overflow-y-auto p-6 animate-in fade-in zoom-in-95 duration-200">
             {/* Close button */}
             <button
               onClick={() => setShowDeleteModal(false)}
+              aria-label={es ? 'Cerrar' : 'Close'}
               className="absolute top-4 right-4 p-1 hover:bg-[hsl(var(--muted))] rounded-lg transition-colors"
             >
               <X className="w-5 h-5 text-[hsl(var(--muted-foreground))]" />

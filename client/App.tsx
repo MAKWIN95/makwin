@@ -29,6 +29,7 @@ import Settings from "./pages/Settings";
 import Following from "./pages/Following";
 import NotFound from "./pages/NotFound";
 import ComingSoon from "./pages/ComingSoon";
+import Admin from "./pages/Admin";
 
 // Global UI
 import { I18nProvider, useI18n } from "@/lib/i18n";
@@ -164,7 +165,7 @@ const RoutesWrapper = () => {
       {/* Legacy redirects */}
       <Route path="/enviar-obra" element={<Navigate to="/subir-obra" replace />} />
       <Route path="/obras-enviadas" element={<Navigate to="/" replace />} />
-      <Route path="/admin" element={<Navigate to="/" replace />} />
+      <Route path="/admin" element={<Admin />} />
 
       {/* 404 */}
       <Route path="*" element={<NotFound />} />

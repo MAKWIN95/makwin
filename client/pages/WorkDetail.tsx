@@ -6,6 +6,7 @@ import { useWorks } from '@/lib/WorksContext';
 import { useFollow } from '@/lib/FollowContext';
 import { useStarsBackground } from '@/hooks/use-stars-background';
 import Header from '@/components/Header';
+import Footer from '@/components/Footer';
 import AuthModal from '@/components/AuthModal';
 import ReportModal from '@/components/ReportModal';
 import FollowButton from '@/components/FollowButton';
@@ -22,12 +23,20 @@ function AudioPlayer({ src }: { src: string }) {
   useEffect(() => {
     if (!el) return;
     const onTime = () => setTime(el.currentTime);
-    const onDur = () => setDur(el.duration || 0);
+    const onDur = () => setDur(Number.isFinite(el.duration) ? el.duration : 0);
+    const onEnded = () => {
+      setPlaying(false);
+      setTime(0);
+    };
     el.addEventListener('timeupdate', onTime);
     el.addEventListener('loadedmetadata', onDur);
+    el.addEventListener('durationchange', onDur);
+    el.addEventListener('ended', onEnded);
     return () => {
       el.removeEventListener('timeupdate', onTime);
       el.removeEventListener('loadedmetadata', onDur);
+      el.removeEventListener('durationchange', onDur);
+      el.removeEventListener('ended', onEnded);
     };
   }, [el]);
 
@@ -37,8 +46,10 @@ function AudioPlayer({ src }: { src: string }) {
       el.pause();
       setPlaying(false);
     } else {
-      el.play();
-      setPlaying(true);
+      el.play().then(() => setPlaying(true)).catch(err => {
+        console.error('[AudioPlayer] Could not play:', err);
+        setPlaying(false);
+      });
     }
   };
 
@@ -50,18 +61,23 @@ function AudioPlayer({ src }: { src: string }) {
 
   if (!src) return null;
 
+  const clock = (seconds: number) => {
+    const safe = Number.isFinite(seconds) ? Math.floor(seconds) : 0;
+    return `${String(Math.floor(safe / 60)).padStart(2, '0')}:${String(safe % 60).padStart(2, '0')}`;
+  };
+
   return (
     <div className="w-full">
       <audio ref={setEl as any} src={src} />
       <div className="flex items-center gap-4 justify-center mb-3">
-        <button onClick={toggle} className="p-3 rounded-full bg-[hsl(var(--popover))] hover:bg-[hsl(var(--popover))/0.95]">
+        <button onClick={toggle} aria-label={playing ? 'Pause' : 'Play'} className="p-3 rounded-full bg-[hsl(var(--popover))] hover:bg-[hsl(var(--popover))/0.95]">
           {playing ? '■' : '▶'}
         </button>
         <div className="w-full max-w-xl">
           <input type="range" min={0} max={dur || 0} value={time} onChange={e => seek(Number(e.target.value))} className="w-full" />
           <div className="text-xs text-[hsl(var(--muted-foreground))] flex justify-between mt-1">
-            <span>{new Date((time || 0) * 1000).toISOString().substr(14, 5)}</span>
-            <span>{new Date((dur || 0) * 1000).toISOString().substr(14, 5)}</span>
+            <span>{clock(time)}</span>
+            <span>{clock(dur)}</span>
           </div>
         </div>
       </div>
@@ -100,9 +116,6 @@ export default function WorkDetail() {
 
   useEffect(() => {
     const fetchWork = async () => {
-      console.log('[WorkDetail] ID from route params:', id, typeof id);
-      console.log('[WorkDetail] initialWorkData:', initialWorkData);
-      
       if (!id) {
         setError(currentLang === 'es' ? 'No se ha indicado una obra.' : 'No work was specified.');
         setLoading(false);
@@ -111,7 +124,6 @@ export default function WorkDetail() {
 
       // If we already have work data from state, skip initial fetch but still sync
       if (initialWorkData && !loading) {
-        console.log('[WorkDetail] Using work data from navigation state, work ID:', initialWorkData.id);
         return;
       }
 
@@ -120,7 +132,6 @@ export default function WorkDetail() {
         setError('');
         
         // Fetch work from database only
-        console.log('[WorkDetail] Fetching work with ID:', id, 'Type:', typeof id);
         const { data: workData, error: workError } = await supabase
           .from('works')
           .select(`
@@ -145,8 +156,6 @@ export default function WorkDetail() {
           .eq('id', id)
           .single();
 
-        console.log('[WorkDetail] Supabase response - workData:', workData, 'workError:', workError);
-        
         if (workError || !workData) {
           console.error('[WorkDetail] Work fetch error:', workError);
           
@@ -154,7 +163,6 @@ export default function WorkDetail() {
           if (retrying < 3 && workError?.code !== 'PGRST116') {
             const delays = [1500, 2500, 3500];
             setRetrying(retrying + 1);
-            console.log(`[WorkDetail] Retrying (attempt ${retrying + 1}/3) with delay ${delays[retrying]}ms...`);
             setTimeout(() => fetchWork(), delays[retrying]);
             return;
           }
@@ -164,7 +172,6 @@ export default function WorkDetail() {
           return;
         }
 
-        console.log('[WorkDetail] Work loaded:', workData.id);
         setWork(workData as unknown as Work);
         // Update context with like count
         worksContext.updateLikeCount(workData.id, workData.like_count || 0);
@@ -178,7 +185,6 @@ export default function WorkDetail() {
 
         if (!profileError && profileData) {
           setAuthor(profileData as Profile);
-          console.log('[WorkDetail] Profile loaded:', profileData.id);
         } else {
           console.warn('[WorkDetail] Profile fetch failed:', profileError);
         }
@@ -264,10 +270,10 @@ export default function WorkDetail() {
       <div className="min-h-screen bg-[hsl(var(--background))]">
         <Header hideSearch />
         <div className="flex flex-col items-center justify-center h-96 gap-4">
-          <p className="text-[hsl(var(--muted-foreground))]">{error || 'Obra no encontrada'}</p>
+          <p className="text-[hsl(var(--muted-foreground))]">{error || (currentLang === 'es' ? 'No se ha encontrado la obra.' : 'Work not found.')}</p>
           <Button onClick={() => navigate('/galeria')} variant="outline">
             <ArrowLeft className="w-4 h-4 mr-2" />
-            Volver a la galería
+            {currentLang === 'es' ? 'Volver a la galería' : 'Back to the gallery'}
           </Button>
         </div>
       </div>
@@ -298,7 +304,7 @@ export default function WorkDetail() {
             {/* Primary Image/Cover */}
             {work.cover_url && (
               <div className="flex items-start justify-center pt-12" style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'center', minHeight: '50vh' }}>
-                <img src={work.cover_url} alt={work.title} className="rounded-lg border border-[rgba(255,255,255,0.1)] max-h-80vh w-auto h-auto object-contain" loading="lazy" />
+                <img src={work.cover_url} alt={work.title} className="rounded-lg border border-[rgba(255,255,255,0.1)] max-h-[80vh] w-auto h-auto object-contain" />
               </div>
             )}
 
@@ -310,14 +316,14 @@ export default function WorkDetail() {
             {/* Video */}
             {work.work_type === 'video' && work.file_url && (
               <div className="flex items-center justify-center" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '80vh' }}>
-                <video src={work.file_url} controls className="rounded-lg border border-[rgba(255,255,255,0.1)] max-h-80vh w-auto object-contain" />
+                <video src={work.file_url} controls playsInline className="rounded-lg border border-[rgba(255,255,255,0.1)] max-h-[80vh] max-w-full w-auto object-contain" />
               </div>
             )}
 
             {/* Pintura/Fotografia secondary image */}
-            {(work.work_type === 'pintura' || work.work_type === 'fotografia') && work.file_url && (
+            {(work.work_type === 'pintura' || work.work_type === 'fotografia') && work.file_url && work.file_url !== work.cover_url && (
               <div className="flex items-center justify-center" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '80vh' }}>
-                <img src={work.file_url} alt={work.title} className="rounded-lg border border-[rgba(255,255,255,0.1)] max-h-80vh w-auto h-auto object-contain" loading="lazy" />
+                <img src={work.file_url} alt={work.title} className="rounded-lg border border-[rgba(255,255,255,0.1)] max-h-[80vh] max-w-full w-auto h-auto object-contain" loading="lazy" />
               </div>
             )}
 
@@ -391,7 +397,7 @@ export default function WorkDetail() {
             <div className="space-y-2 pt-4">
               <Button
                 onClick={handleLike}
-                disabled={!user || isPendingLike}
+                disabled={isPendingLike}
                 variant={liked ? 'default' : 'outline'}
                 className="w-full transition-all duration-250 ease-out"
               >
@@ -401,7 +407,7 @@ export default function WorkDetail() {
 
               <Button
                 onClick={handleSave}
-                disabled={!user || isPendingSave}
+                disabled={isPendingSave}
                 variant={saved ? 'default' : 'outline'}
                 className="w-full transition-all duration-250 ease-out"
               >
@@ -409,7 +415,7 @@ export default function WorkDetail() {
                 {currentLang === 'es' ? 'Guardar' : 'Save'}
               </Button>
 
-              <Button onClick={handleReport} disabled={!user} variant="outline" className="w-full transition-all duration-250 ease-out">
+              <Button onClick={handleReport} variant="outline" className="w-full transition-all duration-250 ease-out">
                 <Flag className="w-4 h-4 mr-2" />
                 {currentLang === 'es' ? 'Reportar' : 'Report'}
               </Button>
@@ -441,11 +447,9 @@ export default function WorkDetail() {
           onClose={() => setShowReportModal(false)}
           workId={work?.id || ''}
           userId={user?.id}
-          onSuccess={() => {
-            console.log('[WorkDetail] Report sent successfully');
-          }}
         />
       </main>
+      <Footer />
       </div>
     </div>
   );

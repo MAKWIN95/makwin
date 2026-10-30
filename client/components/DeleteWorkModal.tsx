@@ -31,7 +31,8 @@ export default function DeleteWorkModal({ isOpen, onClose, workId, workTitle, on
     setLoading(false);
 
     if (deleteError) {
-      setError(deleteError.message);
+      console.error('[DeleteWorkModal] Could not delete:', deleteError);
+      setError(es ? 'No se ha podido eliminar la obra. Inténtalo de nuevo.' : 'The work could not be deleted. Please try again.');
       return;
     }
 

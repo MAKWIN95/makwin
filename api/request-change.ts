@@ -1,4 +1,5 @@
 import { VercelRequest, VercelResponse } from "@vercel/node";
+import { artistsEmail, sendEmail } from "../server/lib/email.js";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // CORS
@@ -31,38 +32,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return;
     }
 
-    const { Resend } = await import('resend');
-    const resendApiKey = process.env.RESEND_API_KEY;
-    const fromAddress = process.env.RESEND_FROM || 'no-reply@makwin.art';
-
-    if (!resendApiKey) {
-      console.error('[REQUEST_CHANGE] Resend key no configurada');
-      res.status(500).json({ error: 'Email service not configured' });
-      return;
-    }
-
-    const resend = new Resend(resendApiKey);
-
-    const html = `
-      <div style="font-family: system-ui, -apple-system, sans-serif; color: #111;">
-        <h2>Solicitud de modificación / eliminación de obra</h2>
-        <p><strong>Artista:</strong> ${artistName}</p>
-        <p><strong>Email:</strong> ${email}</p>
-        <p><strong>ID de obra:</strong> ${submissionId}</p>
-        <p><strong>Mensaje:</strong></p>
-        <div style="white-space:pre-wrap; background:#f7f7f7; padding:12px; border-radius:6px;">${message}</div>
-      </div>
-    `;
-
-    const response = await resend.emails.send({
-      from: fromAddress,
-      to: 'sendtomakwin@gmail.com',
-      subject: `[SOLICITUD] Cambio/Eliminación - ${submissionId} - ${artistName}`,
-      html,
+    const result = await sendEmail({
+      to: artistsEmail(),
+      replyTo: email,
+      subject: `Solicitud de cambio: ${submissionId}`,
+      content: {
+        language: 'es',
+        title: 'Solicitud de cambio en una obra',
+        preheader: `${artistName} pide un cambio en ${submissionId}`,
+        blocks: [
+          { type: 'details', rows: [['Artista', artistName], ['Correo', email], ['Obra', submissionId]] },
+          { type: 'quote', text: message },
+        ],
+      },
     });
 
-    if ((response as any).error) {
-      console.error('[REQUEST_CHANGE] Error sending:', (response as any).error);
+    if (!result.ok) {
       res.status(500).json({ error: 'Error sending email' });
       return;
     }

@@ -1,0 +1,1 @@
+{{ if eq .Data.language_preference "en" }}Your MAKWIN account phone has changed{{ else }}El teléfono de tu cuenta de MAKWIN ha cambiado{{ end }}

@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
-import { X, AlertCircle } from 'lucide-react';
+import { X, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
 import { Button } from '@/components/ui/button';
-import { supabase } from '@/lib/supabase';
+import { authHeaders } from '@/lib/adminApi';
+import { toast } from 'sonner';
 
 interface ReportModalProps {
   isOpen: boolean;
@@ -43,14 +44,17 @@ export default function ReportModal({
 
     setLoading(true);
     try {
-      const { error } = await supabase.from('policy_reports').insert({
-        work_id: workId,
-        reporter_id: userId,
-        reason,
-        details: reason === 'otro' ? customReason : null,
+      const response = await fetch('/api/reports', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
+        body: JSON.stringify({
+          workId,
+          reason,
+          details: reason === 'otro' ? customReason.trim() : null,
+        }),
       });
 
-      if (error) throw error;
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
       setSubmitted(true);
       setTimeout(() => {
@@ -62,25 +66,25 @@ export default function ReportModal({
       }, 2000);
     } catch (err) {
       console.error('[ReportModal] Error:', err);
-      alert('Error al enviar reporte. Intenta más tarde.');
+      toast.error(currentLang === 'es' ? 'No se pudo enviar el reporte. Inténtalo más tarde.' : 'The report could not be sent. Please try again later.');
     } finally {
       setLoading(false);
     }
   };
 
-  const isOtherSelected = reason === 'other';
-  const isFormValid = reason && (isOtherSelected ? customReason.trim() : true);
+  const isFormValid = reason && (reason === 'otro' ? customReason.trim() : true);
 
   // ISSUE 3 FIX: Use createPortal to render modal at document.body
   // This ensures it's truly fixed and not constrained by parent grid
   const modalContent = (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-[hsl(var(--card))] border border-[hsl(var(--border))] rounded-lg max-w-md w-full p-6 animate-in fade-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
+      <div className="relative bg-[hsl(var(--card))] border border-[hsl(var(--border))] rounded-lg max-w-md w-full max-h-[90vh] overflow-y-auto p-6 animate-in fade-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
         {/* Close button */}
         <button
           onClick={onClose}
           className="absolute top-4 right-4 p-1 hover:bg-[hsl(var(--muted))] rounded-lg transition-colors"
           disabled={loading}
+          aria-label={currentLang === 'es' ? 'Cerrar' : 'Close'}
         >
           <X className="w-5 h-5 text-[hsl(var(--muted-foreground))]" />
         </button>
@@ -158,15 +162,15 @@ export default function ReportModal({
             {/* Success message */}
             <div className="flex flex-col items-center justify-center py-8">
               <div className="w-12 h-12 rounded-full bg-green-500/10 flex items-center justify-center mb-4">
-                <AlertCircle className="w-6 h-6 text-green-500" />
+                <CheckCircle2 className="w-6 h-6 text-green-500" />
               </div>
               <h3 className="text-lg font-bold text-[hsl(var(--foreground))] mb-2">
-                {currentLang === 'es' ? '¡Reporte enviado!' : 'Report sent!'}
+                {currentLang === 'es' ? 'Reporte enviado' : 'Report sent'}
               </h3>
               <p className="text-sm text-[hsl(var(--muted-foreground))] text-center">
                 {currentLang === 'es' 
-                  ? 'Tu denuncia está siendo revisada por nuestro equipo.'
-                  : 'Your report is being reviewed by our team.'}
+                  ? 'Nuestro equipo lo revisará.'
+                  : 'Our team will review it.'}
               </p>
             </div>
           </>

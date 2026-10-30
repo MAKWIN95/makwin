@@ -4,6 +4,8 @@ import { useAuth } from '@/lib/AuthContext';
 import { useI18n } from '@/lib/i18n';
 import { supabase } from '@/lib/supabase';
 import { checkUsernameAvailability } from '@/lib/usernameAvailability';
+import { getAuthErrorMessage } from '@/lib/authErrors';
+import { getPasswordPolicyError } from '@/lib/passwordPolicy';
 
 export default function Register() {
   const { user, loading: authLoading, signUpWithEmail, signInWithGoogle } = useAuth();
@@ -178,8 +180,8 @@ export default function Register() {
       return es ? 'Rellena todos los campos.' : 'Fill in all fields.';
     if (form.password !== form.confirmPassword)
       return es ? 'Las contraseñas no coinciden.' : 'Passwords do not match.';
-    if (form.password.length < 8)
-      return es ? 'La contraseña debe tener al menos 8 caracteres.' : 'Password must be at least 8 characters.';
+    const passwordError = getPasswordPolicyError(form.password, language);
+    if (passwordError) return passwordError;
     if (!/^[a-z0-9]([a-z0-9_.]*[a-z0-9])?$/.test(form.username.toLowerCase()))
       return es ? 'El nombre de usuario solo puede contener letras, números, puntos y guion bajo. No puede empezar ni terminar con punto.' : 'Username can only contain letters, numbers, dots and underscores. Cannot start or end with a dot.';
     if (form.username.length < 3 || form.username.length > 24)
@@ -197,30 +199,11 @@ export default function Register() {
     if (validationError) { setError(validationError); return; }
     setError('');
     setLoading(true);
-    console.log('[Register] Starting signup for:', form.email);
     try {
-      const { error } = await signUpWithEmail(form.email, form.password, form.username, form.displayName);
-      console.log('[Register] Signup response received - error:', error);
+      const { error } = await signUpWithEmail(form.email, form.password, form.username, form.displayName, language);
       if (error) {
-        // Parse and show user-friendly error messages
-        if (error.includes('already registered') || error.includes('already exists')) {
-          setError(es
-            ? `${form.email} ya está registrado. ¿Te gustaría iniciar sesión?`
-            : `${form.email} is already registered. Would you like to sign in?`);
-        } else if (error.includes('password') || error.includes('weak password')) {
-          setError(es
-            ? 'La contraseña no es lo suficientemente segura.'
-            : 'The password is not secure enough.');
-        } else if (error.includes('Database error saving new user')) {
-          // The profile trigger rejected the username (taken since our check).
-          setError(es ? 'Este nombre de usuario ya está en uso.' : 'This username is already in use.');
-        } else if (error.includes('username') || error.includes('Usuario')) {
-          setError(error); // Custom error from our check
-        } else {
-          setError(error);
-        }
+        setError(getAuthErrorMessage(error, language));
       } else {
-        console.log('[Register] Signup successful');
         setSuccess(true);
       }
     } catch (err: any) {
@@ -281,7 +264,16 @@ export default function Register() {
 
           {/* Google */}
           <button
-            onClick={async () => { setLoading(true); await signInWithGoogle(); }}
+            onClick={async () => {
+              setError('');
+              setLoading(true);
+              try {
+                await signInWithGoogle();
+              } catch (err) {
+                setError(getAuthErrorMessage(err, language));
+                setLoading(false);
+              }
+            }}
             disabled={loading}
             className="w-full flex items-center justify-center gap-3 border border-[hsl(var(--border))] rounded-xl py-3 px-4 text-sm font-medium text-[hsl(var(--foreground))] hover:bg-[hsl(var(--muted))] transition-colors mb-6"
           >

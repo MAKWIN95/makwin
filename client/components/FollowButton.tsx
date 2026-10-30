@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
+import { useState } from 'react';
 import { useAuth } from '@/lib/AuthContext';
+import { useI18n } from '@/lib/i18n';
+import { toast } from 'sonner';
 import { useFollow } from '@/lib/FollowContext';
 import { Button } from '@/components/ui/button';
 import { User, UserPlus } from 'lucide-react';
@@ -21,6 +22,8 @@ export default function FollowButton({
   size = 'md',
 }: FollowButtonProps) {
   const { user } = useAuth();
+  const { language } = useI18n();
+  const es = language === 'es';
   const { isFollowing: isFollowingGlobal, setFollowing } = useFollow();
   const [loading, setLoading] = useState(false);
 
@@ -31,10 +34,7 @@ export default function FollowButton({
     e.preventDefault();
     e.stopPropagation();
 
-    if (!user) {
-      window.dispatchEvent(new CustomEvent('showAuthModal'));
-      return;
-    }
+    if (!user) return;
 
     if (user.id === userId) {
       return; // Can't follow yourself
@@ -47,6 +47,7 @@ export default function FollowButton({
       onFollowChange?.(!isFollowing);
     } catch (err) {
       console.error('Follow toggle error:', err);
+      toast.error(es ? 'No se pudo actualizar. Inténtalo de nuevo.' : 'Could not update. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -65,19 +66,19 @@ export default function FollowButton({
       variant="outline"
       className={`transition-all duration-200 ease-out ${sizeClasses[size]} ${className} ${
         isFollowing
-          ? 'bg-[#3a3a3a] text-white border-[#3a3a3a] hover:opacity-90'
-          : 'bg-white border border-white text-[#000000] hover:opacity-90'
+          ? 'bg-[hsl(var(--muted))] text-[hsl(var(--foreground))] border-[hsl(var(--border))] hover:opacity-90'
+          : 'bg-[hsl(var(--foreground))] text-[hsl(var(--background))] border-[hsl(var(--foreground))] hover:bg-[hsl(var(--foreground))] hover:text-[hsl(var(--background))] hover:opacity-90'
       }`}
     >
       {isFollowing ? (
         <>
           <User className="w-4 h-4 mr-2" />
-          Siguiendo
+          {es ? 'Siguiendo' : 'Following'}
         </>
       ) : (
         <>
           <UserPlus className="w-4 h-4 mr-2" />
-          Seguir
+          {es ? 'Seguir' : 'Follow'}
         </>
       )}
     </Button>

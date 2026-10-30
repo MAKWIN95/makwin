@@ -86,6 +86,7 @@ export const FollowProvider = ({ children }: { children: ReactNode }) => {
       console.error('[FollowContext] Sync error:', err);
       // Revert optimistic update on error
       await loadFollowingList();
+      throw err;
     }
   }, [user, loadFollowingList]);
 

@@ -1,5 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
-import * as jwt from "jsonwebtoken";
+import { sendEmail } from "./email.js";
 
 const supabaseAdminUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
 const supabaseAdminKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -12,20 +12,12 @@ if (!supabaseAdminUrl || !supabaseAdminKey) {
 
 const supabaseAdmin = createClient(supabaseAdminUrl, supabaseAdminKey);
 
-export function getUserIdFromAuthorizationHeader(authHeader?: string | null): string {
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    throw new Error("Missing or invalid Authorization header");
-  }
+// Asks Supabase to validate the token: decoding it locally would accept forged ones.
+export async function getUserIdFromAuthorizationHeader(authHeader?: string | null): Promise<string | null> {
+  if (!authHeader || !authHeader.startsWith("Bearer ")) return null;
 
-  const token = authHeader.substring(7);
-  const decoded: any = jwt.decode(token);
-  const userId = decoded?.sub;
-
-  if (!userId || typeof userId !== "string") {
-    throw new Error("Invalid token - missing user ID");
-  }
-
-  return userId;
+  const { data, error } = await supabaseAdmin.auth.getUser(authHeader.substring(7));
+  return error ? null : data?.user?.id ?? null;
 }
 
 export async function pruneOrphanedProfileByUsername(username: string): Promise<{ available: boolean; cleaned: boolean }> {
@@ -65,83 +57,72 @@ export async function pruneOrphanedProfileByUsername(username: string): Promise<
   return { available: true, cleaned: true };
 }
 
+async function removeUserFiles(userId: string): Promise<void> {
+  for (const bucket of ['works', 'avatars']) {
+    const storage = supabaseAdmin.storage.from(bucket);
+    const folders = [userId, `${userId}/covers`];
+    for (const folder of folders) {
+      const { data, error } = await storage.list(folder, { limit: 1000 });
+      if (error) {
+        console.warn(`[DELETE-ACCOUNT] Could not list ${bucket}:`, error.message);
+        continue;
+      }
+      const files = (data ?? []).filter((item) => item.id).map((item) => `${folder}/${item.name}`);
+      if (files.length) {
+        const { error: removeError } = await storage.remove(files);
+        if (removeError) console.warn(`[DELETE-ACCOUNT] Could not remove files from ${bucket}:`, removeError.message);
+      }
+    }
+  }
+}
+
+async function sendDeletionConfirmation(email: string, language: unknown): Promise<void> {
+  const es = language !== 'en';
+  await sendEmail({
+    to: email,
+    subject: es ? 'Tu cuenta de MAKWIN se ha eliminado' : 'Your MAKWIN account has been deleted',
+    content: {
+      language: es ? 'es' : 'en',
+      title: es ? 'Tu cuenta se ha eliminado' : 'Your account has been deleted',
+      preheader: es ? 'Hemos borrado tu cuenta y tus datos.' : 'We have deleted your account and your data.',
+      blocks: [
+        {
+          type: 'text',
+          text: es
+            ? 'Hemos eliminado tu cuenta de MAKWIN junto con tu perfil, tus obras y tu actividad. Gracias por haber formado parte de MAKWIN.'
+            : 'We have deleted your MAKWIN account along with your profile, your works and your activity. Thank you for being part of MAKWIN.',
+        },
+        {
+          type: 'note',
+          text: es
+            ? 'Si no has sido tú, escríbenos desde Ayuda y contacto en la web de MAKWIN.'
+            : 'If this was not you, write to us from Help & Contact on the MAKWIN website.',
+        },
+      ],
+    },
+  });
+}
+
 export async function deleteAccountForUser(userId: string): Promise<void> {
-  console.log(`[DELETE-ACCOUNT] ============================================`);
-  console.log(`[DELETE-ACCOUNT] Starting deletion for user: ${userId}`);
-  console.log(`[DELETE-ACCOUNT] Supabase URL: ${supabaseAdminUrl}`);
-  console.log(`[DELETE-ACCOUNT] Has service role key: ${!!supabaseAdminKey}`);
-
-  // Step 1: Verify the auth user exists
-  console.log(`[DELETE-ACCOUNT] STEP 1: Verifying auth user exists...`);
-  const { data: getUserResponse, error: getUserError } = await supabaseAdmin.auth.admin.getUserById(userId);
-  if (getUserError) {
-    console.error("[DELETE-ACCOUNT] ❌ Error fetching auth user:", getUserError);
-    throw new Error(`Failed to verify auth user: ${getUserError.message}`);
+  const { data, error: getUserError } = await supabaseAdmin.auth.admin.getUserById(userId);
+  if (getUserError || !data?.user) {
+    throw new Error(`Failed to verify auth user: ${getUserError?.message ?? "not found"}`);
   }
+  const { email, user_metadata: metadata } = data.user;
 
-  const existingUser = getUserResponse?.user;
-  if (!existingUser) {
-    console.error("[DELETE-ACCOUNT] ❌ Auth user not found for ID:", userId);
-    throw new Error("Auth user not found - already deleted?");
-  }
+  await removeUserFiles(userId);
 
-  console.log(
-    "[DELETE-ACCOUNT] ✅ Found auth user:",
-    existingUser.email || userId
-  );
-
-  // Step 2: Delete the Auth user from Supabase
-  console.log(`[DELETE-ACCOUNT] STEP 2: Deleting auth user from Supabase...`);
-  const { data: deleteAuthData, error: deleteAuthError } = await supabaseAdmin.auth.admin.deleteUser(userId);
+  // Profile, works, likes, saves and follows all cascade from the auth user.
+  const { error: deleteAuthError } = await supabaseAdmin.auth.admin.deleteUser(userId);
   if (deleteAuthError) {
-    console.error("[DELETE-ACCOUNT] ❌ Error deleting auth user:", deleteAuthError);
     throw new Error(`Failed to delete auth user: ${deleteAuthError.message}`);
   }
 
-  console.log(
-    `[DELETE-ACCOUNT] ✅ Successfully deleted auth user: ${deleteAuthData?.user?.id || userId}`
-  );
-
-  // Step 3: Explicitly clear the profile row, since stale profiles can remain when an auth user is deleted from the dashboard or a previous cascade was missed.
-  console.log(`[DELETE-ACCOUNT] STEP 3: Cleaning up profile row...`);
-  const { error: deleteProfileError } = await supabaseAdmin
-    .from('profiles')
-    .delete()
-    .eq('id', userId);
-
+  // Stale profiles can survive when an earlier cascade was missed.
+  const { error: deleteProfileError } = await supabaseAdmin.from("profiles").delete().eq("id", userId);
   if (deleteProfileError) {
-    console.warn('[DELETE-ACCOUNT] ⚠️ profile cleanup warning:', deleteProfileError.message);
-  } else {
-    console.log(`[DELETE-ACCOUNT] ✅ Deleted profile row for user: ${userId}`);
+    console.warn("[DELETE-ACCOUNT] Profile cleanup warning:", deleteProfileError.message);
   }
 
-  // Step 4: Clean up database records
-  console.log(`[DELETE-ACCOUNT] STEP 4: Cleaning up database records...`);
-  const cleanupTargets = [
-    { table: "works", column: "user_id" },
-    { table: "likes", column: "user_id" },
-    { table: "saves", column: "user_id" },
-  ];
-
-  for (const target of cleanupTargets) {
-    console.log(`[DELETE-ACCOUNT] Deleting from ${target.table}...`);
-    const { error, count } = await supabaseAdmin
-      .from(target.table)
-      .delete()
-      .eq(target.column, userId);
-
-    if (error) {
-      console.error(
-        `[DELETE-ACCOUNT] ❌ Error deleting ${target.table}:`,
-        error
-      );
-      console.warn(`[DELETE-ACCOUNT] ⚠️  Continuing despite ${target.table} deletion issue`);
-    } else {
-      console.log(`[DELETE-ACCOUNT] ✅ Deleted ${target.table} for user: ${userId}`);
-    }
-  }
-
-  console.log(`[DELETE-ACCOUNT] ============================================`);
-  console.log(`[DELETE-ACCOUNT] ✅✅✅ ACCOUNT DELETION COMPLETE FOR: ${userId}`);
-  console.log(`[DELETE-ACCOUNT] ============================================`);
+  if (email) await sendDeletionConfirmation(email, metadata?.language_preference);
 }

@@ -37,6 +37,9 @@ describe('submit work API', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.stubEnv('RESEND_API_KEY', 're_test_key');
+    vi.stubEnv('RESEND_FROM', 'MAKWIN <no-reply@example.test>');
+    vi.stubEnv('HELP_EMAIL', 'help@example.test');
+    vi.stubEnv('ARTISTS_EMAIL', 'artists@example.test');
     resendMock.send.mockResolvedValue({ data: { id: 'email-id' }, error: null });
   });
 

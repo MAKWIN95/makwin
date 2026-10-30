@@ -35,6 +35,10 @@ export function I18nProvider({ children, initialLanguage }: { children: ReactNod
     return preferred;
   });
 
+  useEffect(() => {
+    document.documentElement.lang = language;
+  }, [language]);
+
   const t = useCallback((key: TranslationKey): string => {
     return translations[language][key];
   }, [language]);

@@ -29,6 +29,14 @@ const STATUS_LABELS = {
   resolved: { es: 'Resuelto', en: 'Resolved' },
 };
 
+const CATEGORY_LABELS: Record<string, { es: string; en: string }> = {
+  question: { es: 'Pregunta', en: 'Question' },
+  bug: { es: 'Error en la web', en: 'Something is broken' },
+  feature: { es: 'Sugerencia', en: 'Suggestion' },
+  account: { es: 'Problema con la cuenta', en: 'Account issue' },
+  other: { es: 'Otro', en: 'Other' },
+};
+
 export default function AdminHelpMessages() {
   const { language } = useI18n();
   const [messages, setMessages] = useState<HelpMessage[]>([]);
@@ -146,7 +154,7 @@ export default function AdminHelpMessages() {
 
               <div className="mb-3">
                 <p className="text-sm text-[hsl(var(--muted-foreground))] mb-2">
-                  {language === 'es' ? 'Categoría:' : 'Category:'} {msg.category}
+                  {language === 'es' ? 'Categoría:' : 'Category:'} {CATEGORY_LABELS[msg.category]?.[language] ?? msg.category}
                 </p>
                 <p className="text-sm bg-[hsl(var(--muted))] p-3 rounded border border-[hsl(var(--border))] whitespace-pre-wrap">
                   {msg.message}

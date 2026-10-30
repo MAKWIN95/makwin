@@ -2,11 +2,14 @@ import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/custom-dialog";
 import LanguageSelector from "./LanguageSelector";
-import { Filter, ArrowLeft, Upload, Bookmark, User, LogOut, Settings, Heart, Moon, Sun, Menu } from 'lucide-react';
+import { Filter, ArrowLeft, Upload, Bookmark, User, LogOut, Settings, Heart, Moon, Sun, Menu, Shield } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
 import { useAuth } from '@/lib/AuthContext';
 import { useTheme } from "@/hooks/use-theme";
 import { useSidebar } from "@/lib/SidebarContext";
+import { authHeaders } from "@/lib/adminApi";
+
+const readSearch = (search: string) => (new URLSearchParams(search).get('search') ?? '').replace(/^#/, '').trim();
 
 interface HeaderProps {
   showSearch?: boolean;
@@ -16,7 +19,9 @@ interface HeaderProps {
 }
 
 export default function Header({ showSearch = true, showSearchCentered = false, breadcrumb, hideSearch = false }: HeaderProps) {
-  const [searchTerm, setSearchTerm] = useState("");
+  const initialLocation = useLocation();
+  const [searchTerm, setSearchTerm] = useState(() => readSearch(initialLocation.search));
+  const [isAdmin, setIsAdmin] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -49,9 +54,52 @@ export default function Header({ showSearch = true, showSearchCentered = false, 
     return () => document.removeEventListener('mousedown', onDown);
   }, []);
 
+  const isGallery = location.pathname === '/' || location.pathname.startsWith('/galeria');
+
+  // Follow the address (hashtag links, "clear search", back button) without
+  // fighting the spaces someone is still typing.
   useEffect(() => {
-    document.dispatchEvent(new CustomEvent('updateSearchTerm', { detail: { searchTerm } }));
-  }, [searchTerm]);
+    const fromUrl = readSearch(location.search);
+    setSearchTerm((current) => (current.replace(/^#/, '').trim() === fromUrl ? current : fromUrl));
+  }, [location.search]);
+
+  const writeSearch = (value: string) => {
+    const params = new URLSearchParams(location.search);
+    const cleaned = value.replace(/^#/, '').trim();
+    if (cleaned) params.set('search', cleaned);
+    else params.delete('search');
+    navigate({ search: params.toString() }, { replace: true });
+  };
+
+  const handleSearchChange = (value: string) => {
+    setSearchTerm(value);
+    setIsSearching(true);
+    if (isGallery) writeSearch(value);
+  };
+
+  const handleSearchSubmit = (event: React.FormEvent) => {
+    event.preventDefault();
+    if (isGallery) return;
+    const cleaned = searchTerm.replace(/^#/, '').trim();
+    navigate(cleaned ? `/galeria?search=${encodeURIComponent(cleaned)}` : '/galeria');
+  };
+
+  // Only the server knows who is an administrator; ask when the menu is opened.
+  useEffect(() => {
+    if (!showUserMenu || !user || isAdmin) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const response = await fetch('/api/get-submissions', { headers: await authHeaders() });
+        if (!response.ok) return;
+        const data = await response.json();
+        if (!cancelled && data?.scope === 'admin') setIsAdmin(true);
+      } catch {
+        // Not being able to check simply leaves the entry hidden.
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [showUserMenu, user?.id, isAdmin]);
 
   const isGalleryish = location.pathname.startsWith('/galeria') || location.pathname.startsWith('/merch') || location.pathname.startsWith('/marketplace');
   const isHomePage = location.pathname === '/home';
@@ -107,31 +155,35 @@ export default function Header({ showSearch = true, showSearchCentered = false, 
           {/* Center: search */}
           <div className={`${isHomePage ? 'hidden' : 'col-span-1'} flex items-center justify-center`} ref={searchRef}>
             {!hideSearch && showSearch && (
-              <div className="flex items-center w-full max-w-xs sm:max-w-xl">
+              <form role="search" onSubmit={handleSearchSubmit} className="flex items-center w-full max-w-xs sm:max-w-xl">
                 <input
                   id="site-search-input"
                   type="search"
                   placeholder={t('search.placeholder')}
                   value={searchTerm}
-                  onChange={(e) => { setSearchTerm(e.target.value); setIsSearching(true); }}
+                  onChange={(e) => handleSearchChange(e.target.value)}
                   onFocus={() => setIsSearching(true)}
                   aria-label={t('search.placeholder')}
                   className="flex-1 px-3 sm:px-4 py-2 text-sm bg-[hsl(var(--popover))/0.6] backdrop-blur-sm border border-[rgba(120,120,120,0.25)] rounded-lg focus:outline-none focus:ring-1 focus:ring-[hsl(var(--ring))] transition-all placeholder:text-[hsl(var(--muted-foreground))]"
                 />
-                <button
-                  id="filter-btn"
-                                  className="ml-2 p-2 hidden sm:inline-flex border border-[rgba(120,120,120,0.25)] rounded-lg hover:bg-[hsl(var(--muted))] transition-colors duration-200"
-                  onClick={() => document.dispatchEvent(new Event('toggleFilterPopup'))}
-                >
-                  <Filter size={16} className="text-[hsl(var(--muted-foreground))]" />
-                </button>
-              </div>
+                {isGallery && (
+                  <button
+                    id="filter-btn"
+                    type="button"
+                    aria-label={es ? 'Filtrar' : 'Filter'}
+                    className="ml-2 p-2 hidden sm:inline-flex border border-[rgba(120,120,120,0.25)] rounded-lg hover:bg-[hsl(var(--muted))] transition-colors duration-200"
+                    onClick={() => document.dispatchEvent(new Event('toggleFilterPopup'))}
+                  >
+                    <Filter size={16} className="text-[hsl(var(--muted-foreground))]" />
+                  </button>
+                )}
+              </form>
             )}
           </div>
 
           {/* Right: lang + music + user */}
           <div className={`${isHomePage ? 'col-span-3 flex justify-center' : 'col-span-1 flex justify-end'} flex items-center gap-2 sm:gap-3`}>
-            <div id="lang-selector-wrap" className="hidden sm:block whitespace-nowrap">
+            <div id="lang-selector-wrap" className="whitespace-nowrap">
               <LanguageSelector />
             </div>
 
@@ -166,6 +218,7 @@ export default function Header({ showSearch = true, showSearchCentered = false, 
               <div className="relative" ref={userMenuRef}>
                 <button
                   onClick={() => setShowUserMenu(p => !p)}
+                  aria-label={es ? 'Menú de usuario' : 'User menu'}
                   className="h-8 w-8 rounded-xl p-0 transition-opacity hover:bg-transparent hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))] focus-visible:ring-offset-2 focus-visible:ring-offset-[hsl(var(--background))]"
                 >
                   <div className="w-8 h-8 rounded-xl overflow-hidden bg-[hsl(var(--muted))] border border-[rgba(120,120,120,0.25)] flex items-center justify-center text-sm font-medium">
@@ -203,6 +256,12 @@ export default function Header({ showSearch = true, showSearchCentered = false, 
                         className="flex items-center gap-3 px-4 py-2.5 text-sm text-[hsl(var(--foreground))] hover:bg-[hsl(var(--muted))] transition-colors">
                         <Settings className="w-4 h-4" /> {es ? 'Configuración' : 'Settings'}
                       </Link>
+                      {isAdmin && (
+                        <Link to="/admin" onClick={() => setShowUserMenu(false)}
+                          className="flex items-center gap-3 px-4 py-2.5 text-sm text-[hsl(var(--foreground))] hover:bg-[hsl(var(--muted))] transition-colors">
+                          <Shield className="w-4 h-4" /> {es ? 'Administración' : 'Administration'}
+                        </Link>
+                      )}
                       <button onClick={() => { toggleTheme(); }}
                         className="flex items-center gap-3 px-4 py-2.5 text-sm text-[hsl(var(--foreground))] hover:bg-[hsl(var(--muted))] transition-colors w-full text-left">
                         {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
@@ -219,8 +278,8 @@ export default function Header({ showSearch = true, showSearchCentered = false, 
                           // Reset opacity for next page
                           document.documentElement.style.opacity = '1';
                           document.documentElement.style.transition = 'none';
-                          const publicRoutes = ['/', '/galeria', '/marketplace', '/merch'];
-                          const shouldStayOnRoute = publicRoutes.some(r => location.pathname.startsWith(r));
+                          const shouldStayOnRoute = location.pathname === '/'
+                            || ['/galeria', '/marketplace', '/merch', '/work/', '/u/'].some(r => location.pathname.startsWith(r));
                           navigate(shouldStayOnRoute ? location.pathname : '/galeria', { replace: true });
                         }}
                           disabled={isLoggingOut}

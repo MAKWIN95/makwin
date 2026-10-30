@@ -6,6 +6,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AlertCircle, CheckCircle2, Loader2, Trash2, Archive, RotateCcw } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
 import AdminHelpMessages from '@/components/AdminHelpMessages';
+import AdminReports from '@/components/AdminReports';
+import Footer from '@/components/Footer';
 import { authHeaders } from '@/lib/adminApi';
 
 interface Submission {
@@ -29,6 +31,7 @@ interface Submission {
 export default function Admin() {
   const [unlocked, setUnlocked] = useState(false);
   const { language } = useI18n();
+  const es = language === 'es';
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -49,10 +52,10 @@ export default function Admin() {
         setUnlocked(data.scope === 'admin');
         setSubmissions(data.scope === 'admin' ? data.submissions || [] : []);
       } else {
-        setError('Error al cargar las obras');
+        setError(es ? 'No se pudieron cargar las obras.' : 'Works could not be loaded.');
       }
     } catch (err) {
-      setError('Error de conexión');
+      setError(es ? 'Problema de conexión. Inténtalo de nuevo.' : 'Connection problem. Please try again.');
       console.error(err);
     } finally {
       setLoading(false);
@@ -73,17 +76,14 @@ export default function Admin() {
       });
 
       if (!response.ok) {
-        const errorMessage =
-          action === 'publish'
-            ? 'Error al publicar'
-            : action === 'reject'
-              ? 'Error al denegar'
-              : action === 'archive'
-                ? 'Error al archivar'
-                : action === 'delete'
-                  ? 'Error al eliminar'
-                  : 'Error al republicar';
-        setError(errorMessage);
+        const messages = {
+          publish: es ? 'No se pudo publicar.' : 'Could not publish.',
+          reject: es ? 'No se pudo rechazar.' : 'Could not reject.',
+          archive: es ? 'No se pudo archivar.' : 'Could not archive.',
+          delete: es ? 'No se pudo eliminar.' : 'Could not delete.',
+          republish: es ? 'No se pudo republicar.' : 'Could not republish.',
+        };
+        setError(messages[action]);
         return;
       }
 
@@ -123,7 +123,7 @@ export default function Admin() {
         );
       }
     } catch (err) {
-      setError('Error de conexión');
+      setError(es ? 'Problema de conexión. Inténtalo de nuevo.' : 'Connection problem. Please try again.');
       console.error(err);
     } finally {
       setProcessing((prev) => ({ ...prev, [submissionId]: false }));
@@ -135,7 +135,7 @@ export default function Admin() {
   };
 
   const handleReject = async (submissionId: string) => {
-    const reason = window.prompt('Motivo de la denegación (opcional)');
+    const reason = window.prompt(es ? 'Motivo del rechazo (opcional)' : 'Reason for rejection (optional)');
     await handleWorkAction('reject', submissionId, reason || undefined);
   };
 
@@ -144,7 +144,7 @@ export default function Admin() {
   };
 
   const handleDelete = async (submissionId: string) => {
-    if (!window.confirm('¿Eliminar esta obra definitivamente?')) return;
+    if (!window.confirm(es ? '¿Eliminar esta obra definitivamente?' : 'Delete this work permanently?')) return;
     await handleWorkAction('delete', submissionId);
   };
 
@@ -154,7 +154,7 @@ export default function Admin() {
 
 
   const formatDate = (timestamp: string): string => {
-    return new Date(timestamp).toLocaleString('es-ES');
+    return new Date(timestamp).toLocaleString(es ? 'es-ES' : 'en-US');
   };
 
   const pendingWorks = submissions.filter((s) => !s.status || s.status === 'pending');
@@ -163,32 +163,35 @@ export default function Admin() {
 
   if (!unlocked) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[hsl(var(--background))]">
-        {loading ? (
-          <Loader2 className="w-6 h-6 animate-spin text-[hsl(var(--muted-foreground))]" />
-        ) : (
-          <p className="text-sm text-[hsl(var(--muted-foreground))]">
-            {error || (language === 'en'
-              ? 'Restricted access: sign in with an admin account.'
-              : 'Acceso restringido: inicia sesión con una cuenta de administrador.')}
-          </p>
-        )}
+      <div className="min-h-screen flex flex-col bg-[hsl(var(--background))]">
+        <Header hideSearch />
+        <div className="flex-1 flex items-center justify-center px-4 text-center">
+          {loading ? (
+            <Loader2 className="w-6 h-6 animate-spin text-[hsl(var(--muted-foreground))]" />
+          ) : (
+            <p className="text-sm text-[hsl(var(--muted-foreground))]">
+              {error || (language === 'en'
+                ? 'Restricted access: sign in with an admin account.'
+                : 'Acceso restringido: inicia sesión con una cuenta de administrador.')}
+            </p>
+          )}
+        </div>
       </div>
     );
   }
 
   return (
     <div className="min-h-screen bg-[hsl(var(--background))]">
-      <Header />
+      <Header hideSearch />
       <main className="w-full page-enter">
         <div className="px-4 sm:px-8 py-8 sm:py-12">
           <div className="max-w-6xl mx-auto">
             <div className="mb-8">
               <h1 className="text-3xl sm:text-4xl font-light tracking-tight text-[hsl(var(--foreground))] mb-2">
-                Panel de Admin
+                {es ? 'Administración' : 'Administration'}
               </h1>
               <p className="text-sm text-[hsl(var(--muted-foreground))]">
-                Gestiona las obras enviadas por artistas
+                {es ? 'Obras, mensajes de ayuda y reportes' : 'Works, help messages and reports'}
               </p>
             </div>
 
@@ -205,18 +208,21 @@ export default function Admin() {
               </div>
             ) : (
               <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                <TabsList className="grid w-full grid-cols-3 mb-8">
+                <TabsList className="flex h-auto w-full flex-wrap justify-start gap-1 mb-8">
                   <TabsTrigger value="pending">
-                    Por Revisar ({pendingWorks.length})
+                    {es ? 'Por revisar' : 'To review'} ({pendingWorks.length})
                   </TabsTrigger>
                   <TabsTrigger value="published">
-                    Publicadas ({publishedWorks.length})
+                    {es ? 'Publicadas' : 'Published'} ({publishedWorks.length})
                   </TabsTrigger>
                   <TabsTrigger value="archived">
-                    Archivadas ({archivedWorks.length})
+                    {es ? 'Archivadas' : 'Archived'} ({archivedWorks.length})
                   </TabsTrigger>
                   <TabsTrigger value="help-messages">
-                    {language === 'es' ? 'Mensajes de Ayuda' : 'Help Messages'}
+                    {es ? 'Mensajes de ayuda' : 'Help messages'}
+                  </TabsTrigger>
+                  <TabsTrigger value="reports">
+                    {es ? 'Reportes' : 'Reports'}
                   </TabsTrigger>
                 </TabsList>
 
@@ -226,10 +232,10 @@ export default function Admin() {
                     <Card className="p-12 text-center">
                       <CheckCircle2 className="w-16 h-16 text-green-600 mx-auto mb-4" />
                       <h2 className="text-xl font-medium text-[hsl(var(--foreground))] mb-2">
-                        ¡Todo revisado!
+                        {es ? 'Todo revisado' : 'All reviewed'}
                       </h2>
                       <p className="text-[hsl(var(--muted-foreground))]">
-                        No hay obras pendientes de revisión
+                        {es ? 'No hay obras pendientes de revisión' : 'There are no works waiting for review'}
                       </p>
                     </Card>
                   ) : (
@@ -240,6 +246,7 @@ export default function Admin() {
                           submission={submission}
                           processing={processing}
                           formatDate={formatDate}
+                          es={es}
                           actions={{
                             onPublish: () => handlePublish(submission.submissionId),
                             onReject: () => handleReject(submission.submissionId),
@@ -256,10 +263,10 @@ export default function Admin() {
                   {publishedWorks.length === 0 ? (
                     <Card className="p-12 text-center">
                       <h2 className="text-xl font-medium text-[hsl(var(--foreground))] mb-2">
-                        Sin obras publicadas
+                        {es ? 'Sin obras publicadas' : 'No published works'}
                       </h2>
                       <p className="text-[hsl(var(--muted-foreground))]">
-                        Publica obras desde la pestaña "Por Revisar"
+                        {es ? 'Publica obras desde la pestaña «Por revisar»' : 'Publish works from the “To review” tab'}
                       </p>
                     </Card>
                   ) : (
@@ -272,13 +279,13 @@ export default function Admin() {
                                 {submission.title}
                               </h3>
                               <p className="text-sm text-[hsl(var(--muted-foreground))]">
-                                Por {submission.artistName}
+                                {es ? 'Por' : 'By'} {submission.artistName}
                               </p>
                               <p className="text-sm text-[hsl(var(--foreground))]">
                                 {submission.description}
                               </p>
                               <span className="inline-block px-2 py-1 text-xs bg-green-500/10 text-green-700 rounded">
-                                ✓ Publicado
+                                ✓ {es ? 'Publicado' : 'Published'}
                               </span>
                             </div>
                             <div className="flex flex-col justify-center gap-2">
@@ -289,7 +296,7 @@ export default function Admin() {
                                 className="w-full"
                               >
                                 <Archive className="w-4 h-4 mr-2" />
-                                Archivar
+                                {es ? 'Archivar' : 'Archive'}
                               </Button>
                               <Button
                                 onClick={() => handleDelete(submission.submissionId)}
@@ -298,7 +305,7 @@ export default function Admin() {
                                 className="w-full text-red-600"
                               >
                                 <Trash2 className="w-4 h-4 mr-2" />
-                                Eliminar
+                                {es ? 'Eliminar' : 'Delete'}
                               </Button>
                             </div>
                           </div>
@@ -313,10 +320,10 @@ export default function Admin() {
                   {archivedWorks.length === 0 ? (
                     <Card className="p-12 text-center">
                       <h2 className="text-xl font-medium text-[hsl(var(--foreground))] mb-2">
-                        Sin obras archivadas
+                        {es ? 'Sin obras archivadas' : 'No archived works'}
                       </h2>
                       <p className="text-[hsl(var(--muted-foreground))]">
-                        Las obras publicadas pueden ser archivadas
+                        {es ? 'Las obras publicadas pueden archivarse' : 'Published works can be archived'}
                       </p>
                     </Card>
                   ) : (
@@ -329,10 +336,10 @@ export default function Admin() {
                                 {submission.title}
                               </h3>
                               <p className="text-sm text-[hsl(var(--muted-foreground))]">
-                                Por {submission.artistName}
+                                {es ? 'Por' : 'By'} {submission.artistName}
                               </p>
                               <span className="inline-block px-2 py-1 text-xs bg-gray-500/10 text-gray-700 rounded">
-                                📁 Archivado
+                                📁 {es ? 'Archivado' : 'Archived'}
                               </span>
                             </div>
                             <div className="flex flex-col justify-center gap-2">
@@ -342,7 +349,7 @@ export default function Admin() {
                                 className="w-full bg-blue-600 hover:bg-blue-700"
                               >
                                 <RotateCcw className="w-4 h-4 mr-2" />
-                                Republicar
+                                {es ? 'Republicar' : 'Republish'}
                               </Button>
                               <Button
                                 onClick={() => handleDelete(submission.submissionId)}
@@ -351,7 +358,7 @@ export default function Admin() {
                                 className="w-full text-red-600"
                               >
                                 <Trash2 className="w-4 h-4 mr-2" />
-                                Eliminar
+                                {es ? 'Eliminar' : 'Delete'}
                               </Button>
                             </div>
                           </div>
@@ -365,11 +372,17 @@ export default function Admin() {
                 <TabsContent value="help-messages">
                   <AdminHelpMessages />
                 </TabsContent>
+
+                {/* Reports */}
+                <TabsContent value="reports">
+                  <AdminReports />
+                </TabsContent>
               </Tabs>
             )}
           </div>
         </div>
       </main>
+      <Footer />
     </div>
   );
 }
@@ -378,6 +391,7 @@ interface SubmissionCardProps {
   submission: Submission;
   processing: { [key: string]: boolean };
   formatDate: (timestamp: string) => string;
+  es: boolean;
   actions: {
     onPublish: () => void;
     onReject: () => void;
@@ -389,6 +403,7 @@ function SubmissionCard({
   submission,
   processing,
   formatDate,
+  es,
   actions,
 }: SubmissionCardProps) {
   return (
@@ -407,7 +422,7 @@ function SubmissionCard({
           <div className="grid grid-cols-2 gap-4">
             <div>
               <p className="text-xs text-[hsl(var(--muted-foreground))] font-medium">
-                Artista
+                {es ? 'Artista' : 'Artist'}
               </p>
               <p className="text-sm font-medium text-[hsl(var(--foreground))]">
                 {submission.artistName}
@@ -428,7 +443,7 @@ function SubmissionCard({
 
           <div>
             <p className="text-xs text-[hsl(var(--muted-foreground))] font-medium mb-1">
-              Descripción
+              {es ? 'Descripción' : 'Description'}
             </p>
             <p className="text-sm text-[hsl(var(--foreground))] line-clamp-3">
               {submission.description}
@@ -444,7 +459,7 @@ function SubmissionCard({
             </span>
             {submission.hasFile && (
               <span className="px-2 py-1 text-xs bg-blue-500/10 text-blue-700 rounded">
-                📎 {submission.fileName || 'Archivo'}
+                📎 {submission.fileName || (es ? 'Archivo' : 'File')}
               </span>
             )}
           </div>
@@ -459,10 +474,10 @@ function SubmissionCard({
             {processing[submission.submissionId] ? (
               <>
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Publicando...
+                {es ? 'Publicando...' : 'Publishing...'}
               </>
             ) : (
-              '✓ Publicar'
+              `✓ ${es ? 'Publicar' : 'Publish'}`
             )}
           </Button>
           <Button
@@ -470,7 +485,7 @@ function SubmissionCard({
             disabled={processing[submission.submissionId]}
             className="w-full bg-red-600 hover:bg-red-700 text-white"
           >
-            Rechazar
+            {es ? 'Rechazar' : 'Reject'}
           </Button>
           <Button
             onClick={actions.onArchive}
@@ -479,7 +494,7 @@ function SubmissionCard({
             className="w-full"
           >
             <Archive className="w-4 h-4 mr-2" />
-            Archivar
+            {es ? 'Archivar' : 'Archive'}
           </Button>
           {submission.hasFile && submission.fileUrl && (
             <a
@@ -488,7 +503,7 @@ function SubmissionCard({
               rel="noopener noreferrer"
               className="w-full px-4 py-2 text-sm text-center bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors"
             >
-              📥 Ver archivo
+              📥 {es ? 'Ver archivo' : 'View file'}
             </a>
           )}
         </div>

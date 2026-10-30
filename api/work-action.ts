@@ -1,6 +1,8 @@
 import { VercelRequest, VercelResponse } from "@vercel/node";
 import { redis } from "../server/lib/redis.js";
 import { isAdminRequest } from "../server/lib/admin-auth.js";
+import { sendEmail } from "../server/lib/email.js";
+import type { EmailLanguage } from "../server/lib/email-layout.js";
 
 interface PublishedWork {
   submissionId: string;
@@ -45,143 +47,67 @@ async function publishSubmission(
   }
 }
 
-async function sendPublicationEmail(work: PublishedWork): Promise<boolean> {
-  try {
-    const resendApiKey = process.env.RESEND_API_KEY;
-    const fromAddress = process.env.RESEND_FROM || "no-reply@makwin.art";
+const WORK_TYPE_LABELS: Record<string, { es: string; en: string }> = {
+  pintura: { es: 'Pintura', en: 'Painting' },
+  fotografia: { es: 'Fotografía', en: 'Photography' },
+  poema: { es: 'Poema', en: 'Poem' },
+  cancion: { es: 'Canción', en: 'Song' },
+  video: { es: 'Vídeo', en: 'Video' },
+};
 
-    if (!resendApiKey) {
-      console.error("[RESEND] API Key no configurada");
-      return false;
-    }
+const emailLanguage = (language?: string): EmailLanguage => (language === 'en' ? 'en' : 'es');
 
-    const { Resend } = await import("resend");
-    const resend = new Resend(resendApiKey);
-
-    const emailHTML = `
-<!DOCTYPE html>
-<html>
-<head>
-  <style>
-    body { font-family: system-ui, -apple-system, sans-serif; color: #333; line-height: 1.6; }
-    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-    .header { background: #28a745; color: #fff; padding: 20px; border-radius: 8px 8px 0 0; text-align: center; }
-    .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 8px 8px; }
-    .title { font-size: 24px; font-weight: bold; margin: 20px 0; color: #28a745; }
-    .cta-button {
-      display: inline-block;
-      background: #28a745;
-      color: #fff;
-      padding: 12px 30px;
-      text-decoration: none;
-      border-radius: 6px;
-      margin-top: 20px;
-    }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <div class="header"><h2>🎉 ¡Tu obra está publicada!</h2></div>
-    <div class="content">
-      <p>¡Hola ${work.artistName}!</p>
-      <p class="title">"${work.title}" ha sido aceptada y publicada en Makwin</p>
-      <p>Nos complace informarte que tu obra ha sido seleccionada para ser publicada en nuestra plataforma. ¡Felicidades!</p>
-      <p><strong>Tipo de obra:</strong> ${work.workType}</p>
-      <p><strong>Descripción:</strong> ${work.description}</p>
-      ${work.fileUrl ? `<p style="text-align: center;"><a href="${work.fileUrl}" class="cta-button">Ver tu obra publicada</a></p>` : ""}
-      <p style="margin-top: 30px; font-size: 12px; color: #999;">
-        Gracias por ser parte de Makwin. Puedes compartir este enlace con tus amigos. 🎨
-      </p>
-    </div>
-  </div>
-</body>
-</html>`;
-
-    const response = await resend.emails.send({
-      from: fromAddress,
-      to: work.email,
-      subject: `[PUBLICADA] Obra "${work.title}" por ${work.artistName}`,
-      html: emailHTML,
-    });
-
-    if (response.error) {
-      console.error("[RESEND] Error en respuesta:", JSON.stringify(response.error, null, 2));
-      return false;
-    }
-
-    console.log("[RESEND] ✅ Email de publicación enviado:", (response as any)?.id);
-    return true;
-  } catch (error: any) {
-    console.error("[RESEND] Error enviando email:", error.message);
-    return false;
-  }
+async function sendPublicationEmail(work: PublishedWork, language?: string): Promise<boolean> {
+  const lang = emailLanguage(language);
+  const es = lang === 'es';
+  const result = await sendEmail({
+    to: work.email,
+    subject: es ? `Tu obra «${work.title}» ya está publicada` : `Your work "${work.title}" has been published`,
+    content: {
+      language: lang,
+      title: es ? 'Tu obra ya está publicada' : 'Your work has been published',
+      preheader: es ? `«${work.title}» ya está en MAKWIN.` : `"${work.title}" is now on MAKWIN.`,
+      blocks: [
+        { type: 'text', text: es ? `Hola, ${work.artistName}. Nos alegra contarte que «${work.title}» ya forma parte de MAKWIN.` : `Hello ${work.artistName}. We are happy to tell you that "${work.title}" is now part of MAKWIN.` },
+        {
+          type: 'details',
+          rows: [
+            [es ? 'Obra' : 'Work', work.title],
+            [es ? 'Tipo' : 'Type', WORK_TYPE_LABELS[work.workType]?.[lang] || work.workType],
+          ],
+        },
+        ...(work.fileUrl ? [{ type: 'button' as const, label: es ? 'VER LA OBRA' : 'VIEW THE WORK', url: work.fileUrl }] : []),
+        { type: 'note', text: es ? 'Gracias por compartir tu trabajo con nosotros.' : 'Thank you for sharing your work with us.' },
+      ],
+    },
+  });
+  return result.ok;
 }
 
 async function sendRejectionEmail(
   email: string,
   artistName: string,
   title: string,
-  reason?: string
+  reason?: string,
+  language?: string
 ): Promise<boolean> {
-  try {
-    const resendApiKey = process.env.RESEND_API_KEY;
-    const fromAddress = process.env.RESEND_FROM || "no-reply@makwin.art";
-
-    if (!resendApiKey) {
-      console.error("[RESEND] API Key no configurada");
-      return false;
-    }
-
-    const { Resend } = await import("resend");
-    const resend = new Resend(resendApiKey);
-
-    const emailHTML = `
-<!DOCTYPE html>
-<html>
-<head>
-  <style>
-    body { font-family: system-ui, -apple-system, sans-serif; color: #333; line-height: 1.6; }
-    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-    .header { background: #dc3545; color: #fff; padding: 20px; border-radius: 8px 8px 0 0; text-align: center; }
-    .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 8px 8px; }
-    .title { font-size: 18px; font-weight: bold; margin: 15px 0; }
-    .reason { background: #fff; padding: 15px; border-left: 4px solid #dc3545; margin: 15px 0; }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <div class="header"><h2>Sobre tu obra "${title}"</h2></div>
-    <div class="content">
-      <p>¡Hola ${artistName}!</p>
-      <p>Lamentablemente, tu obra <strong>"${title}"</strong> no ha sido aceptada para publicación en esta ocasión.</p>
-      ${reason ? `<div class="reason"><p><strong>Motivo:</strong></p><p>${reason}</p></div>` : ""}
-      <p>No te desanimes, cada obra tiene su valor. Puedes intentar enviar otras obras en el futuro.</p>
-      <p style="margin-top: 30px; font-size: 12px; color: #999;">
-        Gracias por tu interés en Makwin. 🎨
-      </p>
-    </div>
-  </div>
-</body>
-</html>`;
-
-    const response = await resend.emails.send({
-      from: fromAddress,
-      to: email,
-      subject: `[DENEGADA] Obra "${title}" por ${artistName}`,
-      html: emailHTML,
-    });
-
-    if (response.error) {
-      console.error("[RESEND] Error en respuesta:", JSON.stringify(response.error, null, 2));
-      return false;
-    }
-
-    console.log("[RESEND] ✅ Email de rechazo enviado:", (response as any)?.id);
-    return true;
-  } catch (error: any) {
-    console.error("[RESEND] Error enviando email:", error.message);
-    return false;
-  }
+  const lang = emailLanguage(language);
+  const es = lang === 'es';
+  const result = await sendEmail({
+    to: email,
+    subject: es ? `Sobre tu obra «${title}»` : `About your work "${title}"`,
+    content: {
+      language: lang,
+      title: es ? 'Sobre tu obra' : 'About your work',
+      preheader: es ? `Hemos revisado «${title}».` : `We have reviewed "${title}".`,
+      blocks: [
+        { type: 'text', text: es ? `Hola, ${artistName}. Hemos revisado «${title}» y esta vez no vamos a publicarla.` : `Hello ${artistName}. We have reviewed "${title}" and will not be publishing it this time.` },
+        ...(reason ? [{ type: 'quote' as const, text: reason }] : []),
+        { type: 'text', text: es ? 'Puedes enviarnos otras obras cuando quieras.' : 'You are welcome to send us other works at any time.' },
+      ],
+    },
+  });
+  return result.ok;
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -294,7 +220,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         submission.email,
         submission.artistName,
         submission.title,
-        reason
+        reason,
+        submission.language
       );
 
       res.status(200).json({
@@ -311,7 +238,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return;
     }
 
-    const emailSent = await sendPublicationEmail(publishResult.work!);
+    const emailSent = await sendPublicationEmail(publishResult.work!, submission.language);
     res.status(200).json({
       success: true,
       message: "Obra publicada exitosamente",

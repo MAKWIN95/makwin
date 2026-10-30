@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/lib/AuthContext';
 import { useI18n } from '@/lib/i18n';
+import { supabase } from '@/lib/supabase';
+import { getAuthErrorMessage } from '@/lib/authErrors';
 
 type Mode = 'login' | 'forgot';
 
@@ -16,6 +18,8 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [resetSent, setResetSent] = useState(false);
+  const [needsConfirmation, setNeedsConfirmation] = useState(false);
+  const [confirmationSent, setConfirmationSent] = useState(false);
 
   const es = language === 'es';
 
@@ -28,6 +32,8 @@ export default function Login() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setNeedsConfirmation(false);
+    setConfirmationSent(false);
     setLoading(true);
     const { error } = await signInWithEmail(email, password);
     setLoading(false);
@@ -49,8 +55,9 @@ export default function Login() {
         setError(es
           ? 'Verifica tu correo electrónico. No hemos confirmado tu cuenta aún.'
           : 'Please verify your email. We haven\'t confirmed your account yet.');
+        setNeedsConfirmation(true);
       } else {
-        setError(error);
+        setError(getAuthErrorMessage(error, language));
       }
     } else {
       navigate('/galeria');
@@ -64,15 +71,37 @@ export default function Login() {
     const { error } = await resetPassword(email);
     setLoading(false);
     if (error) {
-      setError(es ? 'Error al enviar el correo.' : 'Error sending email.');
+      setError(getAuthErrorMessage(error, language));
     } else {
       setResetSent(true);
     }
   };
 
   const handleGoogle = async () => {
+    setError('');
     setLoading(true);
-    await signInWithGoogle();
+    try {
+      await signInWithGoogle();
+    } catch (err) {
+      setError(getAuthErrorMessage(err, language));
+      setLoading(false);
+    }
+  };
+
+  const handleResendConfirmation = async () => {
+    setLoading(true);
+    const { error } = await supabase.auth.resend({
+      type: 'signup',
+      email,
+      options: { emailRedirectTo: `${window.location.origin}/login` },
+    });
+    setLoading(false);
+    if (error) {
+      setError(getAuthErrorMessage(error, language));
+    } else {
+      setError('');
+      setConfirmationSent(true);
+    }
   };
 
   return (
@@ -142,6 +171,16 @@ export default function Login() {
                 />
 
                 {error && <p className="text-sm text-red-500">{error}</p>}
+                {needsConfirmation && !confirmationSent && (
+                  <button type="button" onClick={handleResendConfirmation} disabled={loading} className="text-sm text-[hsl(var(--foreground))] underline underline-offset-2 disabled:opacity-50">
+                    {es ? 'Reenviar correo de confirmación' : 'Resend confirmation email'}
+                  </button>
+                )}
+                {confirmationSent && (
+                  <p role="status" className="text-sm text-[hsl(var(--foreground))]">
+                    {es ? 'Te lo hemos enviado de nuevo. Revisa tu bandeja de entrada.' : 'We sent it again. Check your inbox.'}
+                  </p>
+                )}
 
                 <button
                   type="submit"

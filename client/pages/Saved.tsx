@@ -16,6 +16,7 @@ const GRID_COLUMNS: MasonryColumns = { base: 2, sm: 3, lg: 4, xl: 5, '2xl': 6 };
 
 export default function Saved() {
   useRequireAuth();
+  useStarsBackground('saved-stars-background');
   const { user } = useAuth();
   const worksContext = useWorks();
   const { language } = useI18n();
@@ -25,6 +26,7 @@ export default function Saved() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!user) return;
     const load = async () => {
       setLoading(true);
       try {
@@ -134,7 +136,7 @@ export default function Saved() {
     };
 
     load();
-  }, [user.id]);
+  }, [user?.id]);
 
   const handleSaveToggle = (workId: string, saved: boolean) => {
     // Optimistic update: remove from local state when unsaved
@@ -145,7 +147,7 @@ export default function Saved() {
 
   return (
     <div className="min-h-screen bg-[hsl(var(--background))] relative">
-      <div id="saved-stars-background" className="stars-background" />
+      <div id="saved-stars-background" className="absolute inset-0 z-0 stars-background" />
       <div className="relative z-10">
       <Header showSearchCentered />
       <main className="max-w-6xl mx-auto px-4 sm:px-8 py-10 page-enter">
@@ -176,7 +178,11 @@ export default function Saved() {
             items={works}
             columns={GRID_COLUMNS}
             getKey={work => work.id}
-            renderItem={work => <WorkCard work={work} onSaveToggle={handleSaveToggle} />}
+            renderItem={work => (
+              <div className="mb-5 w-full">
+                <WorkCard work={work} onSaveToggle={handleSaveToggle} />
+              </div>
+            )}
           />
         )}
 

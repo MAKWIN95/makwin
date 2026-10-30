@@ -8,10 +8,10 @@ import { handleDemo } from "./routes/demo";
 import { handleSubmitWork } from "./routes/submit-work";
 import { handleDeleteAccount } from "./routes/delete-account";
 import { checkEmailExists } from "../api/check-email-exists";
-import { saveHelpMessage } from "../api/save-help-message";
+import saveHelpMessageHandler from "../api/save-help-message";
+import reportsHandler from "../api/reports";
 import { isValidUsername, normalizeUsername } from "../shared/username";
 import { getUsernameAvailability, getUsernameAvailabilityUserId } from "./lib/username-availability";
-import { getRequestUser } from "./lib/admin-auth";
 import helpMessagesHandler from "../api/help-messages";
 import adminSetPasswordHandler from "../api/admin-set-password";
 
@@ -75,34 +75,9 @@ export function createServer() {
     }
   });
 
-  // Save help message to database
-  app.post("/api/save-help-message", async (req, res) => {
-    try {
-      const { email, name, category, subject, message } = req.body;
-
-      if (!email || !name || !category || !subject || !message) {
-        return res.status(400).json({ error: "Faltan campos requeridos" });
-      }
-
-      const user = await getRequestUser(req.headers.authorization);
-      const result = await saveHelpMessage(email, name, category, subject, message, user?.id ?? null);
-
-      if ("error" in result) {
-        return res.status(result.status).json({ error: result.error });
-      }
-
-      return res.status(200).json({
-        success: true,
-        message: "Mensaje guardado exitosamente",
-        id: result.id,
-      });
-    } catch (error) {
-      console.error("[API Error]", error);
-      return res.status(500).json({ error: "Error interno del servidor" });
-    }
-  });
-
+  app.post("/api/save-help-message", (req, res) => saveHelpMessageHandler(req as any, res as any));
   app.all("/api/help-messages", (req, res) => helpMessagesHandler(req as any, res as any));
+  app.all("/api/reports", (req, res) => reportsHandler(req as any, res as any));
   app.post("/api/admin-set-password", (req, res) => adminSetPasswordHandler(req as any, res as any));
 
   // Gemini proxy endpoint to avoid browser CORS issues

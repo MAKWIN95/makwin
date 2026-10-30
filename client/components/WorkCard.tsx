@@ -45,11 +45,14 @@ export default function WorkCard({ work, priorityImage = false, imageDimensions,
   // Use context as source of truth
   const liked = worksContext.isLiked(work.id);
   const saved = worksContext.isSaved(work.id);
-  const likeCount = worksContext.getLikeCount(work.id);
+  // Visitors have no interactions loaded, so the count comes with the work itself.
+  const likeCount = worksContext.likeCounts[work.id] ?? (Number(work.like_count) || 0);
 
   const isSong = work.work_type === 'cancion';
   const isPoem = work.work_type === 'poema';
-  const hasImage = !!(work.cover_url || work.file_url);
+  const isImageWork = work.work_type === 'pintura' || work.work_type === 'fotografia';
+  // A song, poem or video file is not an image: only its cover can be shown here.
+  const hasImage = !!(work.cover_url || (isImageWork && work.file_url));
 
   // Format date according to language
   const formatDate = (dateStr: string) => {
@@ -100,8 +103,8 @@ export default function WorkCard({ work, priorityImage = false, imageDimensions,
       return;
     }
 
-    await worksContext.toggleSave(work.id, user.id);
-    onSaveToggle?.(work.id, worksContext.isSaved(work.id));
+    const nowSaved = await worksContext.toggleSave(work.id, user.id);
+    onSaveToggle?.(work.id, nowSaved);
   };
 
   const handleReport = (e: React.MouseEvent) => {
@@ -134,7 +137,7 @@ export default function WorkCard({ work, priorityImage = false, imageDimensions,
         {/* Save button — top right */}
         <button
           onClick={handleSave}
-          className="absolute top-2 right-2 z-10 w-7 h-7 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:bg-black/60"
+          className="absolute top-2 right-2 z-10 w-7 h-7 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 [@media(hover:none)]:opacity-100 transition-opacity duration-200 hover:bg-black/60"
           aria-label={currentLang === 'es' ? 'Guardar' : 'Save'}
         >
           <Bookmark
@@ -264,9 +267,6 @@ export default function WorkCard({ work, priorityImage = false, imageDimensions,
       onClose={() => setShowReportModal(false)}
       workId={work.id}
       userId={user?.id}
-      onSuccess={() => {
-        console.log('[WorkCard] Report sent successfully');
-      }}
     />
 
     <EditWorkModal

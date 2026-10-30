@@ -43,7 +43,8 @@ export default function EditWorkModal({ isOpen, onClose, work, onSuccess }: Prop
     setLoading(false);
 
     if (updateError) {
-      setError(updateError.message);
+      console.error('[EditWorkModal] Could not save:', updateError);
+      setError(es ? 'No se han podido guardar los cambios. Inténtalo de nuevo.' : 'The changes could not be saved. Please try again.');
       return;
     }
 
@@ -64,6 +65,7 @@ export default function EditWorkModal({ isOpen, onClose, work, onSuccess }: Prop
           </h2>
           <button
             onClick={onClose}
+            aria-label={es ? 'Cerrar' : 'Close'}
             className="text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] transition-colors"
           >
             <X className="w-5 h-5" />

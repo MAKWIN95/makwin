@@ -143,7 +143,7 @@ export default function Following() {
 
   return (
     <div className="min-h-screen bg-[hsl(var(--background))]">
-      <canvas id="following-stars-background" className="fixed inset-0 pointer-events-none z-0" />
+      <div id="following-stars-background" className="fixed inset-0 pointer-events-none z-0 stars-background" />
 
         <Header showSearch showSearchCentered breadcrumb={currentLang === 'es' ? 'Siguiendo' : 'Following'} />
 

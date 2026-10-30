@@ -86,6 +86,9 @@ describe('save help message API', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.stubEnv('RESEND_API_KEY', 're_test_key');
+    vi.stubEnv('RESEND_FROM', 'MAKWIN <no-reply@example.test>');
+    vi.stubEnv('HELP_EMAIL', 'help@example.test');
+    vi.stubEnv('ARTISTS_EMAIL', 'artists@example.test');
     db.state.insertRow = null;
     db.state.result = { data: { id: 'new-id' }, error: null };
     resendMock.send.mockResolvedValue({ data: { id: 'email' }, error: null });

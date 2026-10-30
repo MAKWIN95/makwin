@@ -7,6 +7,7 @@ import { useI18n } from '@/lib/i18n';
 import { getPasswordPolicyError, getPasswordStrengthScore } from '@/lib/passwordPolicy';
 import { checkUsernameAvailability, type UsernameAvailability } from '@/lib/usernameAvailability';
 import { isValidUsername, normalizeUsername, USERNAME_MAX_LENGTH } from '@shared/username';
+import { getAuthErrorMessage } from '@/lib/authErrors';
 import { useStarsBackground } from '@/hooks/use-stars-background';
 
 function parseSuggestedUsername(email?: string) {
@@ -175,7 +176,7 @@ export default function GoogleOnboardingPage() {
         setAvailability('error');
         setError(es ? 'No se pudo verificar el username. Inténtalo de nuevo.' : 'Could not verify username availability. Try again.');
       } else {
-        setError(res.error);
+        setError(getAuthErrorMessage(res.error, es ? 'es' : 'en'));
       }
       return;
     }
@@ -234,7 +235,7 @@ export default function GoogleOnboardingPage() {
               <label className="mb-2 block text-sm font-medium text-[hsl(var(--foreground))]">{es ? 'Establece una contraseña' : 'Set a password'}</label>
               <div className="relative">
                 <input type={showPw ? 'text' : 'password'} value={password} onChange={(e) => setPassword(e.target.value)} className="w-full rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--input))] px-3 py-2.5 pr-10 text-sm outline-none transition focus:border-[hsl(var(--ring))]" placeholder={es ? '••••••••' : '••••••••'} />
-                <button type="button" aria-label={showPw ? 'Ocultar contraseña' : 'Mostrar contraseña'} onClick={() => setShowPw(s => !s)} className="absolute inset-y-0 right-3 flex items-center text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))]">
+                <button type="button" aria-label={showPw ? (es ? 'Ocultar contraseña' : 'Hide password') : (es ? 'Mostrar contraseña' : 'Show password')} onClick={() => setShowPw(s => !s)} className="absolute inset-y-0 right-3 flex items-center text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))]">
                   {showPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
@@ -251,7 +252,7 @@ export default function GoogleOnboardingPage() {
               <label className="mb-2 block text-sm font-medium text-[hsl(var(--foreground))]">{es ? 'Repite la contraseña' : 'Confirm password'}</label>
               <div className="relative">
                 <input type={showConfirm ? 'text' : 'password'} value={confirm} onChange={(e) => setConfirm(e.target.value)} className="w-full rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--input))] px-3 py-2.5 pr-10 text-sm outline-none transition focus:border-[hsl(var(--ring))]" placeholder={es ? '••••••••' : '••••••••'} />
-                <button type="button" aria-label={showConfirm ? 'Ocultar confirmación' : 'Mostrar confirmación'} onClick={() => setShowConfirm(s => !s)} className="absolute inset-y-0 right-3 flex items-center text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))]">
+                <button type="button" aria-label={showConfirm ? (es ? 'Ocultar confirmación' : 'Hide confirmation') : (es ? 'Mostrar confirmación' : 'Show confirmation')} onClick={() => setShowConfirm(s => !s)} className="absolute inset-y-0 right-3 flex items-center text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))]">
                   {showConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>

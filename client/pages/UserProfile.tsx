@@ -2,7 +2,11 @@ import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { supabase, Profile, Work } from '@/lib/supabase';
 import { useAuth } from '@/lib/AuthContext';
+import { useFollow } from '@/lib/FollowContext';
 import { useI18n } from '@/lib/i18n';
+import { getAuthErrorMessage } from '@/lib/authErrors';
+import { isValidUsername, normalizeUsername } from '@shared/username';
+import { toast } from 'sonner';
 import { useStarsBackground } from '@/hooks/use-stars-background';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
@@ -12,10 +16,24 @@ import FollowersModal from '@/components/FollowersModal';
 import { Camera, Check, X, ExternalLink, Loader2 } from 'lucide-react';
 
 const GRID_COLUMNS: MasonryColumns = { base: 2, sm: 3, lg: 4 };
+const MAX_AVATAR_MB = 5;
+
+// Links typed by people must only ever open as web pages.
+const safeExternalUrl = (value?: string | null): string | null => {
+  const trimmed = value?.trim();
+  if (!trimmed) return null;
+  try {
+    const url = new URL(/^[a-z][a-z0-9+.-]*:/i.test(trimmed) ? trimmed : `https://${trimmed}`);
+    return url.protocol === 'http:' || url.protocol === 'https:' ? url.href : null;
+  } catch {
+    return null;
+  }
+};
 
 export default function UserProfile() {
   const { username } = useParams<{ username: string }>();
   const { user, profile: myProfile, updateProfile, refreshProfile } = useAuth();
+  const { isFollowing: isFollowingUser, setFollowing } = useFollow();
   const { language } = useI18n();
   
   // Initialize stars background animation
@@ -26,7 +44,6 @@ export default function UserProfile() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [works, setWorks] = useState<Work[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isFollowing, setIsFollowing] = useState(false);
   const [followerCount, setFollowerCount] = useState(0);
   const [followingCount, setFollowingCount] = useState(0);
   const [editing, setEditing] = useState(false);
@@ -36,7 +53,11 @@ export default function UserProfile() {
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [showFollowersModal, setShowFollowersModal] = useState<'followers' | 'following' | null>(null);
 
-  const isOwnProfile = myProfile?.id === profile?.id;
+  const isOwnProfile = !!profile && myProfile?.id === profile.id;
+  const isFollowing = !!profile && isFollowingUser(profile.id);
+  const websiteUrl = safeExternalUrl(profile?.website);
+  const instagramUrl = safeExternalUrl(profile?.instagram_url);
+  const tiktokUrl = safeExternalUrl(profile?.tiktok_url);
 
   // Validate URLs don't contain banned content
   const validateURL = (url: string): boolean => {
@@ -48,10 +69,11 @@ export default function UserProfile() {
   useEffect(() => {
     if (!username) return;
     loadProfile();
-  }, [username, user]);
+  }, [username, user?.id]);
 
-  const loadProfile = async () => {
-    setLoading(true);
+  // Refreshing after an edit keeps the page on screen instead of flashing a spinner.
+  const loadProfile = async (silent = false) => {
+    if (!silent) setLoading(true);
 
     const { data: profileData } = await supabase
       .from('profiles')
@@ -59,7 +81,7 @@ export default function UserProfile() {
       .eq('username', username!)
       .single();
 
-    if (!profileData) { setLoading(false); return; }
+    if (!profileData) { setProfile(null); setLoading(false); return; }
     setProfile(profileData as Profile);
     setEditForm({ 
       username: profileData.username ?? '', 
@@ -71,7 +93,7 @@ export default function UserProfile() {
     });
 
     // Works - fetch published works only
-    const { data: worksData, error: worksError } = await supabase
+    const { data: worksData } = await supabase
       .from('works')
       .select('*')
       .eq('user_id', profileData.id)
@@ -99,13 +121,6 @@ export default function UserProfile() {
       }
     }));
     
-    console.log('[UserProfile] Works query result:', {
-      userId: profileData.id,
-      worksCount: worksWithProfile?.length,
-      worksError,
-      works: worksWithProfile
-    });
-    
     setWorks((worksWithProfile ?? []) as Work[]);
 
     // Follow counts
@@ -116,36 +131,43 @@ export default function UserProfile() {
     setFollowerCount(fwrCount ?? 0);
     setFollowingCount(fwgCount ?? 0);
 
-    // Is following?
-    if (user) {
-      const { data: followData } = await supabase
-        .from('follows')
-        .select('follower_id')
-        .eq('follower_id', user.id)
-        .eq('following_id', profileData.id)
-        .maybeSingle();
-      setIsFollowing(!!followData);
-    }
-
     setLoading(false);
   };
 
   const handleFollow = async () => {
     if (!user || !profile) { navigate('/login'); return; }
-    if (isFollowing) {
-      await supabase.from('follows').delete().eq('follower_id', user.id).eq('following_id', profile.id);
-      setIsFollowing(false);
-      setFollowerCount(c => Math.max(c - 1, 0));
-    } else {
-      await supabase.from('follows').insert({ follower_id: user.id, following_id: profile.id });
-      setIsFollowing(true);
-      setFollowerCount(c => c + 1);
+    const next = !isFollowing;
+    try {
+      await setFollowing(profile.id, next);
+      setFollowerCount(c => Math.max(c + (next ? 1 : -1), 0));
+    } catch {
+      toast.error(es ? 'No se pudo actualizar. Inténtalo de nuevo.' : 'Could not update. Please try again.');
     }
   };
 
   const handleSaveEdit = async () => {
     setSaving(true);
     setEditError('');
+
+    const newUsernameValue = normalizeUsername(editForm.username);
+    if (!isValidUsername(newUsernameValue)) {
+      setEditError(getAuthErrorMessage('invalid_username', language));
+      setSaving(false);
+      return;
+    }
+
+    if (!editForm.display_name.trim()) {
+      setEditError(es ? 'Escribe tu nombre visible.' : 'Please enter your display name.');
+      setSaving(false);
+      return;
+    }
+
+    const links = [editForm.website, editForm.instagram_url, editForm.tiktok_url];
+    if (links.some(link => link.trim() && !safeExternalUrl(link))) {
+      setEditError(es ? 'Revisa los enlaces: alguno no es una dirección web válida.' : 'Please check the links: one of them is not a valid web address.');
+      setSaving(false);
+      return;
+    }
 
     // Validate URLs don't contain banned content
     if (!validateURL(editForm.website) || !validateURL(editForm.instagram_url) || !validateURL(editForm.tiktok_url)) {
@@ -187,64 +209,61 @@ export default function UserProfile() {
 
     // Store old username to detect changes
     const oldUsername = profile?.username;
-    const newUsername = editForm.username;
+    const newUsername = newUsernameValue;
 
-    const { error } = await updateProfile(editForm);
+    const { error } = await updateProfile({ ...editForm, username: newUsername, display_name: editForm.display_name.trim() });
     setSaving(false);
-    if (error) { setEditError(error); return; }
+    if (error) { setEditError(getAuthErrorMessage(error, language)); return; }
     await refreshProfile();
+    setEditing(false);
+    toast.success(es ? 'Perfil actualizado' : 'Profile updated');
 
     // If username changed, redirect to new profile URL
     if (oldUsername !== newUsername) {
-      navigate(`/u/${newUsername}`);
+      navigate(`/u/${newUsername}`, { replace: true });
       return;
     }
 
-    setEditing(false);
-    loadProfile();
+    loadProfile(true);
   };
 
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !user) return;
     
-    console.log('[Avatar] Upload started:', file.name, 'Size:', file.size, 'Type:', file.type);
     
     // Block GIFs
     const ext = file.name.split('.').pop()?.toLowerCase();
     if (ext === 'gif') {
-      alert(es ? 'Los GIFs no están permitidos en el avatar. Solo PNG, JPG o WebP.' : 'GIFs are not allowed. Only PNG, JPG, or WebP.');
+      toast.error(es ? 'Los GIFs no están permitidos en el avatar. Solo PNG, JPG o WebP.' : 'GIFs are not allowed. Only PNG, JPG, or WebP.');
+      return;
+    }
+    if (file.size > MAX_AVATAR_MB * 1024 * 1024) {
+      toast.error(es ? `La imagen no puede superar ${MAX_AVATAR_MB} MB.` : `The image cannot exceed ${MAX_AVATAR_MB} MB.`);
       return;
     }
     
     setAvatarUploading(true);
     const path = `${user.id}/avatar.${ext}`;
-    console.log('[Avatar] Storage path:', path);
     
     const { error: uploadError } = await supabase.storage.from('avatars').upload(path, file, { upsert: true });
-    console.log('[Avatar] Upload response - error:', uploadError);
     
-    if (!uploadError) {
+    if (uploadError) {
+      console.error('[Avatar] Upload failed:', uploadError);
+      toast.error(es ? 'No se pudo subir la imagen. Inténtalo de nuevo.' : 'The image could not be uploaded. Please try again.');
+    } else {
       const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(path);
-      console.log('[Avatar] Public URL:', publicUrl);
-      
-      const urlWithTimestamp = publicUrl + '?t=' + Date.now();
-      console.log('[Avatar] URL with timestamp:', urlWithTimestamp);
-      
-      const updateResult = await updateProfile({ avatar_url: urlWithTimestamp });
-      console.log('[Avatar] updateProfile result:', updateResult);
-      
-      const refreshResult = await refreshProfile();
-      console.log('[Avatar] refreshProfile result:', refreshResult);
-      
-      // Force reload after small delay to ensure cache bust
-      console.log('[Avatar] Waiting 1500ms for cache bust...');
-      setTimeout(() => {
-        console.log('[Avatar] Running loadProfile after timeout');
-        loadProfile();
-      }, 1500);
+      const { error: profileError } = await updateProfile({ avatar_url: `${publicUrl}?t=${Date.now()}` });
+      if (profileError) {
+        toast.error(getAuthErrorMessage(profileError, language));
+      } else {
+        await refreshProfile();
+        await loadProfile(true);
+        toast.success(es ? 'Foto actualizada' : 'Photo updated');
+      }
     }
     setAvatarUploading(false);
+    e.target.value = '';
   };
 
   if (loading) return (
@@ -254,11 +273,15 @@ export default function UserProfile() {
   );
 
   if (!profile) return (
-    <div className="min-h-screen bg-[hsl(var(--background))] flex items-center justify-center">
-      <div className="text-center">
-        <p className="text-[hsl(var(--foreground))] mb-4">{es ? 'Usuario no encontrado' : 'User not found'}</p>
-        <Link to="/galeria" className="text-sm underline text-[hsl(var(--muted-foreground))]">← {es ? 'Volver' : 'Back'}</Link>
+    <div className="min-h-screen bg-[hsl(var(--background))] flex flex-col">
+      <Header hideSearch />
+      <div className="flex-1 flex items-center justify-center text-center px-4">
+        <div>
+          <p className="text-[hsl(var(--foreground))] mb-4">{es ? 'Usuario no encontrado' : 'User not found'}</p>
+          <Link to="/galeria" className="text-sm underline text-[hsl(var(--muted-foreground))]">← {es ? 'Volver a la galería' : 'Back to the gallery'}</Link>
+        </div>
       </div>
+      <Footer />
     </div>
   );
 
@@ -286,7 +309,7 @@ export default function UserProfile() {
             {isOwnProfile && (
               <label className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-[hsl(var(--foreground))] text-[hsl(var(--background))] flex items-center justify-center cursor-pointer hover:opacity-80 transition-opacity">
                 {avatarUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Camera className="w-4 h-4" />}
-                <input type="file" accept=".jpg,.jpeg,.png,.webp" onChange={handleAvatarChange} className="hidden" />
+                <input type="file" accept=".jpg,.jpeg,.png,.webp" onChange={handleAvatarChange} className="hidden" aria-label={es ? 'Cambiar foto de perfil' : 'Change profile photo'} />
               </label>
             )}
           </div>
@@ -313,7 +336,7 @@ export default function UserProfile() {
                   placeholder={es ? 'Bio (opcional)' : 'Bio (optional)'} rows={3}
                   className="w-full px-3 py-2 rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--input))] text-sm resize-none" />
                 <input value={editForm.website} onChange={e => setEditForm(p => ({ ...p, website: e.target.value }))}
-                  placeholder="https://..." type="url"
+                  placeholder={es ? 'Tu web (https://...)' : 'Your website (https://...)'} type="url"
                   className="w-full px-3 py-2 rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--input))] text-sm" />
                 <input value={editForm.instagram_url} onChange={e => setEditForm(p => ({ ...p, instagram_url: e.target.value }))}
                   placeholder="https://instagram.com/..." type="url"
@@ -343,9 +366,9 @@ export default function UserProfile() {
                 </div>
                 <p className="text-sm text-[hsl(var(--muted-foreground))] mb-2">@{profile.username || username}</p>
                 {profile.bio && <p className="text-sm text-[hsl(var(--foreground))] mb-2 max-w-md">{profile.bio}</p>}
-                {profile.website && (
+                {profile.website && websiteUrl && (
                   <a 
-                    href={profile.website.startsWith('http') ? profile.website : `https://${profile.website}`}
+                    href={websiteUrl}
                     target="_blank" 
                     rel="noopener noreferrer"
                     className="text-xs text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] flex items-center gap-1 justify-center sm:justify-start mb-2"
@@ -356,9 +379,9 @@ export default function UserProfile() {
 
                 {/* Social Media Links */}
                 <div className="flex gap-3 justify-center sm:justify-start mb-3">
-                  {profile.instagram_url && (
+                  {instagramUrl && (
                     <a 
-                      href={profile.instagram_url}
+                      href={instagramUrl}
                       target="_blank" 
                       rel="noopener noreferrer"
                       title="Instagram"
@@ -367,9 +390,9 @@ export default function UserProfile() {
                       📷 Instagram
                     </a>
                   )}
-                  {profile.tiktok_url && (
+                  {tiktokUrl && (
                     <a 
-                      href={profile.tiktok_url}
+                      href={tiktokUrl}
                       target="_blank" 
                       rel="noopener noreferrer"
                       title="TikTok"
@@ -456,7 +479,7 @@ export default function UserProfile() {
                 <WorkCard
                   work={work}
                   isOwnProfile={isOwnProfile}
-                  onWorkChange={loadProfile}
+                  onWorkChange={() => loadProfile(true)}
                 />
               </div>
             )}

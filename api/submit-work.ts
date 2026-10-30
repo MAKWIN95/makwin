@@ -1,5 +1,7 @@
 import { VercelRequest, VercelResponse } from "@vercel/node";
 import { redis } from "../server/lib/redis.js";
+import { artistsEmail, sendEmail } from "../server/lib/email.js";
+import type { EmailLanguage } from "../server/lib/email-layout.js";
 
 function generateSubmissionId(): string {
   const year = new Date().getFullYear();
@@ -7,167 +9,75 @@ function generateSubmissionId(): string {
   return `${year}-obra-${random}`;
 }
 
-async function sendEmailWithResend(
-  toEmail: string,
-  artistName: string,
-  title: string,
-  submissionId: string,
-  description: string,
-  fileUrl?: string,
-  isConfirmation: boolean = false,
-  workType?: string,
-  artistEmail?: string
-): Promise<boolean> {
-  try {
-    const resendApiKey = process.env.RESEND_API_KEY;
-    const fromAddress = process.env.RESEND_FROM || 'no-reply@makwin.art';
+const WORK_TYPE_LABELS: Record<string, { es: string; en: string }> = {
+  pintura: { es: 'Pintura', en: 'Painting' },
+  fotografia: { es: 'Fotografía', en: 'Photography' },
+  poema: { es: 'Poema', en: 'Poem' },
+  cancion: { es: 'Canción', en: 'Song' },
+  video: { es: 'Vídeo', en: 'Video' },
+};
 
-    if (!resendApiKey) {
-      console.error("[RESEND] API Key no configurada");
-      return false;
-    }
+interface SubmissionEmail {
+  artistName: string;
+  email: string;
+  title: string;
+  description: string;
+  workType: string;
+  submissionId: string;
+  fileUrl?: string | null;
+  language?: string;
+}
 
-    const { Resend } = await import("resend");
-    const resend = new Resend(resendApiKey);
+function sendArtistConfirmation(work: SubmissionEmail) {
+  const lang: EmailLanguage = work.language === 'en' ? 'en' : 'es';
+  const es = lang === 'es';
+  return sendEmail({
+    to: work.email,
+    subject: es ? `Hemos recibido tu obra «${work.title}»` : `We have received your work "${work.title}"`,
+    content: {
+      language: lang,
+      title: es ? 'Hemos recibido tu obra' : 'We have received your work',
+      preheader: es ? 'La revisaremos y te contaremos el resultado.' : 'We will review it and let you know the outcome.',
+      blocks: [
+        { type: 'text', text: es ? `Hola, ${work.artistName}. Gracias por enviarnos «${work.title}». La revisaremos y te escribiremos con el resultado.` : `Hello ${work.artistName}. Thank you for sending us "${work.title}". We will review it and write back with the outcome.` },
+        {
+          type: 'details',
+          rows: [
+            [es ? 'Obra' : 'Work', work.title],
+            [es ? 'Tipo' : 'Type', WORK_TYPE_LABELS[work.workType]?.[lang] || work.workType],
+            [es ? 'Referencia' : 'Reference', work.submissionId],
+          ],
+        },
+      ],
+    },
+  });
+}
 
-    let emailHTML: string;
-    let subject: string;
-
-    if (isConfirmation) {
-      // Email al artista
-      subject = `✓ Obra recibida: ${title}`;
-      emailHTML = `
-<!DOCTYPE html>
-<html>
-<head>
-  <style>
-    body { font-family: system-ui, -apple-system, sans-serif; color: #333; line-height: 1.6; }
-    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-    .header { background: #000; color: #fff; padding: 20px; border-radius: 8px 8px 0 0; text-align: center; }
-    .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 8px 8px; }
-    .title { font-size: 20px; font-weight: bold; margin: 15px 0; }
-    .cta-button { 
-      display: inline-block; 
-      background: #000; 
-      color: #fff; 
-      padding: 12px 30px; 
-      text-decoration: none; 
-      border-radius: 6px; 
-      margin-top: 15px;
-    }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <div class="header"><h2>✓ Confirmación de envío</h2></div>
-    <div class="content">
-      <p>¡Hola ${artistName}!</p>
-      <p>Tu obra <strong>"${title}"</strong> ha sido recibida correctamente por el equipo de Makwin.</p>
-      <p>La revisaremos y te notificaremos en el plazo de <strong>5-7 días hábiles</strong> si ha sido aceptada o denegada.</p>
-      <p>ID de envío: <code>${submissionId}</code></p>
-      ${fileUrl ? `<p><a href="${fileUrl}" class="cta-button">Ver tu archivo</a></p>` : ""}
-      <p style="margin-top: 30px; font-size: 12px; color: #999;">
-        Gracias por confiar en Makwin. 🎨
-      </p>
-    </div>
-  </div>
-</body>
-</html>`;
-    } else {
-      // Email al admin
-      subject = `[NUEVA OBRA] ${title} - ${workType} - ${artistName}`;
-      emailHTML = `
-<!DOCTYPE html>
-<html>
-<head>
-  <style>
-    body { font-family: system-ui, -apple-system, sans-serif; color: #333; line-height: 1.6; margin: 0; }
-    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-    .header { background: linear-gradient(135deg, #000 0%, #333 100%); color: #fff; padding: 30px 20px; border-radius: 8px 8px 0 0; text-align: center; }
-    .header h2 { margin: 0; font-size: 24px; }
-    .content { background: #fff; padding: 30px; border: 1px solid #e0e0e0; border-radius: 0 0 8px 8px; }
-    .info-group { margin: 20px 0; padding: 15px; background: #f8f8f8; border-left: 4px solid #000; border-radius: 4px; }
-    .info-label { font-weight: bold; color: #000; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
-    .info-value { font-size: 16px; color: #333; margin-top: 5px; word-break: break-word; }
-    .file-link { color: #000; text-decoration: none; padding: 10px 15px; background: #f0f0f0; border-radius: 4px; display: inline-block; margin-top: 5px; }
-    .footer { margin-top: 30px; padding-top: 20px; border-top: 1px solid #e0e0e0; font-size: 12px; color: #999; text-align: center; }
-    .submission-id { background: #f0f0f0; padding: 10px; border-radius: 4px; font-family: monospace; font-size: 12px; }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <div class="header">
-      <h2>🎨 Nueva Obra Recibida</h2>
-    </div>
-    <div class="content">
-      <div class="info-group">
-        <div class="info-label">Artista</div>
-        <div class="info-value">${artistName}</div>
-      </div>
-      
-      <div class="info-group">
-        <div class="info-label">Email del Artista</div>
-        <div class="info-value">${artistEmail || toEmail}</div>
-      </div>
-      
-      <div class="info-group">
-        <div class="info-label">Tipo de Obra</div>
-        <div class="info-value">${workType}</div>
-      </div>
-      
-      <div class="info-group">
-        <div class="info-label">Título</div>
-        <div class="info-value"><strong>${title}</strong></div>
-      </div>
-      
-      <div class="info-group">
-        <div class="info-label">Descripción</div>
-        <div class="info-value">${description}</div>
-      </div>
-      
-      ${fileUrl ? `
-      <div class="info-group">
-        <div class="info-label">Archivo</div>
-        <div class="info-value"><a href="${fileUrl}" class="file-link">Ver Archivo →</a></div>
-      </div>
-      ` : ''}
-      
-      <div class="info-group">
-        <div class="info-label">ID de Envío</div>
-        <div class="submission-id">${submissionId}</div>
-      </div>
-      
-      <div class="footer">
-        <p>Fecha de envío: ${new Date().toLocaleString('es-ES')}</p>
-      </div>
-    </div>
-  </div>
-</body>
-</html>`;
-    }
-
-    const response = await resend.emails.send({
-      from: fromAddress,
-      to: toEmail,
-      subject,
-      html: emailHTML,
-    });
-
-    if (response.error) {
-      console.error("[RESEND] Error en respuesta:", JSON.stringify(response.error, null, 2));
-      return false;
-    }
-
-    console.log("[RESEND] ✅ Email ${isConfirmation ? 'de confirmación' : 'de admin'} enviado:", (response as any)?.id);
-    return true;
-  } catch (error: any) {
-    console.error("[RESEND] ❌ Excepción:", {
-      message: error?.message,
-      status: error?.status,
-      response: error?.response,
-    });
-    return false;
-  }
+function sendTeamNotification(work: SubmissionEmail) {
+  return sendEmail({
+    to: artistsEmail(),
+    replyTo: work.email,
+    subject: `Nueva obra enviada: ${work.title}`,
+    content: {
+      language: 'es',
+      title: 'Nueva obra enviada',
+      preheader: `${work.artistName} ha enviado «${work.title}».`,
+      blocks: [
+        {
+          type: 'details',
+          rows: [
+            ['Obra', work.title],
+            ['Tipo', WORK_TYPE_LABELS[work.workType]?.es || work.workType],
+            ['Artista', work.artistName],
+            ['Correo', work.email],
+            ['Referencia', work.submissionId],
+          ],
+        },
+        { type: 'quote', text: work.description },
+        ...(work.fileUrl ? [{ type: 'button' as const, label: 'VER ARCHIVO', url: work.fileUrl }] : []),
+      ],
+    },
+  });
 }
 
 export default async function handler(
@@ -234,11 +144,9 @@ export default async function handler(
       return res.status(503).json({ error: 'No se pudo guardar el envío. Inténtalo de nuevo.' });
     }
 
-    // Enviar email de confirmación al artista
-    await sendEmailWithResend(email, artistName, title, submissionId, description, fileUrl, true, workType, email);
-    
-    // Enviar email de notificación al admin (mostrar el email real del artista)
-    await sendEmailWithResend("sendtomakwin@gmail.com", artistName, title, submissionId, description, fileUrl, false, workType, email);
+    const emailData = { artistName, email, title, description, workType, submissionId, fileUrl, language };
+    await sendArtistConfirmation(emailData);
+    await sendTeamNotification(emailData);
 
     // Responder con información útil
     res.status(200).json({

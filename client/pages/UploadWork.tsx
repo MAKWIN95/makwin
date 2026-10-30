@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/AuthContext';
@@ -9,13 +9,14 @@ import Footer from '@/components/Footer';
 import { Switch } from '@/components/ui/switch';
 import { Loader2, Upload } from 'lucide-react';
 import { normalizeHashtags } from '@/lib/utils';
+import { toast } from 'sonner';
 
 const WORK_TYPES_ES = [
   { value: 'pintura', label: 'Pintura' },
   { value: 'fotografia', label: 'Fotografía' },
   { value: 'poema', label: 'Poema' },
   { value: 'cancion', label: 'Canción' },
-  { value: 'video', label: 'Video' },
+  { value: 'video', label: 'Vídeo' },
 ];
 const WORK_TYPES_EN = [
   { value: 'pintura', label: 'Painting' },
@@ -27,21 +28,20 @@ const WORK_TYPES_EN = [
 
 const MAX_IMAGE_MB = 10;
 const MAX_AUDIO_MB = 50;
+const MAX_VIDEO_MB = 50;
 
 type UploadProgress = 'idle' | 'uploading_file' | 'uploading_cover' | 'saving' | 'done' | 'error';
 
 export default function UploadWork() {
-  console.log('[UploadWork] 🚀 Component loaded at:', new Date().toISOString());
   useRequireAuth();
   const { user, profile } = useAuth();
   const { language } = useI18n();
   const navigate = useNavigate();
   const es = language === 'es';
 
-  console.log('[UploadWork] User:', user?.id, 'Language:', language);
 
   const workTypes = es ? WORK_TYPES_ES : WORK_TYPES_EN;
-  const typesWithoutImage = ['poema', 'cancion'];
+  const typesWithoutImage = ['poema', 'cancion', 'video'];
 
   const [form, setForm] = useState({
     title: '',
@@ -59,6 +59,11 @@ export default function UploadWork() {
   const [error, setError] = useState('');
   const [fileError, setFileError] = useState('');
   const [coverError, setCoverError] = useState('');
+
+  // The error box sits above the form while the button is at the bottom.
+  useEffect(() => {
+    if (error) window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [error]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -102,7 +107,10 @@ export default function UploadWork() {
       return es ? 'Los GIFs no están permitidos. Por favor, sube PNG, JPG o WebP.' : 'GIFs are not allowed. Please upload PNG, JPG, or WebP.';
     }
     
-    if (type === 'cancion') {
+    if (type === 'video') {
+      if (!f.type.startsWith('video/')) return es ? 'Solo se permiten archivos de vídeo.' : 'Only video files allowed.';
+      if (mb > MAX_VIDEO_MB) return es ? `El vídeo no puede superar ${MAX_VIDEO_MB} MB.` : `Video cannot exceed ${MAX_VIDEO_MB} MB.`;
+    } else if (type === 'cancion' || type === 'poema') {
       if (!f.type.startsWith('audio/')) return es ? 'Solo se permiten archivos de audio.' : 'Only audio files allowed.';
       if (mb > MAX_AUDIO_MB) return es ? `El audio no puede superar ${MAX_AUDIO_MB}MB.` : `Audio cannot exceed ${MAX_AUDIO_MB}MB.`;
     } else if (type === 'pintura' || type === 'fotografia') {
@@ -120,79 +128,61 @@ export default function UploadWork() {
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    console.log('[UploadWork] 📤 handleSubmit triggered at:', new Date().toISOString());
     e.preventDefault();
     setError('');
 
     if (!form.title.trim() || !form.workType || !form.description.trim()) {
-      console.log('[UploadWork] ❌ Validation failed - missing fields');
       setError(es ? 'Rellena título, tipo y descripción.' : 'Fill in title, type and description.');
       return;
     }
     if (form.workType === 'cancion' && !form.lyrics.trim()) {
-      console.log('[UploadWork] ❌ Validation failed - missing lyrics');
       setError(es ? 'Incluye la letra de la canción.' : 'Include the song lyrics.');
       return;
     }
 
+    if ((form.workType === 'pintura' || form.workType === 'fotografia' || form.workType === 'video') && !file) {
+      setError(form.workType === 'video'
+        ? (es ? 'Selecciona el archivo de vídeo.' : 'Select the video file.')
+        : (es ? 'Selecciona la imagen de la obra.' : 'Select the image of the work.'));
+      return;
+    }
+    if (form.isForSale && !(Number(form.price) > 0)) {
+      setError(es ? 'Indica un precio mayor que cero.' : 'Enter a price above zero.');
+      return;
+    }
     if (file) {
-      const fileError = validateFile(file, form.workType);
-      if (fileError) {
-        console.log('[UploadWork] ❌ File validation failed:', fileError);
-        setError(fileError);
-        return;
-      }
-      
-      // Block GIFs for all types
-      const fileName = file.name.toLowerCase();
-      if (fileName.endsWith('.gif')) {
-        const errorMsg = es ? 'Los GIFs no están permitidos. Por favor, sube PNG, JPG o WebP.' : 'GIFs are not allowed. Please upload PNG, JPG, or WebP.';
-        console.log('[UploadWork] ❌ GIF blocked:', errorMsg);
-        setError(errorMsg);
+      const invalidFile = validateFile(file, form.workType);
+      if (invalidFile) {
+        setError(invalidFile);
         return;
       }
     }
+    if (form.addCover && coverError) {
+      setError(coverError);
+      return;
+    }
 
-    console.log('[UploadWork] ✅ All validations passed, starting upload...');
     setProgress('uploading_file');
     let fileUrl: string | null = null;
     let coverUrl: string | null = null;
 
     try {
-      console.log('[UploadWork] 📁 Starting upload process with file:', file?.name, 'Work type:', form.workType);
-      
       if (file) {
-        console.log('[UploadWork] 📤 Uploading main file...');
         const ext = file.name.split('.').pop();
         const path = `${user.id}/${Date.now()}.${ext}`;
         fileUrl = await uploadToStorage(file, 'works', path);
-        console.log('[UploadWork] ✅ File uploaded:', fileUrl);
       }
 
       if (form.addCover && coverFile) {
-        // Validate cover image - block GIFs
-        const coverFileName = coverFile.name.toLowerCase();
-        if (coverFileName.endsWith('.gif')) {
-          const errorMsg = es ? 'Los GIFs no están permitidos en la portada.' : 'GIFs are not allowed for cover images.';
-          console.log('[UploadWork] ❌ Cover GIF blocked:', errorMsg);
-          setError(errorMsg);
-          setProgress('error');
-          return;
-        }
-        console.log('[UploadWork] 🖼️ Uploading cover image...');
         setProgress('uploading_cover');
         const ext = coverFile.name.split('.').pop();
         const path = `${user.id}/covers/${Date.now()}.${ext}`;
         coverUrl = await uploadToStorage(coverFile, 'works', path);
-        console.log('[UploadWork] ✅ Cover uploaded:', coverUrl);
       }
 
-      console.log('[UploadWork] 💾 Saving to database...');
       setProgress('saving');
 
-      const tags = normalizeHashtags(form.hashtags);
-
-      const newWorkData = {
+      const { data, error: dbError } = await supabase.from('works').insert({
         user_id: user.id,
         title: form.title.trim(),
         description: form.description.trim(),
@@ -200,77 +190,25 @@ export default function UploadWork() {
         file_url: fileUrl,
         cover_url: coverUrl,
         lyrics: form.workType === 'cancion' ? form.lyrics.trim() : null,
-        hashtags: tags,
+        hashtags: normalizeHashtags(form.hashtags),
         is_for_sale: form.isForSale,
         price: form.isForSale && form.price ? Number(form.price) : null,
         language,
         status: 'published',
-      };
+      }).select('id').single();
 
-      const { data, error: dbError } = await supabase.from('works').insert(newWorkData).select('id').single();
+      if (dbError) throw dbError;
 
-      if (dbError) {
-        console.log('[UploadWork] ❌ Database error:', dbError);
-        const errorMsg = dbError.message || (es ? 'Error al guardar la obra' : 'Error saving work');
-        throw new Error(errorMsg);
-      }
-
-      // Fetch full work data separately to avoid relationship issues
-      const { data: fullWork } = await supabase
-        .from('works')
-        .select(`
-          id,
-          user_id,
-          title,
-          description,
-          work_type,
-          file_url,
-          cover_url,
-          lyrics,
-          hashtags,
-          is_for_sale,
-          price,
-          status,
-          like_count,
-          view_count,
-          language,
-          created_at,
-          updated_at,
-          profiles:profiles(
-            id,
-            username,
-            display_name,
-            bio,
-            avatar_url,
-            website,
-            instagram_url,
-            tiktok_url,
-            is_verified,
-            is_banned,
-            language_preference,
-            created_at
-          )
-        `)
-        .eq('id', data.id)
-        .single();
-
-      console.log('[UploadWork] ✅ Saved to database! Work ID:', data?.id);
       setProgress('done');
-      console.log('[UploadWork] 🎉 Upload complete, navigating to work page...');
-      setTimeout(() => navigate(`/work/${data.id}`, { state: { work: fullWork } }), 1500);
-
+      toast.success(es ? 'Obra publicada' : 'Work published');
+      navigate(`/work/${data.id}`);
     } catch (err: any) {
-      console.error('[UploadWork] ❌ ERROR:', err);
+      console.error('[UploadWork] Could not publish:', err);
       setProgress('error');
-      let errorMessage = err.message ?? (es ? 'Error desconocido.' : 'Unknown error.');
-      // Translate common errors
-      if (errorMessage.includes('Could not embed')) {
-        errorMessage = es ? 'Error al cargar los datos de la obra. Por favor, intenta de nuevo.' : 'Error loading work data. Please try again.';
-      }
-      if (errorMessage.includes('storage')) {
-        errorMessage = es ? 'Error al subir el archivo. Verifica el tamaño y formato.' : 'Error uploading file. Check file size and format.';
-      }
-      setError(errorMessage);
+      const tooBig = /exceeded|too large|payload/i.test(err?.message ?? '');
+      setError(tooBig
+        ? (es ? 'El archivo es demasiado grande.' : 'The file is too large.')
+        : (es ? 'No se pudo publicar la obra. Comprueba tu conexión e inténtalo de nuevo.' : 'The work could not be published. Check your connection and try again.'));
     }
   };
 
@@ -389,7 +327,7 @@ export default function UploadWork() {
                   <div className="mt-4 pt-4 border-t border-[hsl(var(--border))]">
                     <label className={labelClass}>{es ? 'Precio (€)' : 'Price (€)'}</label>
                     <input type="number" name="price" value={form.price} onChange={handleChange}
-                      min="0" step="0.01" placeholder="0.00" className={inputClass} />
+                      min="0.01" step="0.01" placeholder="0.00" required className={inputClass} />
                   </div>
                 )}
               </div>
@@ -400,10 +338,11 @@ export default function UploadWork() {
                   <label className={labelClass}>
                     {form.workType === 'cancion' ? (es ? 'Archivo de audio (mp3, wav, flac)' : 'Audio file (mp3, wav, flac)')
                       : form.workType === 'pintura' || form.workType === 'fotografia' ? (es ? 'Imagen (requerida)' : 'Image (required)')
-                      : (es ? 'Archivo (opcional)' : 'File (optional)')}
+                      : form.workType === 'video' ? (es ? 'Archivo de vídeo (requerido)' : 'Video file (required)')
+                      : (es ? 'Recitado en audio (opcional)' : 'Spoken audio (optional)')}
                   </label>
                   <input type="file"
-                    accept={form.workType === 'cancion' ? 'audio/*' : (form.workType === 'pintura' || form.workType === 'fotografia') ? 'image/*' : '*/*'}
+                    accept={form.workType === 'video' ? 'video/*' : (form.workType === 'pintura' || form.workType === 'fotografia') ? 'image/*' : 'audio/*'}
                     onChange={handleFileChange}
                     className="w-full text-sm text-[hsl(var(--muted-foreground))] file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:bg-[hsl(var(--foreground))] file:text-[hsl(var(--background))] cursor-pointer" />
                   {fileError && <p className="text-xs text-red-500 mt-2 font-medium">{fileError}</p>}
@@ -413,7 +352,6 @@ export default function UploadWork() {
 
               {/* Submit */}
               <button type="submit" disabled={isLoading}
-                onClick={() => console.log('[UploadWork] 💾 Submit button clicked!')}
                 className="w-full py-3 rounded-xl bg-[hsl(var(--foreground))] text-[hsl(var(--background))] text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center justify-center gap-2">
                 {isLoading
                   ? <><Loader2 className="w-4 h-4 animate-spin" />{progressLabel}</>

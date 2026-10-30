@@ -2,8 +2,9 @@ import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { supabase, Profile } from '@/lib/supabase';
 import { useAuth } from '@/lib/AuthContext';
-import { useWorks } from '@/lib/WorksContext';
-import { Link, useNavigate } from 'react-router-dom';
+import { useFollow } from '@/lib/FollowContext';
+import { useI18n } from '@/lib/i18n';
+import { Link } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -17,6 +18,9 @@ interface FollowersModalProps {
 
 export default function FollowersModal({ isOpen, onClose, userId, type, userName }: FollowersModalProps) {
   const { user } = useAuth();
+  const { setFollowing } = useFollow();
+  const { language } = useI18n();
+  const es = language === 'es';
   const [users, setUsers] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(false);
   const [followingMap, setFollowingMap] = useState<Record<string, boolean>>({});
@@ -79,18 +83,7 @@ export default function FollowersModal({ isOpen, onClose, userId, type, userName
     if (!user) return;
 
     try {
-      if (isFollowing) {
-        await supabase
-          .from('follows')
-          .delete()
-          .eq('follower_id', user.id)
-          .eq('following_id', targetUserId);
-      } else {
-        await supabase
-          .from('follows')
-          .insert({ follower_id: user.id, following_id: targetUserId });
-      }
-
+      await setFollowing(targetUserId, !isFollowing);
       setFollowingMap(prev => ({
         ...prev,
         [targetUserId]: !isFollowing,
@@ -105,7 +98,7 @@ export default function FollowersModal({ isOpen, onClose, userId, type, userName
       <DialogContent className="max-w-sm max-h-96 overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
-            {type === 'followers' ? 'Seguidores' : 'Siguiendo'}
+            {type === 'followers' ? (es ? 'Seguidores' : 'Followers') : (es ? 'Siguiendo' : 'Following')}
             {userName && ` · ${userName}`}
           </DialogTitle>
         </DialogHeader>
@@ -116,7 +109,9 @@ export default function FollowersModal({ isOpen, onClose, userId, type, userName
           </div>
         ) : users.length === 0 ? (
           <div className="text-center py-8 text-[hsl(var(--muted-foreground))] text-sm">
-            {type === 'followers' ? 'Sin seguidores aún' : 'No sigue a nadie aún'}
+            {type === 'followers'
+              ? (es ? 'Sin seguidores aún' : 'No followers yet')
+              : (es ? 'No sigue a nadie aún' : 'Not following anyone yet')}
           </div>
         ) : (
           <div className="space-y-3">
@@ -147,7 +142,7 @@ export default function FollowersModal({ isOpen, onClose, userId, type, userName
                     size="sm"
                     className="flex-shrink-0"
                   >
-                    {followingMap[profile.id] ? 'Siguiendo' : 'Seguir'}
+                    {followingMap[profile.id] ? (es ? 'Siguiendo' : 'Following') : (es ? 'Seguir' : 'Follow')}
                   </Button>
                 )}
               </div>

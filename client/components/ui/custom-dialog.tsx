@@ -1,7 +1,13 @@
+import { useI18n } from "@/lib/i18n";
 import * as React from "react"
 import * as DialogPrimitive from "@radix-ui/react-dialog"
 import { X } from "lucide-react"
 import { cn } from "@/lib/utils"
+
+function CloseLabel() {
+  const { language } = useI18n();
+  return <span className="sr-only">{language === "es" ? "Cerrar" : "Close"}</span>;
+}
 
 const Dialog = DialogPrimitive.Root
 
@@ -43,7 +49,7 @@ const DialogContent = React.forwardRef<
       {/* Close button floating to the right of the dialog (no circle) */}
       <DialogPrimitive.Close className="absolute top-3 right-[-42px] z-50 opacity-0 data-[state=open]:animate-slideInRight data-[state=closed]:animate-slideOutRight">
         <div className="dialog-close-button px-2 py-1 text-white font-medium">×</div>
-        <span className="sr-only">Close</span>
+        <CloseLabel />
       </DialogPrimitive.Close>
 
       {children}

@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { supabase, Work } from '@/lib/supabase';
 import { useAuth } from '@/lib/AuthContext';
 import { useWorks } from '@/lib/WorksContext';
@@ -47,6 +47,7 @@ const GRID_COLUMNS: MasonryColumns = { base: 2, sm: 3, lg: 4, xl: 5, '2xl': 6 };
 export default function Gallery() {
   const { user } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
   const { loadUserInteractions } = useWorks();
   const { language: currentLang, t } = useI18n();
   const [works, setWorks] = useState<Work[]>([]);
@@ -56,7 +57,8 @@ export default function Gallery() {
   const [loadingInitial, setLoadingInitial] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [loadError, setLoadError] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
+  // The address is the single source of the search, so it survives reloads and shared links.
+  const searchTerm = (new URLSearchParams(location.search).get('search') ?? '').replace(/^#/, '').trim();
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [filters, setFilters] = useState({ workType: '', sort: 'score' });
   const [showFilterPopup, setShowFilterPopup] = useState(false);
@@ -201,37 +203,11 @@ export default function Gallery() {
     return () => observer.disconnect();
   }, [hasMore, loadingMore, loadingInitial, page, fetchWorks]);
 
-  // ── Search debounce + URL sync ─────────────────────────────────────────────
-  useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    const rawQuery = params.get('search') ?? '';
-    const normalizedQuery = rawQuery.replace(/^#/, '').trim();
-    if (normalizedQuery !== searchTerm) {
-      setSearchTerm(normalizedQuery);
-    }
-  }, [location.search, searchTerm]);
-
+  // ── Search debounce ────────────────────────────────────────────────────────
   useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(searchTerm), 400);
     return () => clearTimeout(t);
   }, [searchTerm]);
-
-  useEffect(() => {
-    const onUpdate = (e: Event) => {
-      const nextSearch = (e as CustomEvent).detail?.searchTerm ?? '';
-      setSearchTerm(nextSearch);
-      const params = new URLSearchParams(location.search);
-      if (nextSearch.trim()) {
-        params.set('search', nextSearch.trim().replace(/^#/, ''));
-      } else {
-        params.delete('search');
-      }
-      const nextUrl = `${location.pathname}${params.toString() ? `?${params.toString()}` : ''}`;
-      window.history.replaceState({}, '', nextUrl);
-    };
-    document.addEventListener('updateSearchTerm', onUpdate as EventListener);
-    return () => document.removeEventListener('updateSearchTerm', onUpdate as EventListener);
-  }, [location.pathname, location.search]);
 
   // ── Filter popup positioning ──────────────────────────────────────────────
   useEffect(() => {
@@ -264,16 +240,10 @@ export default function Gallery() {
     };
   }, [showFilterPopup]);
 
-  // ── Use all database works only ───────────────────────────────────────────
-  const allItems = useMemo(() => {
-    console.log('WORKS FETCHED:', works.length, works);
-    return works;
-  }, [works]);
-
   // ── Client-side filter + search (on already-fetched data) ─────────────────
   const filtered = useMemo(() => {
     const lower = debouncedSearch.toLowerCase();
-    return allItems
+    return works
       .filter(item => {
         if (!lower) return true;
         return (
@@ -284,7 +254,7 @@ export default function Gallery() {
         );
       })
       .filter(item => !filters.workType || item.work_type === filters.workType);
-  }, [allItems, debouncedSearch, filters.workType]);
+  }, [works, debouncedSearch, filters.workType]);
 
   // Fade on filter/search change
   useEffect(() => {
@@ -364,7 +334,7 @@ export default function Gallery() {
                   {t('search.tryAgain')}
                 </p>
                 <button
-                  onClick={() => setSearchTerm('')}
+                  onClick={() => navigate({ search: '' }, { replace: true })}
                   className="px-4 py-2 border border-[hsl(var(--border))] rounded-lg text-sm hover:bg-[hsl(var(--muted))] transition-colors"
                 >
                   {t('search.clear')}
@@ -374,7 +344,17 @@ export default function Gallery() {
 
             {!loadingInitial && !loadError && filtered.length === 0 && !debouncedSearch && (
               <div className="w-full py-16 text-center text-sm text-[hsl(var(--muted-foreground))]">
-                {currentLang === 'es' ? 'Todavía no hay obras publicadas.' : 'There are no published works yet.'}
+                {filters.workType ? (
+                  <>
+                    <p className="mb-4">{currentLang === 'es' ? 'No hay obras de este tipo todavía.' : 'There are no works of this type yet.'}</p>
+                    <button
+                      onClick={() => setFilters({ workType: '', sort: 'score' })}
+                      className="px-4 py-2 border border-[hsl(var(--border))] rounded-lg hover:bg-[hsl(var(--muted))] transition-colors"
+                    >
+                      {t('filter.clear')}
+                    </button>
+                  </>
+                ) : currentLang === 'es' ? 'Todavía no hay obras publicadas.' : 'There are no published works yet.'}
               </div>
             )}
 

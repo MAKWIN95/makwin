@@ -14,7 +14,7 @@ interface AuthContextType {
   needsUsernameSetup: boolean;
   signInWithGoogle: () => Promise<void>;
   signInWithEmail: (email: string, password: string) => Promise<{ error: string | null }>;
-  signUpWithEmail: (email: string, password: string, username: string, displayName: string) => Promise<{ error: string | null }>;
+  signUpWithEmail: (email: string, password: string, username: string, displayName: string, language?: 'es' | 'en') => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ error: string | null }>;
   updateProfile: (updates: Partial<Pick<Profile, 'username' | 'display_name' | 'bio' | 'website' | 'avatar_url' | 'instagram_url' | 'tiktok_url'>>) => Promise<{ error: string | null }>;
@@ -313,7 +313,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         provider: 'google',
         options: { redirectTo },
       });
-      if (error) window.sessionStorage.removeItem(googleOAuthPendingKey);
+      if (error) throw error;
     } catch (error) {
       window.sessionStorage.removeItem(googleOAuthPendingKey);
       throw error;
@@ -365,7 +365,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     email: string,
     password: string,
     username: string,
-    displayName: string
+    displayName: string,
+    language: 'es' | 'en' = 'es'
   ) => {
     // Check username uniqueness first
     const { data: existing } = await supabase
@@ -374,7 +375,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       .eq('username', username.toLowerCase())
       .maybeSingle();
 
-    if (existing) return { error: 'Este nombre de usuario ya está en uso.' };
+    if (existing) return { error: 'USERNAME_TAKEN' };
 
     const redirectTo = `${getAppBaseUrl()}/login`;
 
@@ -383,7 +384,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       password,
       options: {
         emailRedirectTo: redirectTo,
-        data: { username: username.toLowerCase(), display_name: displayName },
+        data: { username: username.toLowerCase(), display_name: displayName, language_preference: language },
       },
     });
 
@@ -432,7 +433,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const updateProfile = async (updates: Partial<Pick<Profile, 'username' | 'display_name' | 'bio' | 'website' | 'avatar_url' | 'instagram_url' | 'tiktok_url'>>) => {
-    if (!user) return { error: 'No hay sesión activa.' };
+    if (!user) return { error: 'NO_SESSION' };
 
     // Validate username uniqueness if changing
     if (updates.username && updates.username !== profile?.username) {
@@ -441,7 +442,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .select('id')
         .eq('username', updates.username.toLowerCase())
         .maybeSingle();
-      if (existing) return { error: 'Este nombre de usuario ya está en uso.' };
+      if (existing) return { error: 'USERNAME_TAKEN' };
     }
 
     const { error } = await supabase
@@ -458,15 +459,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const completeGoogleSignUp = async (username: string, password: string, displayName: string) => {
     const effectiveUser = user ?? onboardingUser;
-    if (!effectiveUser?.id) return { error: 'No hay sesión activa.' };
+    if (!effectiveUser?.id) return { error: 'NO_SESSION' };
 
     const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
     if (sessionError || !sessionData.session || sessionData.session.user.id !== effectiveUser.id) {
-      return { error: 'La sesión de autenticación no está activa.' };
+      return { error: 'NO_SESSION' };
     }
 
     const uname = normalizeUsername(username);
-    if (!isValidUsername(uname)) return { error: 'Invalid username format.' };
+    if (!isValidUsername(uname)) return { error: 'INVALID_USERNAME' };
     const safeDisplayName = String(displayName || '').trim();
     const googleAvatar = (effectiveUser.user_metadata?.avatar_url as string | undefined) || DEFAULT_USER_AVATAR;
 
@@ -630,11 +631,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         tiktok_url: null,
         is_verified: false,
         is_banned: false,
-        language_preference: 'es',
         last_name_change: null,
         last_username_change: null,
         created_at: new Date().toISOString(),
-      } as Profile;
+      } as unknown as Profile;
 
       setProfile(resolvedProfile);
       setNeedsUsernameSetup(false);

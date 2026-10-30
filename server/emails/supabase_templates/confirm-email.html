@@ -1,35 +1,69 @@
-<!doctype html>
-<!-- MAKWIN Confirm Email Template for Supabase -->
+{{ if eq .Data.language_preference "en" }}<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light only">
+<meta name="supported-color-schemes" content="light only">
+<title>Confirm your email</title>
+<style>:root{color-scheme:light only;supported-color-schemes:light only}@media only screen and (max-width:620px){.mk-pad{padding-left:24px!important;padding-right:24px!important}.mk-title{font-size:26px!important}}</style>
+</head>
+<body style="margin:0;padding:0;background-color:#ffffff;-webkit-text-size-adjust:100%;">
+<div style="display:none;max-height:0;overflow:hidden;opacity:0;color:#ffffff;">One last step to activate your MAKWIN account.</div>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#ffffff" style="background-color:#ffffff;">
+<tr><td align="center">
+<table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:600px;">
+<tr><td class="mk-pad" style="padding:56px 48px 40px;">
+<span style="font-family:Georgia,'Times New Roman',Times,serif;font-size:22px;line-height:1;color:#111111;">&#991;</span><span style="padding-left:10px;font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:13px;font-weight:700;letter-spacing:0.32em;color:#111111;">MAKWIN</span>
+</td></tr>
+<tr><td class="mk-pad" style="padding:0 48px 24px;">
+<h1 class="mk-title" style="margin:0 0 24px;font-family:Georgia,'Times New Roman',Times,serif;font-size:30px;font-weight:400;line-height:1.25;letter-spacing:-0.01em;color:#111111;">Confirm your email</h1>
+<p style="margin:0 0 20px;font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:16px;line-height:1.65;color:#3d3d3d;">Welcome to MAKWIN. Confirm your address to activate your account and start discovering and sharing works.</p>
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:12px 0 32px;"><tr><td bgcolor="#111111" style="background-color:#111111;border-radius:2px;"><a href="{{ .ConfirmationURL }}" target="_blank" style="display:inline-block;padding:15px 34px;font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:13px;font-weight:600;letter-spacing:0.08em;color:#ffffff;text-decoration:none;">CONFIRM EMAIL</a></td></tr></table>
+<p style="margin:0 0 20px;font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:13px;line-height:1.65;color:#8a8a8a;">If the button does not work, copy this link into your browser:<br><a href="{{ .ConfirmationURL }}" target="_blank" style="color:#8a8a8a;text-decoration:underline;word-break:break-all;">{{ .ConfirmationURL }}</a></p>
+<p style="margin:0 0 20px;font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:13px;line-height:1.65;color:#8a8a8a;">If you did not create this account, you can ignore this message.</p>
+</td></tr>
+<tr><td class="mk-pad" style="padding:0 48px 56px;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td style="border-top:1px solid #ececec;padding-top:24px;font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:12px;line-height:1.7;color:#8a8a8a;">
+Real art, real experiences, real connections.<br>Automated email from MAKWIN.
+</td></tr></table>
+</td></tr>
+</table>
+</td></tr>
+</table>
+</body>
+</html>{{ else }}<!doctype html>
 <html lang="es">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Confirma tu correo — MAKWIN</title>
-  <style>
-    body { margin:0; padding:0; background:#0f0f10; color:#e6e6e6; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial; }
-    .wrap { max-width:640px; margin:0 auto; padding:28px 16px; }
-    .card { background:#111213; border:1px solid rgba(255,255,255,0.04); border-radius:12px; padding:36px; }
-    .logo { font-weight:700; letter-spacing:0.12em; color:#fff; margin-bottom:10px; }
-    h1 { margin:0 0 10px; font-size:24px; color:#ffffff; font-weight:600; }
-    p { margin:0 0 16px; color:#cfcfcf; line-height:1.5; }
-    a.button { display:inline-block; padding:12px 20px; border-radius:8px; background:#0b0b0b; color:#fff; text-decoration:none; border:1px solid rgba(255,255,255,0.06); }
-    .muted { color:#8f9599; font-size:13px; }
-    code { display:block; word-break:break-all; color:#d1d5d9; background:transparent; margin-top:12px; }
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light only">
+<meta name="supported-color-schemes" content="light only">
+<title>Confirma tu correo</title>
+<style>:root{color-scheme:light only;supported-color-schemes:light only}@media only screen and (max-width:620px){.mk-pad{padding-left:24px!important;padding-right:24px!important}.mk-title{font-size:26px!important}}</style>
 </head>
-<body>
-  <div class="wrap">
-    <div class="card">
-      <div class="logo">MAKWIN</div>
-      <h1>Confirma tu correo</h1>
-      <p class="muted">Gracias por unirte a MAKWIN. Confirma tu dirección de correo para activar tu cuenta.</p>
-      <p>Haz clic en el botón a continuación para confirmar tu email:</p>
-      <p><a href="{{ .ConfirmationURL }}{{ .ActionURL }}" class="button">Confirmar correo</a></p>
-      <p class="muted">Si el botón no funciona, copia y pega el siguiente enlace en tu navegador:</p>
-      <code>{{ .ConfirmationURL }}{{ .ActionURL }}</code>
-      <p class="muted" style="margin-top:18px;">Si no solicitaste este correo, ignora este mensaje.</p>
-    </div>
-    <p class="muted" style="margin-top:18px;">© MAKWIN {{ .SiteURL }}</p>
-  </div>
+<body style="margin:0;padding:0;background-color:#ffffff;-webkit-text-size-adjust:100%;">
+<div style="display:none;max-height:0;overflow:hidden;opacity:0;color:#ffffff;">Un último paso para activar tu cuenta de MAKWIN.</div>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#ffffff" style="background-color:#ffffff;">
+<tr><td align="center">
+<table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:600px;">
+<tr><td class="mk-pad" style="padding:56px 48px 40px;">
+<span style="font-family:Georgia,'Times New Roman',Times,serif;font-size:22px;line-height:1;color:#111111;">&#991;</span><span style="padding-left:10px;font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:13px;font-weight:700;letter-spacing:0.32em;color:#111111;">MAKWIN</span>
+</td></tr>
+<tr><td class="mk-pad" style="padding:0 48px 24px;">
+<h1 class="mk-title" style="margin:0 0 24px;font-family:Georgia,'Times New Roman',Times,serif;font-size:30px;font-weight:400;line-height:1.25;letter-spacing:-0.01em;color:#111111;">Confirma tu correo</h1>
+<p style="margin:0 0 20px;font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:16px;line-height:1.65;color:#3d3d3d;">Te damos la bienvenida a MAKWIN. Confirma tu dirección para activar tu cuenta y empezar a descubrir y compartir obras.</p>
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:12px 0 32px;"><tr><td bgcolor="#111111" style="background-color:#111111;border-radius:2px;"><a href="{{ .ConfirmationURL }}" target="_blank" style="display:inline-block;padding:15px 34px;font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:13px;font-weight:600;letter-spacing:0.08em;color:#ffffff;text-decoration:none;">CONFIRMAR CORREO</a></td></tr></table>
+<p style="margin:0 0 20px;font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:13px;line-height:1.65;color:#8a8a8a;">Si el botón no funciona, copia este enlace en tu navegador:<br><a href="{{ .ConfirmationURL }}" target="_blank" style="color:#8a8a8a;text-decoration:underline;word-break:break-all;">{{ .ConfirmationURL }}</a></p>
+<p style="margin:0 0 20px;font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:13px;line-height:1.65;color:#8a8a8a;">Si no has creado esta cuenta, puedes ignorar este mensaje.</p>
+</td></tr>
+<tr><td class="mk-pad" style="padding:0 48px 56px;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td style="border-top:1px solid #ececec;padding-top:24px;font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:12px;line-height:1.7;color:#8a8a8a;">
+Arte real, experiencias reales, conexiones reales.<br>Correo automático de MAKWIN.
+</td></tr></table>
+</td></tr>
+</table>
+</td></tr>
+</table>
 </body>
-</html>
+</html>{{ end }}

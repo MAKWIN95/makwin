@@ -1,7 +1,6 @@
 import React, { useEffect } from 'react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
-import { Link } from 'react-router-dom';
 import { useI18n } from '@/lib/i18n';
 import { useStarsBackground } from '@/hooks/use-stars-background';
 
@@ -41,10 +40,7 @@ export default function Merch() {
                   <div className="p-4">
                     <h3 className="text-sm font-medium">{p.name}</h3>
                     <p className="text-xs text-[hsl(var(--muted-foreground))]">€{p.price}</p>
-                    <div className="mt-4 flex gap-2">
-                      <Link to="#" className="btn">{es ? 'Ver' : 'View'}</Link>
-                      <Link to="#" className="btn">{es ? 'Comprar' : 'Buy'}</Link>
-                    </div>
+                    <p className="mt-4 text-xs text-[hsl(var(--muted-foreground))]">{es ? 'Próximamente' : 'Coming soon'}</p>
                   </div>
                 </article>
               ))}

@@ -14,8 +14,8 @@ interface AuthModalProps {
 export default function AuthModal({ 
   isOpen, 
   onClose, 
-  title = 'Inicia sesión para continuar',
-  description = 'Necesitas una cuenta para hacer esto'
+  title,
+  description
 }: AuthModalProps) {
   const navigate = useNavigate();
   const { language: currentLang } = useI18n();
@@ -37,10 +37,11 @@ export default function AuthModal({
   // effects must not clip or reposition this fixed overlay.
   return createPortal(
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-[hsl(var(--card))] border border-[hsl(var(--border))] rounded-lg max-w-sm w-full p-6 animate-in fade-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
+      <div className="relative bg-[hsl(var(--card))] border border-[hsl(var(--border))] rounded-lg max-w-sm w-full p-6 animate-in fade-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
         {/* Close button */}
         <button
           onClick={onClose}
+          aria-label={es ? 'Cerrar' : 'Close'}
           className="absolute top-4 right-4 p-1 hover:bg-[hsl(var(--muted))] rounded-lg transition-colors"
         >
           <X className="w-5 h-5 text-[hsl(var(--muted-foreground))]" />
@@ -48,10 +49,10 @@ export default function AuthModal({
 
         {/* Content */}
         <h3 className="text-xl font-bold text-[hsl(var(--foreground))] mb-2">
-          {title}
+          {title ?? (es ? 'Inicia sesión para continuar' : 'Sign in to continue')}
         </h3>
         <p className="text-sm text-[hsl(var(--muted-foreground))] mb-6">
-          {description}
+          {description ?? (es ? 'Necesitas una cuenta para hacer esto.' : 'You need an account to do this.')}
         </p>
 
         {/* Buttons */}

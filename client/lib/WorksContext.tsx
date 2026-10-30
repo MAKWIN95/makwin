@@ -169,14 +169,15 @@ export const WorksProvider = ({ children }: { children: ReactNode }) => {
         actualCount = workData.like_count;
       }
 
-      if (mutationVersion !== interactionMutationRef.current || activeUserIdRef.current !== userId) {
-        return { liked: !isLiked, count: actualCount };
-      }
-
+      // A quick action on another work must not leave this one stuck as pending.
       setState(prev => ({
         ...prev,
         pendingLikes: new Set([...prev.pendingLikes].filter(id => id !== workId)),
       }));
+
+      if (mutationVersion !== interactionMutationRef.current || activeUserIdRef.current !== userId) {
+        return { liked: !isLiked, count: actualCount };
+      }
 
       console.debug(`[WorksContext:toggleLike] Work ${workId} (${isLiked ? 'unlike' : 'like'}): count=${actualCount}`);
       return { liked: !isLiked, count: actualCount };
@@ -247,14 +248,14 @@ export const WorksProvider = ({ children }: { children: ReactNode }) => {
         }
       }
 
-      if (mutationVersion !== interactionMutationRef.current || activeUserIdRef.current !== userId) {
-        return !isSaved;
-      }
-
       setState(prev => ({
         ...prev,
         pendingSaves: new Set([...prev.pendingSaves].filter(id => id !== workId)),
       }));
+
+      if (mutationVersion !== interactionMutationRef.current || activeUserIdRef.current !== userId) {
+        return !isSaved;
+      }
 
       console.debug(`[WorksContext:toggleSave] Work ${workId} (${isSaved ? 'unsave' : 'save'})`);
       return !isSaved;
