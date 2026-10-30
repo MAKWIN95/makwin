@@ -77,9 +77,16 @@ interface WorkInCheck {
 }
 
 async function finishCheck(work: WorkInCheck, baseUrl: string) {
-  // Loaded here so the model never slows down or breaks the rest of the API.
-  const { moderateWork } = await import('../server/lib/moderation.js');
-  const flags = await moderateWork(work);
+  // Loaded only for images and video: while the model starts up, this instance answers
+  // nobody else, and a work that is only text has no need of it.
+  const hasMedia = !!work.coverUrl || work.extraImages.length > 0 || (!!work.fileUrl && REQUIRES_FILE.includes(work.workType));
+  let flags: string[];
+  if (hasMedia) {
+    const { moderateWork } = await import('../server/lib/moderation.js');
+    flags = await moderateWork(work);
+  } else {
+    flags = findBlockedTerms(work.texts.filter(Boolean).join('\n')).map((term) => `text:${term}`);
+  }
   const held = flags.length > 0;
 
   // Only while it is still waiting for this check: its author may have deleted it meanwhile.
