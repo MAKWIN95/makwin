@@ -1,8 +1,12 @@
-import { RegExpMatcher, englishDataset, englishRecommendedTransformers } from 'obscenity';
+import { DataSet, RegExpMatcher, englishDataset, englishRecommendedTransformers } from 'obscenity';
 
 // Text filter for titles, descriptions, lyrics and tags. A match never deletes
 // anything: it only sends the work to the admin panel for a human decision.
-const english = new RegExpMatcher({ ...englishDataset.build(), ...englishRecommendedTransformers });
+// "negro" is an everyday colour in Spanish, so only its insulting uses are blocked.
+const dataset = new DataSet<{ originalWord: string }>()
+  .addAll(englishDataset)
+  .removePhrasesIf((phrase) => phrase.metadata?.originalWord === 'negro');
+const english = new RegExpMatcher({ ...dataset.build(), ...englishRecommendedTransformers });
 
 // Written like normalizeText leaves them: lowercase, no accents, "ñ" kept.
 const SPANISH_AND_EXTRA_TERMS = [
@@ -13,7 +17,7 @@ const SPANISH_AND_EXTRA_TERMS = [
   // Minors
   'pedofilia', 'pedofilo', 'pedofila', 'pederasta', 'pedophile', 'pedophilia', 'child porn', 'loli', 'lolicon', 'shota',
   // Hate
-  'nazi', 'nazis', 'heil hitler', 'maricon', 'maricones', 'negrata', 'negratas', 'sudaca', 'sudacas', 'moro de mierda',
+  'nazi', 'nazis', 'heil hitler', 'maricon', 'maricones', 'negrata', 'negratas', 'sudaca', 'sudacas', 'moro de mierda', 'negro de mierda', 'negra de mierda',
   // Violence and self-harm
   'gore', 'snuff', 'decapitacion', 'decapitar', 'descuartizar', 'descuartizado', 'beheading', 'dismembered',
   'matate', 'suicidate', 'kill yourself',
@@ -51,7 +55,7 @@ export function findBlockedTerms(text: string): string[] {
     found.add(match[0].replace(/\s+/g, ' '));
   }
   for (const match of english.getAllMatches(text)) {
-    const { phraseMetadata } = englishDataset.getPayloadWithPhraseMetadata(match);
+    const { phraseMetadata } = dataset.getPayloadWithPhraseMetadata(match);
     found.add(phraseMetadata?.originalWord ?? 'english');
   }
   return [...found];

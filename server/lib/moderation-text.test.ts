@@ -28,6 +28,14 @@ describe('findBlockedTerms', () => {
     expect(findBlockedTerms('kill yourself')).not.toEqual([]);
   });
 
+  it('lets the colour through but not the insults', () => {
+    expect(findBlockedTerms('Cisne negro')).toEqual([]);
+    expect(findBlockedTerms('Fondo Negro y blanco')).toEqual([]);
+    expect(findBlockedTerms('negro de mierda')).not.toEqual([]);
+    expect(findBlockedTerms('negrata')).not.toEqual([]);
+    expect(findBlockedTerms('nigger')).not.toEqual([]);
+  });
+
   it('handles empty text', () => {
     expect(findBlockedTerms('')).toEqual([]);
   });
