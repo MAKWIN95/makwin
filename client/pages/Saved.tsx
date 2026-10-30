@@ -171,7 +171,7 @@ export default function Saved() {
         ) : (
           <div className="columns-2 sm:columns-3 lg:columns-4 xl:columns-5 2xl:columns-6 gap-4">
             {works.map(work => (
-              <div key={work.id} className="break-inside-avoid">
+              <div key={work.id} className="masonry-item break-inside-avoid">
                 <WorkCard work={work} onSaveToggle={handleSaveToggle} />
               </div>
             ))}

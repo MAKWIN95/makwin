@@ -379,7 +379,7 @@ export default function Gallery() {
             {works.length > 0 && filtered.length > 0 && (
               <div className="columns-2 gap-4 sm:columns-3 lg:columns-4 xl:columns-5 2xl:columns-6">
                 {filtered.map((item: any, index: number) => (
-                  <div key={item.id} className={`mb-5 inline-block w-full break-inside-avoid align-top transition-opacity duration-300 ${showItems ? 'opacity-100' : 'opacity-0'}`}>
+                  <div key={item.id} className={`masonry-item mb-5 inline-block w-full break-inside-avoid align-top transition-opacity duration-300 ${showItems ? 'opacity-100' : 'opacity-0'}`}>
                     <WorkCard work={item as Work} priorityImage={index < 3} imageDimensions={imageDimensions[item.id]} />
                   </div>
                 ))}

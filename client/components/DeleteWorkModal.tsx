@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { AlertTriangle, Loader2 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useI18n } from '@/lib/i18n';
@@ -40,7 +41,9 @@ export default function DeleteWorkModal({ isOpen, onClose, workId, workTitle, on
 
   if (!isOpen) return null;
 
-  return (
+  // Rendered on <body>: cards sit in layout-contained grid items, which would
+  // otherwise become the containing block of this fixed overlay.
+  return createPortal(
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={onClose}>
       <div className="bg-[hsl(var(--popover))] border border-[hsl(var(--border))] rounded-2xl max-w-sm w-full shadow-2xl" onClick={(e) => e.stopPropagation()}>
         <div className="p-6">
@@ -81,6 +84,7 @@ export default function DeleteWorkModal({ isOpen, onClose, workId, workTitle, on
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

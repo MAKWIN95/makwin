@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Loader2 } from 'lucide-react';
 import { supabase, Work } from '@/lib/supabase';
 import { useI18n } from '@/lib/i18n';
@@ -52,7 +53,9 @@ export default function EditWorkModal({ isOpen, onClose, work, onSuccess }: Prop
 
   if (!isOpen) return null;
 
-  return (
+  // Rendered on <body>: cards sit in layout-contained grid items, which would
+  // otherwise become the containing block of this fixed overlay.
+  return createPortal(
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={onClose}>
       <div className="bg-[hsl(var(--popover))] border border-[rgba(120,120,120,0.25)] rounded-2xl max-w-md w-full shadow-2xl" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between p-6 border-b border-[rgba(120,120,120,0.25)]">
@@ -135,6 +138,7 @@ export default function EditWorkModal({ isOpen, onClose, work, onSuccess }: Prop
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
