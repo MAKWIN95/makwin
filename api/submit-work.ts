@@ -84,6 +84,9 @@ export default async function handler(
   req: VercelRequest,
   res: VercelResponse
 ) {
+  // Retired: nothing links here any more and it accepted anonymous submissions.
+  return res.status(410).json({ error: 'Gone' });
+
   // CORS
   res.setHeader("Access-Control-Allow-Credentials", "true");
   res.setHeader("Access-Control-Allow-Origin", "*");

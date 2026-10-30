@@ -38,8 +38,6 @@ async function replyToMessage(req: VercelRequest, res: VercelResponse) {
     to: message.email,
     from: HELP_SENDER,
     replyTo: HELP_ADDRESS,
-    // The panel does not keep replies yet: the help inbox receives a copy.
-    bcc: HELP_ADDRESS,
     subject: `Re: ${message.subject}`,
     content: {
       language,

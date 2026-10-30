@@ -6,31 +6,44 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import AdminHeldWorks, { type HeldWork } from '@/components/AdminHeldWorks';
 import AdminHelpMessages, { type HelpMessage } from '@/components/AdminHelpMessages';
 import AdminReports, { type Report } from '@/components/AdminReports';
+import AdminAccess from '@/components/AdminAccess';
 import { authHeaders } from '@/lib/adminApi';
+import { useAuth } from '@/lib/AuthContext';
 import { useI18n } from '@/lib/i18n';
 
 interface PanelData {
   messages: HelpMessage[];
   reports: Report[];
   held: HeldWork[];
+  role: 'owner' | 'admin';
 }
 
 // Kept while the app is open, so coming back to the panel shows it at once.
-let cachedPanel: PanelData | null = null;
+// Tied to the account, so signing in as someone else never shows it.
+let cachedPanel: { userId: string; data: PanelData } | null = null;
 
 export default function Admin() {
   const { language } = useI18n();
+  const { user, loading: authLoading } = useAuth();
   const es = language === 'es';
-  const [panel, setPanel] = useState<PanelData | null>(cachedPanel);
+  const [panel, setPanel] = useState<PanelData | null>(
+    cachedPanel && cachedPanel.userId === user?.id ? cachedPanel.data : null,
+  );
   const [denied, setDenied] = useState(false);
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState<string | null>(null);
 
   useEffect(() => {
-    cachedPanel = panel;
-  }, [panel]);
+    if (panel && user) cachedPanel = { userId: user.id, data: panel };
+  }, [panel, user?.id]);
 
   useEffect(() => {
+    if (authLoading) return;
+    if (!user) {
+      setPanel(null);
+      setDenied(true);
+      return;
+    }
     let cancelled = false;
     (async () => {
       try {
@@ -53,7 +66,7 @@ export default function Admin() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [authLoading, user?.id]);
 
   // Each tab edits its own part of the shared data.
   const setter = <K extends keyof PanelData>(key: K): Dispatch<SetStateAction<PanelData[K]>> => (next) =>
@@ -118,6 +131,9 @@ export default function Admin() {
                 <TabsTrigger value="reports">
                   {es ? 'Reportes' : 'Reports'} ({openReports})
                 </TabsTrigger>
+                {panel.role === 'owner' && (
+                  <TabsTrigger value="access">{es ? 'Administradores' : 'Admins'}</TabsTrigger>
+                )}
               </TabsList>
 
               <TabsContent value="held">
@@ -129,6 +145,11 @@ export default function Admin() {
               <TabsContent value="reports">
                 <AdminReports reports={panel.reports} setReports={setter('reports')} />
               </TabsContent>
+              {panel.role === 'owner' && (
+                <TabsContent value="access">
+                  <AdminAccess />
+                </TabsContent>
+              )}
             </Tabs>
           </div>
         </div>

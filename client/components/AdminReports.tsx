@@ -65,6 +65,16 @@ export default function AdminReports({ reports, setReports }: Props) {
       item.work?.id === report.work!.id ? { ...item, work: { ...item.work!, status } } : item,
     );
 
+  // A second reason travels at the start of the details as "[spam] ...".
+  const readReport = (report: Report) => {
+    const match = report.details?.match(/^\[(\w+)\]\s?/);
+    const label = (reason: string) => REASONS[reason]?.[language] ?? reason;
+    return {
+      reasons: [report.reason, ...(match ? [match[1]] : [])].map(label).join(' + '),
+      details: (match ? report.details!.slice(match[0].length) : report.details) || null,
+    };
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2 mb-6">
@@ -78,6 +88,7 @@ export default function AdminReports({ reports, setReports }: Props) {
       ) : (
         reports.map((report) => {
           const removed = report.work?.status === 'removed_policy';
+          const { reasons, details } = readReport(report);
           return (
             <div key={report.id} className={`border border-[hsl(var(--border))] rounded-lg p-4 ${report.reviewed ? 'opacity-60' : ''}`}>
               <div className="flex flex-wrap items-start justify-between gap-2 mb-2">
@@ -90,7 +101,7 @@ export default function AdminReports({ reports, setReports }: Props) {
                     <span className="font-medium">{es ? 'Obra eliminada' : 'Deleted work'}</span>
                   )}
                   <p className="text-sm text-[hsl(var(--muted-foreground))]">
-                    {REASONS[report.reason]?.[language] ?? report.reason}
+                    {reasons}
                     {report.reporter?.username ? ` · @${report.reporter.username}` : ''}
                     {' · '}
                     {new Date(report.created_at).toLocaleDateString(es ? 'es-ES' : 'en-US')}
@@ -100,7 +111,7 @@ export default function AdminReports({ reports, setReports }: Props) {
                   <span className="px-2 py-1 rounded text-xs bg-red-500/10 text-red-500">{es ? 'Obra retirada' : 'Work removed'}</span>
                 )}
               </div>
-              {report.details && <p className="text-sm whitespace-pre-wrap mb-3">{report.details}</p>}
+              {details && <p className="text-sm whitespace-pre-wrap mb-3">{details}</p>}
               <div className="flex flex-wrap gap-2">
                 <Button size="sm" variant="outline" onClick={() => setReviewed(report)}>
                   {report.reviewed ? (es ? 'Marcar como pendiente' : 'Mark as pending') : es ? 'Marcar como revisado' : 'Mark as reviewed'}

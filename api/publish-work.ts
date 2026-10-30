@@ -1,7 +1,8 @@
 import { createClient } from '@supabase/supabase-js';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { getRequestUser } from '../server/lib/admin-auth.js';
-import { requestBaseUrl, sendEmail, teamEmail } from '../server/lib/email.js';
+import { alertIfBacklogReached } from '../server/lib/admin-backlog.js';
+import { requestBaseUrl } from '../server/lib/email.js';
 import { findBlockedTerms } from '../server/lib/moderation-text.js';
 
 // Works are saved here so the automatic check always runs first: a work that
@@ -29,25 +30,6 @@ function ownFileUrl(value: unknown, userId: string): string | null {
   const url = String(value ?? '');
   const prefix = `${supabaseUrl.replace(/\/$/, '')}/storage/v1/object/public/works/${userId}/`;
   return url.startsWith(prefix) ? url : null;
-}
-
-async function notifyTeam(title: string, flags: string[], baseUrl: string) {
-  const to = teamEmail();
-  if (!to) return;
-  await sendEmail({
-    to,
-    subject: `Obra retenida para revisar: ${title}`,
-    content: {
-      language: 'es',
-      title: 'Una obra necesita tu revisión',
-      preheader: title,
-      blocks: [
-        { type: 'text', text: 'El filtro automático no la ha dejado publicarse. Solo se publicará si la apruebas.' },
-        { type: 'details', rows: [['Obra', title], ['Motivo', flags.join(', ')]] },
-        ...(baseUrl ? [{ type: 'button' as const, label: 'REVISAR EN EL PANEL', url: `${baseUrl}/admin` }] : []),
-      ],
-    },
-  });
 }
 
 async function createWork(req: VercelRequest, res: VercelResponse, userId: string) {
@@ -97,7 +79,7 @@ async function createWork(req: VercelRequest, res: VercelResponse, userId: strin
     .single();
   if (error) throw error;
 
-  if (held) await notifyTeam(title, flags, requestBaseUrl(req.headers));
+  if (held) await alertIfBacklogReached(requestBaseUrl(req.headers));
   return res.status(200).json({ id: data.id, held });
 }
 
@@ -131,7 +113,7 @@ async function editWork(req: VercelRequest, res: VercelResponse, userId: string)
     .eq('id', id);
   if (error) throw error;
 
-  if (held) await notifyTeam(title, flags, requestBaseUrl(req.headers));
+  if (held) await alertIfBacklogReached(requestBaseUrl(req.headers));
   return res.status(200).json({ id, held });
 }
 

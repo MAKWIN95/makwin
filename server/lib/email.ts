@@ -9,7 +9,6 @@ interface SendEmailOptions {
   content: EmailContent;
   replyTo?: string;
   from?: string;
-  bcc?: string;
 }
 
 // The address people write to and that answers them from the admin panel.
@@ -19,7 +18,7 @@ export const HELP_SENDER = `MAKWIN <${HELP_ADDRESS}>`;
 // Every email the API sends goes through here: Resend only, from RESEND_FROM
 // unless a caller answers as the help desk.
 // It never throws, so a mail outage cannot undo work that is already saved.
-export async function sendEmail({ to, subject, content, replyTo, from: sender, bcc }: SendEmailOptions): Promise<SendEmailResult> {
+export async function sendEmail({ to, subject, content, replyTo, from: sender }: SendEmailOptions): Promise<SendEmailResult> {
   const apiKey = process.env.RESEND_API_KEY;
   const from = sender || process.env.RESEND_FROM;
   if (!apiKey || !from) {
@@ -36,7 +35,6 @@ export async function sendEmail({ to, subject, content, replyTo, from: sender, b
       html,
       text,
       ...(replyTo ? { replyTo } : {}),
-      ...(bcc ? { bcc } : {}),
     });
     if (error) {
       console.error('[EMAIL] Resend rejected the email:', error.name, error.message);
@@ -47,10 +45,6 @@ export async function sendEmail({ to, subject, content, replyTo, from: sender, b
     console.error('[EMAIL] Could not reach Resend:', error?.message || error);
     return { ok: false, error: 'send_failed' };
   }
-}
-
-export function teamEmail(): string {
-  return process.env.HELP_EMAIL || '';
 }
 
 export function artistsEmail(): string {

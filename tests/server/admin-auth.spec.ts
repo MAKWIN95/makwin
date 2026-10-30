@@ -8,7 +8,7 @@ vi.mock('@supabase/supabase-js', () => ({
 
 import { isAdminRequest } from '../../server/lib/admin-auth';
 
-const userWithEmail = (email: string) => ({ data: { user: { id: 'u1', email } }, error: null });
+const userWithEmail = (email: string) => ({ data: { user: { id: 'u1', email, email_confirmed_at: '2026-01-01', app_metadata: {} } }, error: null });
 
 describe('isAdminRequest', () => {
   beforeEach(() => {
@@ -38,6 +38,5 @@ describe('isAdminRequest', () => {
     vi.stubEnv('ADMIN_EMAILS', '');
     auth.getUser.mockResolvedValue(userWithEmail('admin@makwin.art'));
     await expect(isAdminRequest('Bearer token-1')).resolves.toBe(false);
-    expect(auth.getUser).not.toHaveBeenCalled();
   });
 });

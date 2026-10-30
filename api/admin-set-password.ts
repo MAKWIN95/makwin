@@ -30,6 +30,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(401).json({ error: 'Invalid token' });
     }
 
+    if (typeof password !== 'string' || password.length < 8 || password.length > 200) {
+      return res.status(400).json({ error: 'La contraseña no es válida' });
+    }
+
+    // Only for the first-time setup of a Google account. Afterwards a password
+    // can only change through the emailed reset link, so an open session alone
+    // can never take over an account.
+    const { data: profile, error: profileError } = await supabaseAdmin
+      .from('profiles')
+      .select('google_setup_completed')
+      .eq('id', userId)
+      .maybeSingle();
+    if (profileError) throw profileError;
+    if (profile?.google_setup_completed) return res.status(403).json({ error: 'Forbidden' });
+
     // Use admin API to update user password without triggering public emails
     try {
       // admin.updateUserById returns { data, error }

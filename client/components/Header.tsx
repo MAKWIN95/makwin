@@ -18,6 +18,26 @@ interface HeaderProps {
   hideSearch?: boolean;
 }
 
+const ADMIN_HINT_KEY = 'makwin:admin-hint';
+let adminChecked: string | null = null;
+
+function readAdminHint(userId: string): boolean {
+  try {
+    return localStorage.getItem(ADMIN_HINT_KEY) === userId;
+  } catch {
+    return false;
+  }
+}
+
+function writeAdminHint(userId: string, isAdmin: boolean) {
+  try {
+    if (isAdmin) localStorage.setItem(ADMIN_HINT_KEY, userId);
+    else localStorage.removeItem(ADMIN_HINT_KEY);
+  } catch {
+    // Without storage the link simply appears after the check.
+  }
+}
+
 export default function Header({ showSearch = true, showSearchCentered = false, breadcrumb, hideSearch = false }: HeaderProps) {
   const initialLocation = useLocation();
   const [searchTerm, setSearchTerm] = useState(() => readSearch(initialLocation.search));
@@ -84,20 +104,30 @@ export default function Header({ showSearch = true, showSearchCentered = false, 
     navigate(cleaned ? `/galeria?search=${encodeURIComponent(cleaned)}` : '/galeria');
   };
 
-  // Only the server knows who is an administrator; ask when the menu is opened.
+  // Only the server decides who is an administrator. The last answer is shown
+  // straight away and refreshed once per visit; it only controls this link.
   useEffect(() => {
-    if (!showUserMenu || !user || isAdmin) return;
+    if (!user) {
+      setIsAdmin(false);
+      return;
+    }
+    setIsAdmin(readAdminHint(user.id));
+    if (adminChecked === user.id) return;
     let cancelled = false;
     (async () => {
       try {
-        const response = await fetch('/api/help-messages', { headers: await authHeaders() });
-        if (!cancelled && response.ok) setIsAdmin(true);
+        const response = await fetch('/api/reports?scope=access', { headers: await authHeaders() });
+        if (!response.ok) return;
+        const { role } = await response.json();
+        adminChecked = user.id;
+        writeAdminHint(user.id, !!role);
+        if (!cancelled) setIsAdmin(!!role);
       } catch {
-        // Not being able to check simply leaves the entry hidden.
+        // Not being able to check simply keeps the last answer.
       }
     })();
     return () => { cancelled = true; };
-  }, [showUserMenu, user?.id, isAdmin]);
+  }, [user?.id]);
 
   const isGalleryish = location.pathname.startsWith('/galeria') || location.pathname.startsWith('/merch') || location.pathname.startsWith('/marketplace');
   const isHomePage = location.pathname === '/home';

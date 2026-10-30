@@ -1,7 +1,8 @@
 import { createClient } from '@supabase/supabase-js';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { getRequestUser, isAdminRequest } from '../server/lib/admin-auth.js';
-import { HELP_ADDRESS, requestBaseUrl, sendEmail, teamEmail } from '../server/lib/email.js';
+import { getRequestUser, roleOf, signedInRecently, type AdminRole } from '../server/lib/admin-auth.js';
+import { alertIfBacklogReached } from '../server/lib/admin-backlog.js';
+import { HELP_ADDRESS, requestBaseUrl, sendEmail } from '../server/lib/email.js';
 
 // policy_reports only lets reporters read their own rows, so moderators and the
 // team notification go through this endpoint.
@@ -20,56 +21,47 @@ const REASONS: Record<string, string> = {
   otro: 'Otro',
 };
 
+const MAX_REASONS = 2;
+
 async function createReport(req: VercelRequest, res: VercelResponse) {
   const user = await getRequestUser(req.headers.authorization);
   if (!user) return res.status(401).json({ error: 'No autorizado' });
 
-  const { workId, reason, details } = (req.body || {}) as { workId?: string; reason?: string; details?: string };
+  const { workId, reasons, details } = (req.body || {}) as { workId?: string; reasons?: unknown; details?: string };
+  const chosen = Array.isArray(reasons) ? [...new Set(reasons.map(String))] : [];
   const cleanDetails = String(details ?? '').trim().slice(0, 1000);
-  if (!workId || !reason || !(reason in REASONS) || (reason === 'otro' && !cleanDetails)) {
+  if (
+    !workId || chosen.length === 0 || chosen.length > MAX_REASONS ||
+    chosen.some((reason) => !Object.keys(REASONS).includes(reason)) ||
+    (chosen.includes('otro') && !cleanDetails)
+  ) {
     return res.status(400).json({ error: 'Datos no válidos' });
   }
 
-  const { data: work } = await supabaseAdmin.from('works').select('id, title').eq('id', workId).maybeSingle();
+  const { data: work } = await supabaseAdmin.from('works').select('id').eq('id', workId).maybeSingle();
   if (!work) return res.status(404).json({ error: 'Obra no encontrada' });
 
-  // Reporting twice must not count twice towards the automatic removal.
+  // One report per person and work, so insisting never counts twice towards the automatic removal.
   const { data: existing } = await supabaseAdmin
     .from('policy_reports')
     .select('id')
     .eq('work_id', workId)
     .eq('reporter_id', user.id)
-    .eq('reviewed', false)
     .maybeSingle();
   if (existing) return res.status(200).json({ success: true });
 
+  // The reason column holds one value: a second one travels at the start of details.
+  const [reason, secondReason] = chosen;
+  const storedDetails = [secondReason ? `[${secondReason}]` : '', cleanDetails].filter(Boolean).join(' ');
   const { error } = await supabaseAdmin.from('policy_reports').insert({
     work_id: workId,
     reporter_id: user.id,
     reason,
-    details: cleanDetails || null,
+    details: storedDetails || null,
   });
   if (error) throw error;
 
-  const to = teamEmail();
-  if (to) {
-    const baseUrl = requestBaseUrl(req.headers);
-    await sendEmail({
-      to,
-      subject: `Nuevo reporte: ${work.title}`,
-      content: {
-        language: 'es',
-        title: 'Nuevo reporte de una obra',
-        preheader: `${REASONS[reason]}: ${work.title}`,
-        blocks: [
-          { type: 'details', rows: [['Obra', work.title], ['Motivo', REASONS[reason]]] },
-          ...(cleanDetails ? [{ type: 'quote' as const, text: cleanDetails }] : []),
-          ...(baseUrl ? [{ type: 'button' as const, label: 'REVISAR EN EL PANEL', url: `${baseUrl}/admin` }] : []),
-        ],
-      },
-    });
-  }
-
+  await alertIfBacklogReached(requestBaseUrl(req.headers));
   return res.status(200).json({ success: true });
 }
 
@@ -77,7 +69,7 @@ const REPORTS_QUERY = 'id, reason, details, reviewed, created_at, work:works(id,
 
 // Everything the admin panel shows, in one request: one cold start and one
 // session check instead of three, and the tabs then open instantly.
-async function loadPanel(res: VercelResponse) {
+async function loadPanel(res: VercelResponse, role: AdminRole) {
   const [messages, reports, held] = await Promise.all([
     supabaseAdmin.from('help_messages').select('*').order('created_at', { ascending: false }),
     supabaseAdmin.from('policy_reports').select(REPORTS_QUERY).order('created_at', { ascending: false }),
@@ -90,7 +82,7 @@ async function loadPanel(res: VercelResponse) {
   ]);
   const failed = messages.error || reports.error || held.error;
   if (failed) throw failed;
-  return res.status(200).json({ messages: messages.data, reports: reports.data, held: held.data });
+  return res.status(200).json({ role, messages: messages.data, reports: reports.data, held: held.data });
 }
 
 function storagePath(url: string | null): string | null {
@@ -155,15 +147,121 @@ async function decideHeldWork(req: VercelRequest, res: VercelResponse) {
   return res.status(200).json({ success: true });
 }
 
+async function listAdmins(res: VercelResponse) {
+  const users = [];
+  for (let page = 1; ; page++) {
+    const { data, error } = await supabaseAdmin.auth.admin.listUsers({ page, perPage: 200 });
+    if (error) throw error;
+    users.push(...data.users);
+    if (data.users.length < 200) break;
+  }
+  const admins = users.filter((user) => roleOf(user));
+  const { data: profiles, error } = await supabaseAdmin
+    .from('profiles')
+    .select('id, username')
+    .in('id', admins.map((user) => user.id));
+  if (error) throw error;
+  const usernames = new Map((profiles ?? []).map((profile) => [profile.id, profile.username]));
+  return res.status(200).json({
+    admins: admins
+      .map((user) => ({ id: user.id, username: usernames.get(user.id) ?? null, role: roleOf(user) }))
+      .sort((a, b) => (a.role === b.role ? 0 : a.role === 'owner' ? -1 : 1)),
+  });
+}
+
+// Owner only, and only after a recent sign-in. The flag lives in app_metadata,
+// which users cannot edit themselves.
+async function changeAdmin(req: VercelRequest, res: VercelResponse, actorId: string) {
+  const { adminAction, username } = (req.body || {}) as { adminAction?: string; username?: string };
+  const clean = String(username ?? '').trim().replace(/^@/, '');
+  if ((adminAction !== 'grant' && adminAction !== 'revoke') || !/^[a-zA-Z0-9_.-]{1,40}$/.test(clean)) {
+    return res.status(400).json({ code: 'invalid_username' });
+  }
+
+  const pattern = clean.replace(/[\\%_]/g, '\\$&');
+  const { data: profile, error: profileError } = await supabaseAdmin
+    .from('profiles')
+    .select('id, username, is_banned')
+    .ilike('username', pattern)
+    .maybeSingle();
+  if (profileError) throw profileError;
+  if (!profile) return res.status(404).json({ code: 'user_not_found' });
+
+  const { data: target, error: targetError } = await supabaseAdmin.auth.admin.getUserById(profile.id);
+  if (targetError || !target?.user) return res.status(404).json({ code: 'user_not_found' });
+  if (roleOf(target.user) === 'owner') return res.status(400).json({ code: 'is_owner' });
+
+  const granting = adminAction === 'grant';
+  if (granting && !target.user.email_confirmed_at) return res.status(400).json({ code: 'email_not_confirmed' });
+  if (granting && profile.is_banned) return res.status(400).json({ code: 'banned_user' });
+
+  const { error } = await supabaseAdmin.auth.admin.updateUserById(profile.id, {
+    app_metadata: { ...target.user.app_metadata, makwin_admin: granting },
+  });
+  if (error) throw error;
+  console.info(`[ADMIN-ACCESS] ${actorId} ${adminAction} ${profile.id}`);
+
+  const email = target.user.email;
+  if (email) {
+    const language = target.user.user_metadata?.language_preference === 'en' ? 'en' : 'es';
+    const es = language === 'es';
+    const baseUrl = requestBaseUrl(req.headers);
+    await sendEmail({
+      to: email,
+      subject: granting
+        ? (es ? 'Ya eres administrador de MAKWIN' : 'You are now a MAKWIN admin')
+        : (es ? 'Ya no eres administrador de MAKWIN' : 'You are no longer a MAKWIN admin'),
+      content: {
+        language,
+        title: granting ? (es ? 'Ya eres administrador' : 'You are now an admin') : (es ? 'Ya no eres administrador' : 'You are no longer an admin'),
+        preheader: es ? 'Cambio en los permisos de tu cuenta de MAKWIN.' : 'A change to your MAKWIN account permissions.',
+        blocks: [
+          {
+            type: 'text',
+            text: granting
+              ? (es ? 'Te han dado permisos de administrador en MAKWIN. Encontrarás el panel en el menú de tu perfil.' : 'You have been given admin access on MAKWIN. You will find the panel in your profile menu.')
+              : (es ? 'Tus permisos de administrador en MAKWIN se han retirado.' : 'Your admin access on MAKWIN has been removed.'),
+          },
+          ...(granting && baseUrl ? [{ type: 'button' as const, label: es ? 'ABRIR EL PANEL' : 'OPEN THE PANEL', url: `${baseUrl}/admin` }] : []),
+          ...(granting
+            ? [{ type: 'note' as const, text: es ? 'Protege tu cuenta: activa la verificación en dos pasos en tu correo.' : 'Protect your account: turn on two-step verification on your email.' }]
+            : []),
+        ],
+      },
+    });
+  }
+  return res.status(200).json({ success: true });
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     if (req.method === 'POST') return await createReport(req, res);
 
-    if (!(await isAdminRequest(req.headers.authorization))) {
-      return res.status(401).json({ error: 'No autorizado' });
+    const user = await getRequestUser(req.headers.authorization);
+    const role = roleOf(user);
+
+    // Lets the menu know whether to show the panel; the role alone reveals nothing.
+    if (req.method === 'GET' && req.query?.scope === 'access') {
+      res.setHeader('Cache-Control', 'no-store');
+      return res.status(200).json({ role });
     }
 
-    if (req.method === 'GET' && req.query?.scope === 'panel') return await loadPanel(res);
+    if (!user || !role) return res.status(401).json({ error: 'No autorizado' });
+    res.setHeader('Cache-Control', 'no-store');
+
+    if (req.method === 'GET' && req.query?.scope === 'panel') return await loadPanel(res, role);
+
+    if (req.method === 'GET' && req.query?.scope === 'admins') {
+      if (role !== 'owner') return res.status(403).json({ error: 'No autorizado' });
+      return await listAdmins(res);
+    }
+
+    if (req.method === 'PATCH' && req.body?.adminAction) {
+      if (role !== 'owner') return res.status(403).json({ error: 'No autorizado' });
+      if (!signedInRecently(user)) return res.status(403).json({ code: 'recent_login_required' });
+      return await changeAdmin(req, res, user.id);
+    }
+
     if (req.method === 'PATCH' && req.body?.heldWorkId) return await decideHeldWork(req, res);
 
     if (req.method === 'GET') {

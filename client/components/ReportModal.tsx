@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { X, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { authHeaders } from '@/lib/adminApi';
 import { toast } from 'sonner';
 
@@ -13,6 +14,8 @@ interface ReportModalProps {
   userId: string | undefined;
   onSuccess?: () => void;
 }
+
+const MAX_REASONS = 2;
 
 const REPORT_REASONS = [
   { value: 'porno', label: 'Contenido +18', labelEn: 'Adult content' },
@@ -30,17 +33,25 @@ export default function ReportModal({
   onSuccess
 }: ReportModalProps) {
   const { language: currentLang } = useI18n();
-  const [reason, setReason] = useState<string>('');
+  const [reasons, setReasons] = useState<string[]>([]);
   const [customReason, setCustomReason] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
   if (!isOpen) return null;
 
+  const wantsDetails = reasons.includes('otro');
+  const isFormValid = reasons.length > 0 && (!wantsDetails || !!customReason.trim());
+
+  const toggleReason = (value: string) =>
+    setReasons((current) =>
+      current.includes(value)
+        ? current.filter((item) => item !== value)
+        : current.length < MAX_REASONS ? [...current, value] : current,
+    );
+
   const handleSubmit = async () => {
-    if (!reason || (reason === 'otro' && !customReason.trim())) {
-      return;
-    }
+    if (!isFormValid) return;
 
     setLoading(true);
     try {
@@ -49,8 +60,8 @@ export default function ReportModal({
         headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
         body: JSON.stringify({
           workId,
-          reason,
-          details: reason === 'otro' ? customReason.trim() : null,
+          reasons,
+          details: wantsDetails ? customReason.trim() : null,
         }),
       });
 
@@ -59,7 +70,7 @@ export default function ReportModal({
       setSubmitted(true);
       setTimeout(() => {
         onClose();
-        setReason('');
+        setReasons([]);
         setCustomReason('');
         setSubmitted(false);
         onSuccess?.();
@@ -71,8 +82,6 @@ export default function ReportModal({
       setLoading(false);
     }
   };
-
-  const isFormValid = reason && (reason === 'otro' ? customReason.trim() : true);
 
   // ISSUE 3 FIX: Use createPortal to render modal at document.body
   // This ensures it's truly fixed and not constrained by parent grid
@@ -99,33 +108,39 @@ export default function ReportModal({
 
             <p className="text-sm text-[hsl(var(--muted-foreground))] mb-6">
               {currentLang === 'es' 
-                ? '¿Cuál es el motivo de tu reporte? Nos ayuda a mantener la plataforma segura.'
-                : 'What is the reason for your report? It helps us keep the platform safe.'}
+                ? '¿Cuál es el motivo de tu reporte? Puedes marcar hasta dos.'
+                : 'What is the reason for your report? You can choose up to two.'}
             </p>
 
             {/* Reason options */}
             <div className="space-y-2 mb-4">
-              {REPORT_REASONS.map((opt) => (
-                <label key={opt.value} className="flex items-center gap-3 p-3 rounded-lg border border-[hsl(var(--border))] hover:bg-[hsl(var(--muted))] cursor-pointer transition-colors">
-                  <input
-                    type="radio"
-                    name="reason"
-                    value={opt.value}
-                    checked={reason === opt.value}
-                    onChange={(e) => { e.stopPropagation(); setReason(e.target.value); }}
-                    onClick={(e) => e.stopPropagation()}
-                    disabled={loading}
-                    className="w-4 h-4 accent-orange-500"
-                  />
-                  <span className="text-sm text-[hsl(var(--foreground))]">
-                    {currentLang === 'es' ? opt.label : opt.labelEn}
-                  </span>
-                </label>
-              ))}
+              {REPORT_REASONS.map((opt) => {
+                const selected = reasons.includes(opt.value);
+                const full = !selected && reasons.length >= MAX_REASONS;
+                return (
+                  <label
+                    key={opt.value}
+                    className={`flex items-center gap-3 p-3 rounded-lg border transition-colors ${
+                      selected ? 'border-[hsl(var(--foreground))]' : 'border-[hsl(var(--border))]'
+                    } ${full ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-[hsl(var(--foreground)/0.05)]'}`}
+                  >
+                    <Checkbox
+                      checked={selected}
+                      disabled={loading || full}
+                      onCheckedChange={() => toggleReason(opt.value)}
+                      onClick={(e) => e.stopPropagation()}
+                      className="h-5 w-5 rounded border-2 !transition-none border-[hsl(var(--foreground))] data-[state=checked]:bg-[hsl(var(--foreground))] data-[state=checked]:text-[hsl(var(--background))]"
+                    />
+                    <span className="text-sm text-[hsl(var(--foreground))]">
+                      {currentLang === 'es' ? opt.label : opt.labelEn}
+                    </span>
+                  </label>
+                );
+              })}
             </div>
 
             {/* Custom reason textarea */}
-            {reason === 'otro' && (
+            {wantsDetails && (
               <textarea
                 value={customReason}
                 onChange={(e) => setCustomReason(e.target.value)}

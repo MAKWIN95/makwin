@@ -15,9 +15,11 @@ const db = vi.hoisted(() => {
 });
 const authMock = vi.hoisted(() => ({ isAdminRequest: vi.fn(), getRequestUser: vi.fn() }));
 const resendMock = vi.hoisted(() => ({ send: vi.fn() }));
+const backlogMock = vi.hoisted(() => ({ alertIfBacklogReached: vi.fn() }));
 
 vi.mock('@supabase/supabase-js', () => ({ createClient: () => ({ from: db.from }) }));
 vi.mock('../../server/lib/admin-auth.js', () => authMock);
+vi.mock('../../server/lib/admin-backlog.js', () => backlogMock);
 vi.mock('resend', () => ({ Resend: class { emails = { send: resendMock.send }; } }));
 
 import helpMessages from '../../api/help-messages';
@@ -106,7 +108,9 @@ describe('save help message API', () => {
 
     expect(response.statusCode).toBe(200);
     expect(db.state.insertRow.user_id).toBe('session-user');
-    expect(resendMock.send).toHaveBeenCalledTimes(1);
+    // New messages only reach the panel; the team hears about them through the backlog alert.
+    expect(resendMock.send).not.toHaveBeenCalled();
+    expect(backlogMock.alertIfBacklogReached).toHaveBeenCalledTimes(1);
   });
 
   it('stores anonymous messages without a user and rejects oversized fields', async () => {

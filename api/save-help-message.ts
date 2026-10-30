@@ -2,20 +2,13 @@ import { createClient } from "@supabase/supabase-js";
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import type { HelpMessage } from "@shared/api";
 import { getRequestUser } from "../server/lib/admin-auth.js";
-import { requestBaseUrl, sendEmail, teamEmail } from "../server/lib/email.js";
+import { alertIfBacklogReached } from "../server/lib/admin-backlog.js";
+import { requestBaseUrl } from "../server/lib/email.js";
 
 const supabase = createClient(
   process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || "",
   process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || ""
 );
-
-const CATEGORY_LABELS: Record<string, string> = {
-  question: 'Pregunta',
-  bug: 'Error en la web',
-  feature: 'Sugerencia',
-  account: 'Problema con la cuenta',
-  other: 'Otro',
-};
 
 async function saveHelpMessage(
   email: string,
@@ -64,38 +57,8 @@ async function saveHelpMessage(
     return { error: "No se pudo guardar el mensaje. Intenta más tarde.", code: "save_failed", status: 500 };
   }
 
-    // Awaited: serverless functions may be frozen as soon as the response is sent.
-  // The message is already saved, so a mail failure is logged, not shown as an error.
-  const to = teamEmail();
-  if (to) {
-    await sendEmail({
-      to,
-      replyTo: email,
-      subject: `Nuevo mensaje de ayuda: ${subject}`,
-      content: {
-        language: "es",
-        title: "Nuevo mensaje de ayuda",
-        preheader: `${name}: ${subject}`,
-        blocks: [
-          {
-            type: "details",
-            rows: [
-              ["Categoría", CATEGORY_LABELS[category] || category],
-              ["Nombre", name],
-              ["Correo", email],
-              ["Cuenta", user_id ? "Con sesión iniciada" : "Sin sesión"],
-              ["Asunto", subject],
-            ],
-          },
-          { type: "quote", text: message },
-          ...(baseUrl ? [{ type: "button" as const, label: "ABRIR EN EL PANEL", url: `${baseUrl}/admin` }] : []),
-          { type: "note", text: "Puedes contestar directamente a este correo: la respuesta irá a la persona que escribió." },
-        ],
-      },
-    });
-  } else {
-    console.error("[HelpMessage] HELP_EMAIL is not configured");
-  }
+  // Awaited: serverless functions may be frozen as soon as the response is sent.
+  await alertIfBacklogReached(baseUrl);
 
   return { success: true, id: data?.id, status: 200 };
 }
