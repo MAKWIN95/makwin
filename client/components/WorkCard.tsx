@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Heart, Bookmark, Flag, Pencil, Trash2 } from 'lucide-react';
+import { Heart, Bookmark, Flag, Pencil, Share2, Trash2 } from 'lucide-react';
 import { supabase, Work } from '@/lib/supabase';
 import { useAuth } from '@/lib/AuthContext';
 import { useWorks } from '@/lib/WorksContext';
@@ -9,6 +9,8 @@ import AuthModal from '@/components/AuthModal';
 import ReportModal from '@/components/ReportModal';
 import EditWorkModal from '@/components/EditWorkModal';
 import DeleteWorkModal from '@/components/DeleteWorkModal';
+import WorkOptionsMenu, { type WorkOption } from '@/components/WorkOptionsMenu';
+import { shareWork } from '@/lib/shareWork';
 
 interface Props {
   work: Work;
@@ -35,6 +37,7 @@ export default function WorkCard({ work, priorityImage = false, imageDimensions,
   const navigate = useNavigate();
   const worksContext = useWorks();
   const [likeAnimating, setLikeAnimating] = useState(false);
+  const [saveAnimating, setSaveAnimating] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authModalAction, setAuthModalAction] = useState<'like' | 'save' | 'report' | null>(null);
@@ -53,18 +56,6 @@ export default function WorkCard({ work, priorityImage = false, imageDimensions,
   const isImageWork = work.work_type === 'pintura' || work.work_type === 'fotografia';
   // A song, poem or video file is not an image: only its cover can be shown here.
   const hasImage = !!(work.cover_url || (isImageWork && work.file_url));
-
-  // Format date according to language
-  const formatDate = (dateStr: string) => {
-    if (!dateStr) return '';
-    const d = new Date(dateStr);
-    if (Number.isNaN(d.getTime())) return '';
-    const pad = (n: number) => String(n).padStart(2, '0');
-    const dd = pad(d.getDate());
-    const mm = pad(d.getMonth() + 1);
-    const yy = String(d.getFullYear()).slice(-2);
-    return currentLang === 'es' ? `${dd}/${mm}/${yy}` : `${mm}/${dd}/${yy}`;
-  };
 
   const isPendingLike = worksContext.isPendingLike(work.id);
 
@@ -103,13 +94,14 @@ export default function WorkCard({ work, priorityImage = false, imageDimensions,
       return;
     }
 
+    setSaveAnimating(true);
+    setTimeout(() => setSaveAnimating(false), 400);
+
     const nowSaved = await worksContext.toggleSave(work.id, user.id);
     onSaveToggle?.(work.id, nowSaved);
   };
 
-  const handleReport = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
+  const handleReport = () => {
     if (!user) {
       setAuthModalAction('report');
       setShowAuthModal(true);
@@ -128,6 +120,18 @@ export default function WorkCard({ work, priorityImage = false, imageDimensions,
 
   const linkPath = `/work/${work.id}`;
 
+  const es = currentLang === 'es';
+  const optionIcon = 'w-4 h-4 shrink-0';
+  const options: WorkOption[] = [
+    { label: es ? 'Compartir' : 'Share', icon: <Share2 className={optionIcon} />, onSelect: () => shareWork(work, es) },
+    ...(isOwnProfile
+      ? [
+          { label: es ? 'Editar' : 'Edit', icon: <Pencil className={optionIcon} />, onSelect: () => setShowEditModal(true) },
+          { label: es ? 'Eliminar' : 'Delete', icon: <Trash2 className={optionIcon} />, onSelect: () => setShowDeleteModal(true), danger: true },
+        ]
+      : [{ label: es ? 'Denunciar' : 'Report', icon: <Flag className={optionIcon} />, onSelect: handleReport, danger: true }]),
+  ];
+
   return (
     <>
     {/* Links and buttons sit side by side, never one inside another: nested ones
@@ -136,16 +140,12 @@ export default function WorkCard({ work, priorityImage = false, imageDimensions,
       {/* Image/Media area */}
       <div className="relative rounded-2xl transition-shadow duration-300 ease-out group-hover:shadow-xl">
 
-        {/* Save button — top right */}
-        <button
-          onClick={handleSave}
-          className="tap-area absolute top-2 right-2 z-30 w-7 h-7 phone:top-1.5 phone:right-1.5 phone:w-9 phone:h-9 rounded-full bg-black/40 backdrop-blur-sm phone:backdrop-blur-none phone:bg-black/55 flex items-center justify-center opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 phone:opacity-100 transition-opacity duration-200 hover:bg-black/60"
-          aria-label={currentLang === 'es' ? 'Guardar' : 'Save'}
-        >
-          <Bookmark
-            className={`w-3.5 h-3.5 phone:w-[18px] phone:h-[18px] transition-all duration-200 ${saved ? 'fill-white stroke-white' : 'stroke-white'}`}
-          />
-        </button>
+        {/* Options: no background, so it covers as little of the work as possible */}
+        <WorkOptionsMenu
+          label={es ? 'Opciones' : 'Options'}
+          options={options}
+          className={`absolute top-1.5 right-1 z-30 w-8 h-8 ${hasImage ? 'text-white [filter:drop-shadow(0_0_1px_rgba(0,0,0,0.7))_drop-shadow(0_1px_3px_rgba(0,0,0,0.6))]' : 'text-[hsl(var(--muted-foreground))]'}`}
+        />
 
         {/* Media content */}
         <Link to={linkPath} state={{ from: 'gallery' }} aria-label={work.title} className="block rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))] focus-visible:ring-offset-2 focus-visible:ring-offset-[hsl(var(--background))]">
@@ -177,81 +177,44 @@ export default function WorkCard({ work, priorityImage = false, imageDimensions,
       </div>
 
       <div className="transition-transform duration-300 ease-out group-hover:translate-y-0.5 group-focus-within:translate-y-0.5">
-        {/* Metadata */}
-        <div className="mt-3 px-1">
+        {/* Title, artist and the two quick actions */}
+        <div className="mt-3 phone:mt-2.5 px-1">
           <Link to={linkPath} state={{ from: 'gallery' }} tabIndex={-1} className="block">
             <p className="text-sm font-medium text-[hsl(var(--foreground))] truncate leading-tight">{work.title}</p>
           </Link>
-          <div className="flex items-center justify-between gap-2 mt-1.5">
+          <div className="flex items-center justify-between gap-2 mt-1.5 phone:mt-0">
             {work.profiles?.username ? (
               <Link
                 to={`/u/${work.profiles.username}`}
-                onClick={e => e.stopPropagation()}
-                className="min-w-0 truncate phone:py-2 phone:-my-1.5 text-xs text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] transition-colors duration-200"
+                className="min-w-0 truncate phone:py-2 text-xs text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] transition-colors duration-200"
               >
                 @{work.profiles.username}
               </Link>
             ) : (
-              <span className="text-xs text-[hsl(var(--muted-foreground))]">{currentLang === 'es' ? 'Usuario no encontrado' : 'User not found'}</span>
+              <span className="min-w-0 truncate text-xs text-[hsl(var(--muted-foreground))]">{es ? 'Usuario no encontrado' : 'User not found'}</span>
             )}
-            <span className="shrink-0 text-xs text-[hsl(var(--muted-foreground))]">{formatDate(work.created_at)}</span>
+            <div className="flex shrink-0 items-center gap-3 phone:gap-0 phone:-mr-2.5">
+              <button
+                onClick={handleLike}
+                disabled={isPendingLike}
+                className={`ios-press flex items-center gap-1 phone:h-11 phone:min-w-10 phone:justify-center text-xs transition-colors duration-200 ease-out ${liked ? 'text-rose-500' : 'text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))]'}`}
+                aria-label={es ? 'Me gusta' : 'Like'}
+                aria-pressed={liked}
+              >
+                <Heart className={`w-3.5 h-3.5 phone:w-[18px] phone:h-[18px] ${likeAnimating ? 'icon-pop' : ''} ${liked ? 'fill-current stroke-current' : ''}`} />
+                {/* Only show count if > 0 — keeps feed clean */}
+                {likeCount > 0 && <span>{likeCount}</span>}
+              </button>
+              <button
+                onClick={handleSave}
+                className={`ios-press flex items-center phone:h-11 phone:w-10 phone:justify-center transition-colors duration-200 ease-out ${saved ? 'text-[hsl(var(--foreground))]' : 'text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))]'}`}
+                aria-label={es ? 'Guardar' : 'Save'}
+                aria-pressed={saved}
+              >
+                <Bookmark className={`w-3.5 h-3.5 phone:w-[18px] phone:h-[18px] ${saveAnimating ? 'icon-pop' : ''} ${saved ? 'fill-current stroke-current' : ''}`} />
+              </button>
+            </div>
           </div>
-        </div>
-
-        {/* Actions */}
-        <div className="mt-2 phone:mt-0 px-1 flex items-center justify-between gap-2">
-        {isOwnProfile ? (
-          <div className="flex gap-2 w-full">
-            <button
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                setShowEditModal(true);
-              }}
-              className="flex items-center gap-1 phone:h-11 phone:w-11 phone:-ml-2 phone:justify-center text-xs text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] transition-all duration-200 ease-out"
-              title={currentLang === 'es' ? 'Editar' : 'Edit'}
-            >
-              <Pencil className="w-3.5 h-3.5 phone:w-[18px] phone:h-[18px] transition-all duration-200" />
-            </button>
-            <button
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                setShowDeleteModal(true);
-              }}
-              className="flex items-center gap-1 phone:h-11 phone:w-11 phone:justify-center text-xs text-[hsl(var(--muted-foreground))] hover:text-red-500 transition-all duration-200 ease-out"
-              title={currentLang === 'es' ? 'Eliminar' : 'Delete'}
-            >
-              <Trash2 className="w-3.5 h-3.5 phone:w-[18px] phone:h-[18px] transition-all duration-200" />
-            </button>
-          </div>
-        ) : (
-          <>
-            {/* Like button — subtle, premium */}
-            <button
-              onClick={handleLike}
-              disabled={isPendingLike}
-              className={`flex items-center gap-1 phone:h-11 phone:min-w-11 phone:-ml-2 phone:px-2 phone:justify-center text-xs phone:text-sm transition-all duration-200 ease-out ${liked ? 'text-rose-500' : 'text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))]'} ${isPendingLike ? 'opacity-50' : ''}`}
-              aria-label={currentLang === 'es' ? 'Me gusta' : 'Like'}
-            >
-              <Heart
-                className={`w-3.5 h-3.5 phone:w-[18px] phone:h-[18px] transition-all duration-200 ${likeAnimating ? 'scale-125' : 'scale-100'} ${liked ? 'fill-current stroke-current' : ''}`}
-              />
-              {/* Only show count if > 0 — keeps feed clean */}
-              {likeCount > 0 && <span className="transition-all duration-200">{likeCount}</span>}
-            </button>
-
-            {/* Report button — opens modal, doesn't render dropdown */}
-            <button
-              onClick={handleReport}
-              className="phone:h-11 phone:w-11 phone:-mr-2 phone:flex phone:items-center phone:justify-center text-xs text-[hsl(var(--muted-foreground))] hover:text-red-500 transition-all duration-200 ease-out"
-              aria-label={currentLang === 'es' ? 'Reportar' : 'Report'}
-              title={currentLang === 'es' ? 'Reportar obra' : 'Report work'}
-            >
-              <Flag className="w-3.5 h-3.5 phone:w-[18px] phone:h-[18px]" />
-            </button>
-          </>
-        )}
         </div>
       </div>
 

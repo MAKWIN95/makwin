@@ -4,6 +4,7 @@ import { supabase, Work, Profile } from '@/lib/supabase';
 import { useAuth } from '@/lib/AuthContext';
 import { useWorks } from '@/lib/WorksContext';
 import { useFollow } from '@/lib/FollowContext';
+import { shareWork } from '@/lib/shareWork';
 import { useStarsBackground } from '@/hooks/use-stars-background';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
@@ -94,15 +95,16 @@ export default function WorkDetail() {
   const worksContext = useWorks();
   const { isFollowing, setFollowing } = useFollow();
   
-  // Initialize stars background animation
-  useStarsBackground('detail-stars-background');
-  
   // Check if work data was passed via navigation state (from UploadWork)
   const initialWorkData = (location.state as any)?.work || null;
   
   const [work, setWork] = useState<Work | null>(initialWorkData as Work | null);
   const [author, setAuthor] = useState<Profile | null>(initialWorkData?.profiles as Profile | null);
   const [loading, setLoading] = useState(!initialWorkData);
+
+  // The stars' layer only exists once the work has loaded.
+  useStarsBackground('detail-stars-background', !loading);
+
   const [error, setError] = useState('');
   const [retrying, setRetrying] = useState(0);
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -246,6 +248,10 @@ export default function WorkDetail() {
     setShowReportModal(true);
   };
 
+  const workDate = work?.created_at
+    ? new Date(work.created_at).toLocaleDateString(currentLang === 'es' ? 'es-ES' : 'en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
+    : '';
+
   const authModalTitle = currentLang === 'es'
     ? (authModalAction === 'like' ? 'Inicia sesión para dar like' : authModalAction === 'save' ? 'Inicia sesión para guardar' : authModalAction === 'report' ? 'Inicia sesión para reportar' : 'Inicia sesión para continuar')
     : (authModalAction === 'like' ? 'Sign in to like this work.' : authModalAction === 'save' ? 'Sign in to save works to your profile.' : authModalAction === 'report' ? 'Sign in to report a work.' : 'Sign in to continue');
@@ -289,14 +295,6 @@ export default function WorkDetail() {
       <Header hideSearch breadcrumb={work.title} />
 
       <main className="w-full max-w-7xl mx-auto px-4 py-6 sm:py-8">
-        <button
-          onClick={() => navigate(-1)}
-          className="phone:min-h-11 phone:-ml-1 phone:px-1 flex items-center gap-2 text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] mb-4"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          {currentLang === 'es' ? 'Atrás' : 'Back'}
-        </button>
-
         {/* 2-Column Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12">
           {/* LEFT: Media (60%) */}
@@ -349,6 +347,7 @@ export default function WorkDetail() {
           <div className="lg:col-span-1 space-y-6">
             <div>
               <h1 className="text-3xl font-bold text-[hsl(var(--foreground))] leading-tight">{work.title}</h1>
+              {workDate && <p className="mt-2 text-sm text-[hsl(var(--muted-foreground))]">{workDate}</p>}
             </div>
 
             {work.description && work.work_type !== 'poema' && (
@@ -420,6 +419,11 @@ export default function WorkDetail() {
               >
                 <Bookmark className={`w-4 h-4 mr-2 transition-all duration-200 ${saved ? 'fill-current' : ''}`} />
                 {currentLang === 'es' ? 'Guardar' : 'Save'}
+              </Button>
+
+              <Button onClick={() => shareWork(work, currentLang === 'es')} variant="outline" className="w-full transition-all duration-250 ease-out">
+                <Share2 className="w-4 h-4 mr-2" />
+                {currentLang === 'es' ? 'Compartir' : 'Share'}
               </Button>
 
               <Button onClick={handleReport} variant="outline" className="w-full transition-all duration-250 ease-out">

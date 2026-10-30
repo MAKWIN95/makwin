@@ -60,7 +60,7 @@ export default function LanguageSelector() {
       </DropdownMenuTrigger>
       <DropdownMenuContent
         align="end"
-        className="border border-[rgba(120,120,120,0.25)] bg-[hsl(var(--popover))] text-[hsl(var(--foreground))] shadow-[0_8px_24px_rgba(0,0,0,0.08)]"
+        className="glass-menu text-[hsl(var(--foreground))]"
       >
         <DropdownMenuItem
           onClick={() => handleLanguageChange('es')}

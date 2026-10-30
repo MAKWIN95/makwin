@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 
-export function useStarsBackground(containerId: string = 'stars-background') {
+export function useStarsBackground(containerId: string = 'stars-background', ready = true) {
   useEffect(() => {
     const container = document.getElementById(containerId);
     if (!container) return;
@@ -55,5 +55,5 @@ export function useStarsBackground(containerId: string = 'stars-background') {
         container.appendChild(star);
       }
     }
-  }, [containerId]);
+  }, [containerId, ready]);
 }

@@ -45,7 +45,7 @@ export default function NavMenu() {
 
       {/* Sidebar - FIXED VIEWPORT */}
       <div
-        className={`fixed top-0 left-0 h-screen w-80 max-w-[85vw] z-50 phone:z-[70] transition-transform duration-300 ease-out bg-[hsl(var(--background))] border-r border-[rgba(120,120,120,0.25)] flex flex-col overflow-hidden ${
+        className={`fixed top-0 left-0 h-screen w-80 max-w-[85vw] z-50 phone:z-[70] transition-transform duration-[380ms] ease-[cubic-bezier(0.32,0.72,0,1)] bg-[hsl(var(--background))] border-r border-[rgba(120,120,120,0.25)] flex flex-col overflow-hidden ${
           isOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
         style={{
