@@ -79,13 +79,13 @@ export default function GalleryFilter({ onExpand }: { onExpand: (expanded: boole
       </button>
 
       {expanded && (
-        <div className="filter-slot absolute inset-y-0 left-0 right-12 phone:right-[3.25rem] xl:left-full xl:right-auto xl:ml-2 xl:w-36 z-10">
+        <div className="filter-slot absolute inset-y-0 left-0 right-12 phone:right-[3.25rem] xl:left-full xl:right-auto xl:ml-2 xl:w-[9.25rem] z-10">
           <DropdownMenu modal={false} open={menuOpen} onOpenChange={setMenuOpen}>
             <DropdownMenuTrigger asChild>
               <button
                 type="button"
                 aria-label={es ? 'Tipo de obra' : 'Type of work'}
-                className="header-button w-full h-full flex items-center justify-between gap-1.5 px-3 text-sm text-[hsl(var(--foreground))] border border-[rgba(120,120,120,0.25)] outline-none focus-visible:ring-1 focus-visible:ring-[hsl(var(--ring))]"
+                className="header-button w-full h-full flex items-center justify-between gap-1 px-2.5 text-sm text-[hsl(var(--foreground))] border border-[rgba(120,120,120,0.25)] outline-none focus-visible:ring-1 focus-visible:ring-[hsl(var(--ring))]"
               >
                 <span className="truncate">{t(activeType[1])}</span>
                 <ChevronDown className={`w-4 h-4 shrink-0 text-[hsl(var(--muted-foreground))] transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] ${menuOpen ? 'rotate-180' : ''}`} />
