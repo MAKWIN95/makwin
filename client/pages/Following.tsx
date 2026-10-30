@@ -177,7 +177,7 @@ export default function Following() {
             columns={GRID_COLUMNS}
             getKey={(work) => work.id}
             renderItem={(work) => (
-              <div className="mb-4">
+              <div className="mb-4 phone:mb-3">
                 <WorkCard work={work} onWorkDeleted={() => fetchFollowingFeed(0, true)} />
               </div>
             )}

@@ -310,7 +310,7 @@ export default function Gallery() {
                 columns={GRID_COLUMNS}
                 getKey={String}
                 renderItem={(i) => (
-                  <div className="mb-4 w-full">
+                  <div className="mb-4 phone:mb-3 w-full">
                     <div className={`rounded-2xl bg-[hsl(var(--muted))] animate-pulse ${i % 3 === 0 ? 'h-56' : i % 3 === 1 ? 'h-40' : 'h-72'}`} />
                     <div className="mt-2 h-3 bg-[hsl(var(--muted))] rounded animate-pulse w-3/4" />
                     <div className="mt-1 h-2 bg-[hsl(var(--muted))] rounded animate-pulse w-1/2" />
@@ -369,7 +369,7 @@ export default function Gallery() {
                 columns={GRID_COLUMNS}
                 getKey={(item: any) => item.id}
                 renderItem={(item: any, index) => (
-                  <div className={`mb-5 w-full transition-opacity duration-300 ${showItems ? 'opacity-100' : 'opacity-0'}`}>
+                  <div className={`mb-4 phone:mb-3 w-full transition-opacity duration-300 ${showItems ? 'opacity-100' : 'opacity-0'}`}>
                     <WorkCard work={item as Work} priorityImage={index < 3} imageDimensions={imageDimensions[item.id]} />
                   </div>
                 )}

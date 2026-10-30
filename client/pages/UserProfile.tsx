@@ -475,7 +475,7 @@ export default function UserProfile() {
             columns={GRID_COLUMNS}
             getKey={work => work.id}
             renderItem={work => (
-              <div className="mb-4 w-full">
+              <div className="mb-4 phone:mb-3 w-full">
                 <WorkCard
                   work={work}
                   isOwnProfile={isOwnProfile}

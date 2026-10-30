@@ -165,10 +165,10 @@ export default function Header({ showSearch = true, showSearchCentered = false, 
 
           {/* Left: navigation + logo */}
           <div className={`${isHomePage ? 'hidden' : 'col-span-1'} flex items-center gap-1 sm:gap-2 min-w-0 relative`}>
-            <button onClick={toggleSidebar} className="p-0 w-10 h-10 phone:w-11 phone:h-11 rounded-lg transition-all duration-200 ease-out flex items-center justify-center shrink-0 hover:scale-105 hover:bg-[hsl(var(--muted))] active:scale-95" aria-label={es ? 'Menú' : 'Menu'}>
+            <button onClick={toggleSidebar} className="p-0 w-10 h-10 phone:w-11 phone:h-11 max-[374px]:!w-9 rounded-lg transition-all duration-200 ease-out flex items-center justify-center shrink-0 hover:scale-105 hover:bg-[hsl(var(--muted))] active:scale-95" aria-label={es ? 'Menú' : 'Menu'}>
               <Menu className="w-5 h-5 text-[hsl(var(--muted-foreground))] phone:text-[hsl(var(--foreground))] transition-colors duration-300" />
             </button>
-            <button onClick={handleGoBack} className={`${isGallery ? 'max-sm:hidden' : ''} max-[359px]:hidden p-0 w-10 h-10 phone:w-11 phone:h-11 rounded-lg transition-all duration-200 ease-out flex items-center justify-center shrink-0 hover:scale-105 hover:bg-[hsl(var(--muted))] active:scale-95`} aria-label={es ? 'Atrás' : 'Back'}>
+            <button onClick={handleGoBack} className={`${isGallery ? 'max-sm:hidden' : ''} max-[359px]:hidden p-0 w-10 h-10 phone:w-11 phone:h-11 max-[374px]:!w-9 rounded-lg transition-all duration-200 ease-out flex items-center justify-center shrink-0 hover:scale-105 hover:bg-[hsl(var(--muted))] active:scale-95`} aria-label={es ? 'Atrás' : 'Back'}>
               <ArrowLeft className="w-5 h-5 text-[hsl(var(--muted-foreground))] phone:text-[hsl(var(--foreground))] transition-colors duration-300" />
             </button>
             <div onClick={handleMakwinClick} className="cursor-pointer flex items-center gap-2 ml-1 min-w-0 overflow-hidden phone:min-h-11">
@@ -237,11 +237,9 @@ export default function Header({ showSearch = true, showSearchCentered = false, 
             )}
 
             {/* Upload shortcut */}
-            {user && (
-              <Link to="/subir-obra" className="ios-press inline-flex items-center justify-center shrink-0 p-2 phone:p-0 phone:w-11 phone:h-11 rounded-lg hover:bg-[hsl(var(--muted))] transition-colors" aria-label={es ? 'Subir obra' : 'Upload work'}>
-                <Upload className="w-4 h-4 phone:w-5 phone:h-5 text-[hsl(var(--foreground))]" />
-              </Link>
-            )}
+            <Link to={user || authLoading ? '/subir-obra' : '/login'} className="ios-press inline-flex items-center justify-center shrink-0 p-2 phone:p-0 phone:w-11 phone:h-11 max-[374px]:!w-9 rounded-lg hover:bg-[hsl(var(--muted))] transition-colors" aria-label={es ? 'Subir obra' : 'Upload work'}>
+              <Upload className="w-4 h-4 phone:w-5 phone:h-5 text-[hsl(var(--foreground))]" />
+            </Link>
 
             {/* User avatar / login */}
             {user ? (
@@ -329,7 +327,7 @@ export default function Header({ showSearch = true, showSearchCentered = false, 
               </button>
             ) : (
               <Link to="/login"
-                className="text-xs phone:text-sm font-medium text-[hsl(var(--foreground))] border border-[rgba(120,120,120,0.25)] px-3 py-1.5 phone:py-2.5 rounded-lg hover:bg-[hsl(var(--muted))] transition-colors duration-200 whitespace-nowrap">
+                className="text-xs phone:text-sm font-medium text-[hsl(var(--foreground))] border border-[rgba(120,120,120,0.25)] px-3 max-[374px]:!px-2 max-[374px]:!text-xs py-1.5 phone:py-2.5 rounded-lg hover:bg-[hsl(var(--muted))] transition-colors duration-200 whitespace-nowrap">
                 {es ? 'Entrar' : 'Sign in'}
               </Link>
             )}

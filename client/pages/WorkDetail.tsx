@@ -103,7 +103,7 @@ export default function WorkDetail() {
   const [loading, setLoading] = useState(!initialWorkData);
 
   // The stars' layer only exists once the work has loaded.
-  useStarsBackground('detail-stars-background', !loading);
+  useStarsBackground('detail-stars-background');
 
   const [error, setError] = useState('');
   const [retrying, setRetrying] = useState(0);

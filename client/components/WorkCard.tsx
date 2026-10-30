@@ -127,9 +127,9 @@ export default function WorkCard({ work, priorityImage = false, imageDimensions,
     ...(isOwnProfile
       ? [
           { label: es ? 'Editar' : 'Edit', icon: <Pencil className={optionIcon} />, onSelect: () => setShowEditModal(true) },
-          { label: es ? 'Eliminar' : 'Delete', icon: <Trash2 className={optionIcon} />, onSelect: () => setShowDeleteModal(true), danger: true },
+          { label: es ? 'Eliminar' : 'Delete', icon: <Trash2 className={optionIcon} />, onSelect: () => setShowDeleteModal(true) },
         ]
-      : [{ label: es ? 'Denunciar' : 'Report', icon: <Flag className={optionIcon} />, onSelect: handleReport, danger: true }]),
+      : [{ label: es ? 'Denunciar' : 'Report', icon: <Flag className={optionIcon} />, onSelect: handleReport }]),
   ];
 
   return (
@@ -144,7 +144,7 @@ export default function WorkCard({ work, priorityImage = false, imageDimensions,
         <WorkOptionsMenu
           label={es ? 'Opciones' : 'Options'}
           options={options}
-          className={`absolute top-1.5 right-1 z-30 w-8 h-8 ${hasImage ? 'text-white [filter:drop-shadow(0_0_1px_rgba(0,0,0,0.7))_drop-shadow(0_1px_3px_rgba(0,0,0,0.6))]' : 'text-[hsl(var(--muted-foreground))]'}`}
+          className={hasImage ? 'text-white [filter:drop-shadow(0_0_1px_rgba(0,0,0,0.35))_drop-shadow(0_1px_3px_rgba(0,0,0,0.3))]' : 'text-[hsl(var(--muted-foreground))]'}
         />
 
         {/* Media content */}
@@ -176,28 +176,20 @@ export default function WorkCard({ work, priorityImage = false, imageDimensions,
         </Link>
       </div>
 
-      <div className="transition-transform duration-300 ease-out group-hover:translate-y-0.5 group-focus-within:translate-y-0.5">
-        {/* Title, artist and the two quick actions */}
-        <div className="mt-3 phone:mt-2.5 px-1">
-          <Link to={linkPath} state={{ from: 'gallery' }} tabIndex={-1} className="block">
-            <p className="text-sm font-medium text-[hsl(var(--foreground))] truncate leading-tight">{work.title}</p>
-          </Link>
-          <div className="flex items-center justify-between gap-2 mt-1.5 phone:mt-0">
-            {work.profiles?.username ? (
-              <Link
-                to={`/u/${work.profiles.username}`}
-                className="min-w-0 truncate phone:py-2 text-xs text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] transition-colors duration-200"
-              >
-                @{work.profiles.username}
-              </Link>
-            ) : (
-              <span className="min-w-0 truncate text-xs text-[hsl(var(--muted-foreground))]">{es ? 'Usuario no encontrado' : 'User not found'}</span>
-            )}
-            <div className="flex shrink-0 items-center gap-3 phone:gap-0 phone:-mr-2.5">
+      <div className="relative z-30 transition-transform duration-300 ease-out group-hover:translate-y-0.5 group-focus-within:translate-y-0.5">
+        {/* Title with the two quick actions, artist right under it */}
+        <div className="mt-2 px-1">
+          <div className="flex items-center justify-between gap-2">
+            <Link to={linkPath} state={{ from: 'gallery' }} tabIndex={-1} className="block min-w-0">
+              <p className="text-sm font-medium text-[hsl(var(--foreground))] truncate leading-tight">{work.title}</p>
+            </Link>
+            {/* On phones each button is finger-sized but only takes up the icon's
+                height, and it grows downwards so it never catches a tap on the work. */}
+            <div className="flex shrink-0 items-center gap-3 phone:gap-0 phone:-mr-2">
               <button
                 onClick={handleLike}
                 disabled={isPendingLike}
-                className={`ios-press flex items-center gap-1 phone:h-11 phone:min-w-10 phone:justify-center text-xs transition-colors duration-200 ease-out ${liked ? 'text-rose-500' : 'text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))]'}`}
+                className={`ios-press flex items-center gap-1 phone:h-11 phone:min-w-9 phone:justify-center phone:items-start phone:pt-1 phone:-mt-1 phone:-mb-[22px] text-xs transition-colors duration-200 ease-out ${liked ? 'text-rose-500' : 'text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))]'}`}
                 aria-label={es ? 'Me gusta' : 'Like'}
                 aria-pressed={liked}
               >
@@ -207,7 +199,7 @@ export default function WorkCard({ work, priorityImage = false, imageDimensions,
               </button>
               <button
                 onClick={handleSave}
-                className={`ios-press flex items-center phone:h-11 phone:w-10 phone:justify-center transition-colors duration-200 ease-out ${saved ? 'text-[hsl(var(--foreground))]' : 'text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))]'}`}
+                className={`ios-press flex items-center phone:h-11 phone:w-9 phone:justify-center phone:items-start phone:pt-1 phone:-mt-1 phone:-mb-[22px] transition-colors duration-200 ease-out ${saved ? 'text-[hsl(var(--foreground))]' : 'text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))]'}`}
                 aria-label={es ? 'Guardar' : 'Save'}
                 aria-pressed={saved}
               >
@@ -215,6 +207,16 @@ export default function WorkCard({ work, priorityImage = false, imageDimensions,
               </button>
             </div>
           </div>
+          {work.profiles?.username ? (
+            <Link
+              to={`/u/${work.profiles.username}`}
+              className="relative block w-fit max-w-full mt-0.5 leading-tight text-xs text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] transition-colors duration-200 phone:after:absolute phone:after:inset-x-0 phone:after:top-0 phone:after:-bottom-2.5 phone:after:content-['']"
+            >
+              <span className="block truncate">@{work.profiles.username}</span>
+            </Link>
+          ) : (
+            <span className="block mt-0.5 leading-tight truncate text-xs text-[hsl(var(--muted-foreground))]">{es ? 'Usuario no encontrado' : 'User not found'}</span>
+          )}
         </div>
       </div>
 

@@ -1,21 +1,19 @@
 import { useEffect } from 'react';
 
-export function useStarsBackground(containerId: string = 'stars-background', ready = true) {
+// Runs after every render on purpose: a page may only show its container once it
+// has finished loading, and a container that already has its stars is left alone.
+// The stars carry no theme: the styles show them in dark mode and hide them in light.
+export function useStarsBackground(containerId: string = 'stars-background') {
   useEffect(() => {
     const container = document.getElementById(containerId);
-    if (!container) return;
-
-    container.innerHTML = '';
-
-    // Detect current theme
-    const isDarkMode = document.documentElement.classList.contains('dark');
+    if (!container || container.childElementCount > 0) return;
 
     // Every star is a running animation: phones get fewer so scrolling stays smooth.
     const mainStars = window.matchMedia('(max-width: 640px), (pointer: coarse)').matches ? 30 : 80;
     for (let i = 0; i < mainStars; i++) {
       const star = document.createElement('div');
-      star.className = isDarkMode ? 'star' : 'star star--light';
-      
+      star.className = 'star';
+
       // bias more stars towards the left side for composition
       let x: number;
       if (i < mainStars * 0.75) {
@@ -23,7 +21,7 @@ export function useStarsBackground(containerId: string = 'stars-background', rea
       } else {
         x = 40 + Math.random() * 60;
       }
-      
+
       const y = Math.random() * 100;
       const size = Math.random() * 2 + 0.5;
       const duration = Math.random() * 3 + 2;
@@ -38,22 +36,5 @@ export function useStarsBackground(containerId: string = 'stars-background', rea
 
       container.appendChild(star);
     }
-
-    // If in light theme, add extra stars for density
-    if (!isDarkMode) {
-      for (let i = 0; i < 40; i++) {
-        const star = document.createElement('div');
-        star.className = 'star star--light';
-        const x = Math.random() * 100;
-        const y = Math.random() * 100;
-        const size = Math.random() * 2 + 0.5;
-        star.style.left = x + '%';
-        star.style.top = y + '%';
-        star.style.width = size + 'px';
-        star.style.height = size + 'px';
-        star.style.opacity = '0.6';
-        container.appendChild(star);
-      }
-    }
-  }, [containerId, ready]);
+  });
 }

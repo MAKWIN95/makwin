@@ -1,7 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
-import { useTheme } from '@/hooks/use-theme';
+import { useEffect, useState } from 'react';
 
-const generateStars = (isDark: boolean) => {
+const generateStars = () => {
   const stars = [];
   // Every star is a running animation: phones get fewer so scrolling stays smooth.
   const onPhone = window.matchMedia('(max-width: 640px), (pointer: coarse)').matches;
@@ -28,45 +27,14 @@ const generateStars = (isDark: boolean) => {
       size,
       duration,
       delay,
-      isDark,
-      isLight: false,
     });
-  }
-  
-  // Extra stars in light mode
-  if (!isDark) {
-    for (let i = 0; i < (onPhone ? 15 : 40); i++) {
-      const x = Math.random() * 100;
-      const y = Math.random() * 100;
-      const size = Math.random() * 2 + 0.5;
-      
-      stars.push({
-        id: `star-light-${i}`,
-        x,
-        y,
-        size,
-        duration: 0,
-        delay: 0,
-        isDark: false,
-        isLight: true,
-      });
-    }
   }
   
   return stars;
 };
 
 export default function GlobalStars() {
-  const { isDark } = useTheme();
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [stars, setStars] = useState(() => generateStars(false));
-  const [mounted, setMounted] = useState(false);
-
-  // Regenerate stars immediately when theme changes
-  useEffect(() => {
-    setStars(generateStars(isDark));
-    setMounted(true);
-  }, [isDark]);
+  const [stars] = useState(generateStars);
 
   // Inject CSS keyframes on mount to ensure they exist
   useEffect(() => {
@@ -84,28 +52,13 @@ export default function GlobalStars() {
             transform: scale(1.2);
           }
         }
-        
-        .star--dark {
-          background-color: rgba(255, 255, 255, 0.8);
-          box-shadow: 0 0 2px rgba(255, 255, 255, 0.6);
-        }
-        
-        .star--light {
-          background-color: rgba(50, 50, 50, 0.6);
-          box-shadow: 0 0 2px rgba(50, 50, 50, 0.4);
-        }
       `;
       document.head.appendChild(style);
     }
   }, []);
 
-  if (!mounted) {
-    return null;
-  }
-
   return (
     <div
-      ref={containerRef}
       className="global-stars-background"
       style={{
         position: 'fixed',
@@ -121,7 +74,7 @@ export default function GlobalStars() {
       {stars.map((star) => (
         <div
           key={star.id}
-          className={`star ${star.isDark ? 'star--dark' : star.isLight ? 'star--light' : ''}`}
+          className="star"
           style={{
             position: 'absolute',
             left: `${star.x}%`,
@@ -129,9 +82,8 @@ export default function GlobalStars() {
             width: `${star.size}px`,
             height: `${star.size}px`,
             borderRadius: '50%',
-            animation: star.duration > 0 ? `twinkle ${star.duration}s ease-in-out infinite` : 'none',
+            animation: `twinkle ${star.duration}s ease-in-out infinite`,
             animationDelay: `${star.delay}s`,
-            opacity: star.isLight ? 0.6 : undefined,
           }}
         />
       ))}
