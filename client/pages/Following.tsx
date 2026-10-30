@@ -5,12 +5,15 @@ import { useRequireAuth } from '@/hooks/useRequireAuth';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import WorkCard from '@/components/WorkCard';
+import MasonryGrid, { type MasonryColumns } from '@/components/MasonryGrid';
 import { Loader2, Heart } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
 import { useWorks } from '@/lib/WorksContext';
 import { useStarsBackground } from '@/hooks/use-stars-background';
 
 const PAGE_SIZE = 40;
+
+const GRID_COLUMNS: MasonryColumns = { base: 1, sm: 2, lg: 3, xl: 4 };
 
 export default function Following() {
   useRequireAuth();
@@ -169,13 +172,16 @@ export default function Following() {
         )}
 
         {showItems && works.length > 0 && (
-          <div className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 gap-4 auto-rows-max space-y-4">
-            {works.map((work) => (
-              <div key={work.id} className="masonry-item break-inside-avoid">
+          <MasonryGrid
+            items={works}
+            columns={GRID_COLUMNS}
+            getKey={(work) => work.id}
+            renderItem={(work) => (
+              <div className="mb-4">
                 <WorkCard work={work} onWorkDeleted={() => fetchFollowingFeed(0, true)} />
               </div>
-            ))}
-          </div>
+            )}
+          />
         )}
 
         {loadingMore && (

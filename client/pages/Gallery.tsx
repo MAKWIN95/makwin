@@ -6,6 +6,7 @@ import { useWorks } from '@/lib/WorksContext';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import WorkCard from '@/components/WorkCard';
+import MasonryGrid, { type MasonryColumns } from '@/components/MasonryGrid';
 import { Filter } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
 import { useStarsBackground } from '@/hooks/use-stars-background';
@@ -40,6 +41,8 @@ function preloadImage(src: string): Promise<{ width: number; height: number } | 
     }
   });
 }
+
+const GRID_COLUMNS: MasonryColumns = { base: 2, sm: 3, lg: 4, xl: 5, '2xl': 6 };
 
 export default function Gallery() {
   const { user } = useAuth();
@@ -377,13 +380,16 @@ export default function Gallery() {
 
             {/* Natural-height masonry columns keep each artwork's original ratio. */}
             {works.length > 0 && filtered.length > 0 && (
-              <div className="columns-2 gap-4 sm:columns-3 lg:columns-4 xl:columns-5 2xl:columns-6">
-                {filtered.map((item: any, index: number) => (
-                  <div key={item.id} className={`masonry-item mb-5 inline-block w-full break-inside-avoid align-top transition-opacity duration-300 ${showItems ? 'opacity-100' : 'opacity-0'}`}>
+              <MasonryGrid
+                items={filtered}
+                columns={GRID_COLUMNS}
+                getKey={(item: any) => item.id}
+                renderItem={(item: any, index) => (
+                  <div className={`mb-5 w-full transition-opacity duration-300 ${showItems ? 'opacity-100' : 'opacity-0'}`}>
                     <WorkCard work={item as Work} priorityImage={index < 3} imageDimensions={imageDimensions[item.id]} />
                   </div>
-                ))}
-              </div>
+                )}
+              />
             )}
 
             {/* Infinite scroll trigger */}

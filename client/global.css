@@ -736,20 +736,3 @@ html.dark body {
 .dark .logo-makwin {
   color: hsl(var(--foreground));
 }
-
-@layer components {
-  /* Work cards sit in CSS columns. Safari counts a hovered card's shadow when
-     balancing the columns, so hovering a card in the tallest column pushed the
-     footer down. Layout containment keeps hover effects out of the column
-     height; the z-index keeps a hovered card above its neighbours. */
-  .masonry-item {
-    contain: layout;
-    position: relative;
-    z-index: 0;
-  }
-
-  .masonry-item:hover,
-  .masonry-item:focus-within {
-    z-index: 20;
-  }
-}

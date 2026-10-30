@@ -9,7 +9,10 @@ import { useStarsBackground } from '@/hooks/use-stars-background';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import WorkCard from '@/components/WorkCard';
+import MasonryGrid, { type MasonryColumns } from '@/components/MasonryGrid';
 import { Loader2, Bookmark } from 'lucide-react';
+
+const GRID_COLUMNS: MasonryColumns = { base: 2, sm: 3, lg: 4, xl: 5, '2xl': 6 };
 
 export default function Saved() {
   useRequireAuth();
@@ -169,13 +172,12 @@ export default function Saved() {
             </Link>
           </div>
         ) : (
-          <div className="columns-2 sm:columns-3 lg:columns-4 xl:columns-5 2xl:columns-6 gap-4">
-            {works.map(work => (
-              <div key={work.id} className="masonry-item break-inside-avoid">
-                <WorkCard work={work} onSaveToggle={handleSaveToggle} />
-              </div>
-            ))}
-          </div>
+          <MasonryGrid
+            items={works}
+            columns={GRID_COLUMNS}
+            getKey={work => work.id}
+            renderItem={work => <WorkCard work={work} onSaveToggle={handleSaveToggle} />}
+          />
         )}
 
       </main>

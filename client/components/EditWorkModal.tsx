@@ -53,8 +53,8 @@ export default function EditWorkModal({ isOpen, onClose, work, onSuccess }: Prop
 
   if (!isOpen) return null;
 
-  // Rendered on <body>: cards sit in layout-contained grid items, which would
-  // otherwise become the containing block of this fixed overlay.
+  // Rendered on <body>: opened from inside work cards, whose stacking and hover
+  // effects must not clip or reposition this fixed overlay.
   return createPortal(
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={onClose}>
       <div className="bg-[hsl(var(--popover))] border border-[rgba(120,120,120,0.25)] rounded-2xl max-w-md w-full shadow-2xl" onClick={(e) => e.stopPropagation()}>

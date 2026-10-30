@@ -7,8 +7,11 @@ import { useStarsBackground } from '@/hooks/use-stars-background';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import WorkCard from '@/components/WorkCard';
+import MasonryGrid, { type MasonryColumns } from '@/components/MasonryGrid';
 import FollowersModal from '@/components/FollowersModal';
 import { Camera, Check, X, ExternalLink, Loader2 } from 'lucide-react';
+
+const GRID_COLUMNS: MasonryColumns = { base: 2, sm: 3, lg: 4 };
 
 export default function UserProfile() {
   const { username } = useParams<{ username: string }>();
@@ -444,17 +447,20 @@ export default function UserProfile() {
             )}
           </div>
         ) : (
-          <div className="columns-2 sm:columns-3 lg:columns-4 gap-4">
-            {works.map(work => (
-              <div key={work.id} className="masonry-item inline-block w-full mb-4 break-inside-avoid">
-                <WorkCard 
-                  work={work} 
+          <MasonryGrid
+            items={works}
+            columns={GRID_COLUMNS}
+            getKey={work => work.id}
+            renderItem={work => (
+              <div className="mb-4 w-full">
+                <WorkCard
+                  work={work}
                   isOwnProfile={isOwnProfile}
                   onWorkChange={loadProfile}
                 />
               </div>
-            ))}
-          </div>
+            )}
+          />
         )}
       </main>
 
