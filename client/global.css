@@ -20,14 +20,13 @@ html {
 }
 
 
-/* Smooth theme transition */
+/* Smooth theme transition. Inherited properties (color, fill, stroke) stay out:
+   animating them on every element chains the delay level by level, which left
+   text dark on the dark background for seconds after each page load. */
 html,
 html * {
   transition: background-color 0.5s cubic-bezier(0.4, 0, 0.2, 1),
-              border-color 0.5s cubic-bezier(0.4, 0, 0.2, 1),
-              color 0.5s cubic-bezier(0.4, 0, 0.2, 1),
-              fill 0.5s cubic-bezier(0.4, 0, 0.2, 1),
-              stroke 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+              border-color 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .glass-effect {

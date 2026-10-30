@@ -1,1 +1,1 @@
-{{ if eq .Data.language_preference "en" }}Confirm your new email on MAKWIN{{ else }}Confirma tu nuevo correo en MAKWIN{{ end }}
+{{ if eq (printf "%v" .Data.language_preference) "en" }}Confirm your new email on MAKWIN{{ else }}Confirma tu nuevo correo en MAKWIN{{ end }}

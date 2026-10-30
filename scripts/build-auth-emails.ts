@@ -147,7 +147,8 @@ const templates: Record<string, Record<EmailLanguage, Copy>> = {
   },
 };
 
-const byLanguage = (es: string, en: string) => `{{ if eq .Data.language_preference "en" }}${en}{{ else }}${es}{{ end }}`;
+// printf keeps the comparison safe for accounts without a saved language.
+const byLanguage = (es: string, en: string) => `{{ if eq (printf "%v" .Data.language_preference) "en" }}${en}{{ else }}${es}{{ end }}`;
 
 const outDir = path.resolve(import.meta.dirname, '../server/emails/supabase_templates');
 fs.rmSync(outDir, { recursive: true, force: true });

@@ -45,11 +45,19 @@ export default function Admin() {
   const fetchSubmissions = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/get-submissions', { headers: await authHeaders() });
+      const headers = await authHeaders();
+      // Access comes from the messages API so that a problem with the works
+      // listing never locks an admin out of messages and reports.
+      const access = await fetch('/api/help-messages', { headers });
+      if (!access.ok) {
+        setUnlocked(false);
+        return;
+      }
+      setUnlocked(true);
+
+      const response = await fetch('/api/get-submissions', { headers });
       const data = await response.json();
       if (response.ok) {
-        // Non-admins only receive the public listing, so keep the panel locked.
-        setUnlocked(data.scope === 'admin');
         setSubmissions(data.scope === 'admin' ? data.submissions || [] : []);
       } else {
         setError(es ? 'No se pudieron cargar las obras.' : 'Works could not be loaded.');

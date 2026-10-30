@@ -90,10 +90,8 @@ export default function Header({ showSearch = true, showSearchCentered = false, 
     let cancelled = false;
     (async () => {
       try {
-        const response = await fetch('/api/get-submissions', { headers: await authHeaders() });
-        if (!response.ok) return;
-        const data = await response.json();
-        if (!cancelled && data?.scope === 'admin') setIsAdmin(true);
+        const response = await fetch('/api/help-messages', { headers: await authHeaders() });
+        if (!cancelled && response.ok) setIsAdmin(true);
       } catch {
         // Not being able to check simply leaves the entry hidden.
       }
@@ -110,7 +108,7 @@ export default function Header({ showSearch = true, showSearchCentered = false, 
     : `sticky top-4 z-50 bg-[hsl(var(--popover))/0.95] backdrop-blur-md border-b shadow-sm fast-theme w-full transition-all duration-500 border-[rgba(80,80,80,0.2)] px-4`;
 
   const innerContainerClass = showSearchCentered
-    ? 'w-full px-4 sm:px-6 py-2 sm:py-3 flex flex-col pointer-events-auto mx-auto max-w-6xl bg-[hsl(var(--popover))/0.95] backdrop-blur-md rounded-full border border-[rgba(120,120,120,0.25)] shadow-md transition-all duration-500'
+    ? 'w-full px-4 sm:px-6 py-2 sm:py-3 flex flex-col pointer-events-auto mx-auto max-w-6xl bg-[hsl(var(--popover))/0.95] backdrop-blur-md rounded-3xl sm:rounded-full border border-[rgba(120,120,120,0.25)] shadow-md transition-all duration-500'
     : isHomePage
     ? 'w-full px-4 sm:px-6 py-4 sm:py-5 flex flex-col transition-all duration-500'
     : breadcrumb
@@ -131,7 +129,7 @@ export default function Header({ showSearch = true, showSearchCentered = false, 
           </div>
         ) : (
           /* NORMAL LAYOUT */
-        <div className="w-full relative grid grid-cols-3 items-center gap-2 sm:gap-4">
+        <div className="w-full relative grid grid-cols-[minmax(0,1fr)_auto] sm:grid-cols-3 items-center gap-2 sm:gap-4">
 
           {/* Left: navigation + logo */}
           <div className={`${isHomePage ? 'hidden' : 'col-span-1'} flex items-center gap-1 sm:gap-2 min-w-0 relative`}>
@@ -153,9 +151,9 @@ export default function Header({ showSearch = true, showSearchCentered = false, 
           </div>
 
           {/* Center: search */}
-          <div className={`${isHomePage ? 'hidden' : 'col-span-1'} flex items-center justify-center`} ref={searchRef}>
+          <div className={`${isHomePage || hideSearch || !showSearch ? 'hidden sm:flex' : 'flex'} order-last col-span-2 sm:order-none sm:col-span-1 items-center justify-center`} ref={searchRef}>
             {!hideSearch && showSearch && (
-              <form role="search" onSubmit={handleSearchSubmit} className="flex items-center w-full max-w-xs sm:max-w-xl">
+              <form role="search" onSubmit={handleSearchSubmit} className="flex items-center w-full sm:max-w-xl">
                 <input
                   id="site-search-input"
                   type="search"
@@ -171,7 +169,7 @@ export default function Header({ showSearch = true, showSearchCentered = false, 
                     id="filter-btn"
                     type="button"
                     aria-label={es ? 'Filtrar' : 'Filter'}
-                    className="ml-2 p-2 hidden sm:inline-flex border border-[rgba(120,120,120,0.25)] rounded-lg hover:bg-[hsl(var(--muted))] transition-colors duration-200"
+                    className="ml-2 p-2 inline-flex border border-[rgba(120,120,120,0.25)] rounded-lg hover:bg-[hsl(var(--muted))] transition-colors duration-200"
                     onClick={() => document.dispatchEvent(new Event('toggleFilterPopup'))}
                   >
                     <Filter size={16} className="text-[hsl(var(--muted-foreground))]" />

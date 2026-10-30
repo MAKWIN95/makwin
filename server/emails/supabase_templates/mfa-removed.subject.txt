@@ -1,1 +1,1 @@
-{{ if eq .Data.language_preference "en" }}Two-step verification removed on MAKWIN{{ else }}Verificación en dos pasos eliminada en MAKWIN{{ end }}
+{{ if eq (printf "%v" .Data.language_preference) "en" }}Two-step verification removed on MAKWIN{{ else }}Verificación en dos pasos eliminada en MAKWIN{{ end }}

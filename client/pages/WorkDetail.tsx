@@ -327,8 +327,15 @@ export default function WorkDetail() {
               </div>
             )}
 
+            {/* A poem is its text: show it where the media would be */}
+            {work.work_type === 'poema' && work.description && (
+              <div className="flex items-center justify-center rounded-xl border border-[rgba(120,120,120,0.25)] p-8 sm:p-14 min-h-[40vh]">
+                <p className="whitespace-pre-wrap text-center font-serif text-lg sm:text-xl leading-relaxed text-[hsl(var(--foreground))]">{work.description}</p>
+              </div>
+            )}
+
             {/* Fallback if no media */}
-            {!work.cover_url && !work.file_url && (
+            {!work.cover_url && !work.file_url && work.work_type !== 'poema' && (
               <div className="rounded-xl overflow-hidden bg-gradient-to-br from-[hsl(var(--muted))] to-[hsl(var(--muted))]  flex items-center justify-center" style={{ height: '500px' }}>
                 <div className="flex flex-col items-center gap-3">
                   <span className="text-6xl">🎨</span>
@@ -344,7 +351,7 @@ export default function WorkDetail() {
               <h1 className="text-3xl font-bold text-[hsl(var(--foreground))] leading-tight">{work.title}</h1>
             </div>
 
-            {work.description && (
+            {work.description && work.work_type !== 'poema' && (
               <p className="text-[hsl(var(--muted-foreground))] text-base leading-relaxed whitespace-pre-wrap">{work.description}</p>
             )}
 

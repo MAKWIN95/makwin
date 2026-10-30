@@ -181,14 +181,14 @@ export default function WorkCard({ work, priorityImage = false, imageDimensions,
               <Link
                 to={`/u/${work.profiles.username}`}
                 onClick={e => e.stopPropagation()}
-                className="text-xs text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] transition-colors duration-200"
+                className="min-w-0 truncate text-xs text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] transition-colors duration-200"
               >
                 @{work.profiles.username}
               </Link>
             ) : (
               <span className="text-xs text-[hsl(var(--muted-foreground))]">{currentLang === 'es' ? 'Usuario no encontrado' : 'User not found'}</span>
             )}
-            <span className="text-xs text-[hsl(var(--muted-foreground))]">{formatDate(work.created_at)}</span>
+            <span className="shrink-0 text-xs text-[hsl(var(--muted-foreground))]">{formatDate(work.created_at)}</span>
           </div>
         </div>
 

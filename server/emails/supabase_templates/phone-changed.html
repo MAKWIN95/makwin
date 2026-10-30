@@ -1,4 +1,4 @@
-{{ if eq .Data.language_preference "en" }}<!doctype html>
+{{ if eq (printf "%v" .Data.language_preference) "en" }}<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">

@@ -1,1 +1,1 @@
-{{ if eq .Data.language_preference "en" }}You have been invited to MAKWIN{{ else }}Te han invitado a MAKWIN{{ end }}
+{{ if eq (printf "%v" .Data.language_preference) "en" }}You have been invited to MAKWIN{{ else }}Te han invitado a MAKWIN{{ end }}
