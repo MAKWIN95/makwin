@@ -12,6 +12,10 @@ const supabaseAdmin = createClient(
 );
 
 const PENDING_REVIEW_FLAG = 'pending_review';
+const CHECKING_FLAG = 'checking';
+// A check that has not finished by then was cut short, and a person has to look.
+const CHECK_GIVEN_UP_MS = 3 * 60 * 1000;
+const REVIEWED_KEPT_MS = 48 * 60 * 60 * 1000;
 
 const REASONS: Record<string, string> = {
   porno: 'Contenido +18',
@@ -65,11 +69,22 @@ async function createReport(req: VercelRequest, res: VercelResponse) {
   return res.status(200).json({ success: true });
 }
 
+// There is no schedule to run this on: opening the panel is the only moment they could be seen.
+async function deleteOldReviewedReports() {
+  const { error } = await supabaseAdmin
+    .from('policy_reports')
+    .delete()
+    .eq('reviewed', true)
+    .lt('reviewed_at', new Date(Date.now() - REVIEWED_KEPT_MS).toISOString());
+  if (error) console.warn('[REPORTS] Could not delete old reports:', error.message);
+}
+
 const REPORTS_QUERY = 'id, reason, details, reviewed, created_at, work:works(id, title, status), reporter:profiles(username)';
 
 // Everything the admin panel shows, in one request: one cold start and one
 // session check instead of three, and the tabs then open instantly.
 async function loadPanel(res: VercelResponse, role: AdminRole) {
+  await deleteOldReviewedReports();
   const [messages, reports, held] = await Promise.all([
     supabaseAdmin.from('help_messages').select('*').order('created_at', { ascending: false }),
     supabaseAdmin.from('policy_reports').select(REPORTS_QUERY).order('created_at', { ascending: false }),
@@ -82,7 +97,10 @@ async function loadPanel(res: VercelResponse, role: AdminRole) {
   ]);
   const failed = messages.error || reports.error || held.error;
   if (failed) throw failed;
-  return res.status(200).json({ role, messages: messages.data, reports: reports.data, held: held.data });
+  const decided = (held.data ?? []).filter((work) => (
+    !work.policy_flags?.includes(CHECKING_FLAG) || Date.now() - Date.parse(work.created_at) > CHECK_GIVEN_UP_MS
+  ));
+  return res.status(200).json({ role, messages: messages.data, reports: reports.data, held: decided });
 }
 
 function storagePath(url: string | null): string | null {
@@ -265,6 +283,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (req.method === 'PATCH' && req.body?.heldWorkId) return await decideHeldWork(req, res);
 
     if (req.method === 'GET') {
+      await deleteOldReviewedReports();
       const { data, error } = await supabaseAdmin
         .from('policy_reports')
         .select(REPORTS_QUERY)
@@ -289,7 +308,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(200).json({ success: true });
       }
       if (!id || typeof reviewed !== 'boolean') return res.status(400).json({ error: 'Datos no válidos' });
-      const { error } = await supabaseAdmin.from('policy_reports').update({ reviewed }).eq('id', id);
+      const { error } = await supabaseAdmin.from('policy_reports').update({ reviewed, reviewed_at: reviewed ? new Date().toISOString() : null }).eq('id', id);
       if (error) throw error;
       return res.status(200).json({ success: true });
     }

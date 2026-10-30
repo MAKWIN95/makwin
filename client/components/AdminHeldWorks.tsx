@@ -34,6 +34,7 @@ const VERDICTS: Record<string, { es: string; en: string }> = {
 };
 
 function describeFlag(flag: string, language: 'es' | 'en'): string {
+  if (flag === 'checking') return language === 'es' ? 'La comprobación automática no llegó a terminar' : 'The automatic check did not finish';
   const [source, ...rest] = flag.split(':');
   const value = rest.join(':');
   if (source === 'text') return `${language === 'es' ? 'Texto' : 'Text'}: «${value}»`;

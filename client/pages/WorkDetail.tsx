@@ -12,6 +12,7 @@ import AuthModal from '@/components/AuthModal';
 import ReportModal from '@/components/ReportModal';
 import LikeBurst from '@/components/LikeBurst';
 import WorkCarousel from '@/components/WorkCarousel';
+import { loadPoemFont, poemFontStyle } from '@/lib/poem-fonts';
 import { useDoubleTap } from '@/hooks/use-double-tap';
 import FollowButton from '@/components/FollowButton';
 import { Button } from '@/components/ui/button';
@@ -108,6 +109,11 @@ export default function WorkDetail() {
   // The stars' layer only exists once the work has loaded.
   useStarsBackground('detail-stars-background');
 
+  const poemFontId = work?.poem_font;
+  useEffect(() => {
+    if (poemFontId) loadPoemFont(poemFontId);
+  }, [poemFontId]);
+
   const [error, setError] = useState('');
   const [retrying, setRetrying] = useState(0);
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -148,6 +154,7 @@ export default function WorkDetail() {
             file_url,
             cover_url,
             extra_images,
+            poem_font,
             lyrics,
             hashtags,
             is_for_sale,
@@ -341,8 +348,8 @@ export default function WorkDetail() {
 
             {/* A poem is its text: show it where the media would be */}
             {work.work_type === 'poema' && work.description && (
-              <div className="flex items-center justify-center rounded-xl border border-[rgba(120,120,120,0.25)] p-8 sm:p-14 min-h-[40vh]">
-                <p className="whitespace-pre-wrap text-center font-serif text-lg sm:text-xl leading-relaxed text-[hsl(var(--foreground))]">{work.description}</p>
+              <div className="relative flex items-center justify-center rounded-xl border border-[rgba(120,120,120,0.25)] bg-[hsl(var(--background))] p-8 sm:p-14 min-h-[40vh]">
+                <p data-poem-text style={poemFontStyle(work.poem_font, 1.2)} className="whitespace-pre-wrap text-center leading-relaxed text-[hsl(var(--foreground))]">{work.description}</p>
               </div>
             )}
 

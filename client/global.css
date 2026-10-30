@@ -332,10 +332,13 @@ html.theme-switching * {
   clip-path: polygon(0 0, 27px 27px, 3.5px 27px, 1.6px 26.6px, 0.4px 25.4px, 0 23.5px);
 }
 
-/* Tapping a work: no grey flash from the phone, just the work answering with a small lift. */
-.group a,
-.group button {
+/* Tapping a work: no grey flash and no dimming, just the work answering with a small lift. */
+html {
   -webkit-tap-highlight-color: transparent;
+}
+
+a.work-media-link:active {
+  opacity: 1 !important;
 }
 
 .work-tapped {
@@ -344,6 +347,88 @@ html.theme-switching * {
 
 @keyframes work-tapped {
   45% { transform: scale(1.03); }
+}
+
+/* A carousel in the gallery: the cover gives up a little room, in its own space,
+   so the next photo shows behind it like the next card of a deck. */
+.work-stack-top {
+  transform-origin: top center;
+  transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.work-stack-top[data-stacked] {
+  transform: scale(0.965);
+}
+
+.work-stack-top[data-stacked] .work-media-link {
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.28));
+}
+
+.work-stack-back {
+  position: absolute;
+  inset: 12% 6% 0;
+  overflow: hidden;
+  border-radius: 1rem;
+  background: hsl(var(--muted));
+  animation: fade-in-soft 0.3s ease both;
+}
+
+.work-stack-back img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: bottom;
+  opacity: 0.85;
+}
+
+/* A carousel on its page: photos passed like cards. The one on top flies out to
+   the side, slips behind the rest on its way, and the next one comes forward. */
+.deck {
+  display: grid;
+}
+
+.deck-card {
+  grid-area: 1 / 1;
+  place-self: center;
+  display: flex;
+  justify-content: center;
+  max-width: 100%;
+  z-index: var(--deck-z);
+  opacity: var(--deck-opacity);
+  transform: var(--deck-rest);
+  transition: transform 0.5s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.4s ease;
+}
+
+.deck-card[data-dragging] {
+  transition: none;
+  cursor: grabbing;
+}
+
+.deck-card[data-flight="back"] {
+  animation: deck-send-back 0.58s cubic-bezier(0.32, 0.72, 0, 1) both;
+}
+
+.deck-card[data-flight="front"] {
+  animation: deck-bring-front 0.58s cubic-bezier(0.32, 0.72, 0, 1) both;
+}
+
+@keyframes deck-send-back {
+  0% { transform: var(--deck-from); opacity: 1; z-index: 30; }
+  48% { transform: translateX(-62%) rotate(-6deg) scale(0.96); opacity: 1; z-index: 30; }
+  49% { z-index: 0; }
+  100% { transform: var(--deck-rest); opacity: var(--deck-opacity); z-index: 0; }
+}
+
+@keyframes deck-bring-front {
+  0% { transform: var(--deck-from); opacity: 0.35; z-index: 0; }
+  1% { transform: translateY(20px) scale(0.9); opacity: 0.35; z-index: 0; }
+  48% { transform: translateX(-62%) rotate(-6deg) scale(0.96); opacity: 1; z-index: 0; }
+  49% { z-index: 30; }
+  100% { transform: none; opacity: 1; z-index: 30; }
+}
+
+.deck-dot {
+  transition: opacity 0.3s ease;
 }
 
 /* Upload */
@@ -358,9 +443,10 @@ html.theme-switching * {
 }
 
 .upload-progress {
-  background: hsl(var(--popover) / 0.55);
+  background: hsl(var(--background) / 0.72);
   -webkit-backdrop-filter: blur(20px) saturate(170%);
   backdrop-filter: blur(20px) saturate(170%);
+  touch-action: none;
   animation: fade-in-soft 0.24s ease both;
 }
 
@@ -461,6 +547,7 @@ html.theme-switching * {
   .work-options-bar,
   .work-options-bar[data-closing],
   .filter-slot,
+  .deck-card[data-flight],
   .work-tapped,
   .like-burst,
   .glass-panel,

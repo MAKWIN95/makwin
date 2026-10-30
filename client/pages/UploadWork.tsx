@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState, type DragEvent, type KeyboardEvent, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Check, Feather, ImagePlus, Loader2, Mic, Music, X } from 'lucide-react';
+import { useBodyScrollLock } from '@/hooks/use-body-scroll-lock';
+import { prepareImage } from '@/lib/compress-image';
+import { DEFAULT_POEM_FONT, loadPoemFont, poemFontStyle, POEM_FONTS } from '@/lib/poem-fonts';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/AuthContext';
 import { useI18n } from '@/lib/i18n';
@@ -13,18 +16,32 @@ import { Switch } from '@/components/ui/switch';
 import { cn, normalizeHashtags } from '@/lib/utils';
 import { toast } from 'sonner';
 
-const MAX_IMAGE_MB = 10;
 const MAX_AUDIO_MB = 50;
 const MAX_VIDEO_MB = 50;
 const MAX_PHOTOS = 10;
+const PARALLEL_UPLOADS = 3;
 
 // What was picked decides the rest: photos become a carousel, one video or one
 // audio stands alone, and a poem starts from its text.
 type Kind = 'photos' | 'video' | 'audio' | 'poem';
-type Progress = { step: 'uploading'; done: number; total: number } | { step: 'checking' } | { step: 'done' } | null;
+type Progress = { step: 'preparing' | 'uploading'; done: number; total: number } | { step: 'publishing' } | null;
 
 const newMedia = (file: File): UploadMedia => ({ id: crypto.randomUUID(), file, url: URL.createObjectURL(file) });
 const extensionOf = (file: File) => file.name.split('.').pop();
+const notify = (message: string) => toast.error(message, { position: 'top-center' });
+
+async function inParallel<T>(tasks: Array<() => Promise<T>>): Promise<T[]> {
+  const results: T[] = new Array(tasks.length);
+  let next = 0;
+  const worker = async () => {
+    while (next < tasks.length) {
+      const position = next++;
+      results[position] = await tasks[position]();
+    }
+  };
+  await Promise.all(Array.from({ length: PARALLEL_UPLOADS }, worker));
+  return results;
+}
 
 export default function UploadWork() {
   useRequireAuth();
@@ -48,7 +65,7 @@ export default function UploadWork() {
   const [price, setPrice] = useState('');
   const [dragOver, setDragOver] = useState(false);
   const [progress, setProgress] = useState<Progress>(null);
-  const [error, setError] = useState('');
+  const [poemFontId, setPoemFontId] = useState(DEFAULT_POEM_FONT);
   const [confirmDiscard, setConfirmDiscard] = useState(false);
 
   const pickInput = useRef<HTMLInputElement>(null);
@@ -79,23 +96,33 @@ export default function UploadWork() {
 
   const fileProblem = (file: File): string | null => {
     const mb = file.size / 1024 / 1024;
-    if (file.name.toLowerCase().endsWith('.gif')) return es ? 'Los GIF no están permitidos. Usa PNG, JPG o WebP.' : 'GIFs are not allowed. Use PNG, JPG or WebP.';
-    if (file.type.startsWith('image/') && mb > MAX_IMAGE_MB) return es ? `${file.name} supera los ${MAX_IMAGE_MB} MB.` : `${file.name} is over ${MAX_IMAGE_MB} MB.`;
+    if (file.type === 'image/gif' || file.name.toLowerCase().endsWith('.gif')) return es ? 'Los GIF no están permitidos. Usa PNG, JPG o WebP.' : 'GIFs are not allowed. Use PNG, JPG or WebP.';
     if (file.type.startsWith('video/') && mb > MAX_VIDEO_MB) return es ? `El vídeo no puede superar ${MAX_VIDEO_MB} MB.` : `The video cannot exceed ${MAX_VIDEO_MB} MB.`;
     if (file.type.startsWith('audio/') && mb > MAX_AUDIO_MB) return es ? `El audio no puede superar ${MAX_AUDIO_MB} MB.` : `The audio cannot exceed ${MAX_AUDIO_MB} MB.`;
     return null;
   };
 
-  const addPhotos = (files: File[]) => {
+  const addPhotos = async (files: File[]) => {
     const valid: File[] = [];
     for (const file of files) {
       const problem = file.type.startsWith('image/') ? fileProblem(file) : (es ? `${file.name} no es una imagen.` : `${file.name} is not an image.`);
-      if (problem) toast.error(problem);
+      if (problem) notify(problem);
       else valid.push(file);
     }
     const room = MAX_PHOTOS - photos.length;
-    if (valid.length > room) toast.error(es ? `Un carrusel puede tener hasta ${MAX_PHOTOS} fotos.` : `A carousel can have up to ${MAX_PHOTOS} photos.`);
-    const added = valid.slice(0, Math.max(0, room)).map((file) => track(newMedia(file)));
+    if (valid.length > room) notify(es ? `Un carrusel puede tener hasta ${MAX_PHOTOS} fotos.` : `A carousel can have up to ${MAX_PHOTOS} photos.`);
+    const chosen = valid.slice(0, Math.max(0, room));
+    const added: UploadMedia[] = [];
+    // One at a time: a phone cannot hold several huge photos open at once.
+    for (const [position, file] of chosen.entries()) {
+      setProgress({ step: 'preparing', done: position, total: chosen.length });
+      try {
+        added.push(track(newMedia(await prepareImage(file))));
+      } catch {
+        notify(es ? `No hemos podido abrir ${file.name}.` : `We could not open ${file.name}.`);
+      }
+    }
+    setProgress(null);
     if (!added.length) return;
     setPhotos((current) => [...current, ...added]);
     setKind('photos');
@@ -105,16 +132,19 @@ export default function UploadWork() {
     const files = Array.from(list ?? []);
     const first = files[0];
     if (!first) return;
-    if (first.type.startsWith('image/')) return addPhotos(files);
+    if (first.type.startsWith('image/')) {
+      void addPhotos(files);
+      return;
+    }
 
     const isVideo = first.type.startsWith('video/');
     if (!isVideo && !first.type.startsWith('audio/')) {
-      toast.error(es ? 'Ese tipo de archivo no se puede subir.' : 'That type of file cannot be uploaded.');
+      notify(es ? 'Ese tipo de archivo no se puede subir.' : 'That type of file cannot be uploaded.');
       return;
     }
     const problem = fileProblem(first);
     if (problem) {
-      toast.error(problem);
+      notify(problem);
       return;
     }
     setMedia(track(newMedia(first)));
@@ -128,15 +158,21 @@ export default function UploadWork() {
     handleFiles(event.dataTransfer.files);
   };
 
-  const pickCover = (list: FileList | null) => {
+  const pickCover = async (list: FileList | null) => {
     const file = list?.[0];
     if (!file) return;
     const problem = file.type.startsWith('image/') ? fileProblem(file) : (es ? 'La portada tiene que ser una imagen.' : 'The cover must be an image.');
     if (problem) {
-      toast.error(problem);
+      notify(problem);
       return;
     }
-    setCover(track(newMedia(file)));
+    setProgress({ step: 'preparing', done: 0, total: 1 });
+    try {
+      setCover(track(newMedia(await prepareImage(file))));
+    } catch {
+      notify(es ? `No hemos podido abrir ${file.name}.` : `We could not open ${file.name}.`);
+    }
+    setProgress(null);
   };
 
   const pickRecital = (list: FileList | null) => {
@@ -144,7 +180,7 @@ export default function UploadWork() {
     if (!file) return;
     const problem = file.type.startsWith('audio/') ? fileProblem(file) : (es ? 'Tiene que ser un archivo de audio.' : 'It must be an audio file.');
     if (problem) {
-      toast.error(problem);
+      notify(problem);
       return;
     }
     setMedia(track(newMedia(file)));
@@ -162,7 +198,6 @@ export default function UploadWork() {
     setMedia(null);
     setCover(null);
     setWorkType('');
-    setError('');
     setConfirmDiscard(false);
     uploaded.current.clear();
   };
@@ -209,22 +244,25 @@ export default function UploadWork() {
     return publicUrl;
   };
 
-  const missing = (): string | null => {
-    if (!title.trim()) return es ? 'Ponle un título a tu obra.' : 'Give your work a title.';
-    if (!workType) return es ? '¿Es una pintura o una fotografía?' : 'Is it a painting or a photograph?';
+  const missing = (): { message: string; field: string } | null => {
+    if (!title.trim()) return { field: 'title', message: es ? 'Ponle un título a tu obra.' : 'Give your work a title.' };
+    if (!workType) return { field: 'type', message: es ? '¿Es una pintura o una fotografía?' : 'Is it a painting or a photograph?' };
     if (!description.trim()) {
-      if (workType === 'poema' && kind === 'poem') return es ? 'Escribe tu poema.' : 'Write your poem.';
-      return es ? 'Cuenta algo sobre esta obra.' : 'Say something about this work.';
+      if (workType === 'poema' && kind === 'poem') return { field: 'description', message: es ? 'Escribe tu poema.' : 'Write your poem.' };
+      return { field: 'description', message: es ? 'Cuenta algo sobre esta obra.' : 'Say something about this work.' };
     }
-    if (workType === 'cancion' && !lyrics.trim()) return es ? 'Añade la letra de la canción.' : 'Add the song lyrics.';
-    if (isForSale && !(Number(price) > 0)) return es ? 'Indica un precio mayor que cero.' : 'Enter a price above zero.';
+    if (workType === 'cancion' && !lyrics.trim()) return { field: 'lyrics', message: es ? 'Añade la letra de la canción.' : 'Add the song lyrics.' };
+    if (isForSale && !(Number(price) > 0)) return { field: 'price', message: es ? 'Indica un precio mayor que cero.' : 'Enter a price above zero.' };
     return null;
   };
 
   const publish = async () => {
     const problem = missing();
-    setError(problem ?? '');
-    if (problem) return;
+    if (problem) {
+      notify(problem.message);
+      document.querySelector(`[data-field="${problem.field}"]`)?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      return;
+    }
     if (!user) return;
 
     const files = [...photos, ...(media ? [media] : []), ...(cover ? [cover] : [])];
@@ -239,14 +277,11 @@ export default function UploadWork() {
     };
 
     try {
-      const photoUrls: string[] = [];
-      for (const [position, photo] of photos.entries()) {
-        photoUrls.push(await send(photo, `${user.id}/${stamp}-${position}.${extensionOf(photo.file)}`));
-      }
+      const photoUrls = await inParallel(photos.map((photo, position) => () => send(photo, `${user.id}/${stamp}-${position}.${extensionOf(photo.file)}`)));
       const mediaUrl = media ? await send(media, `${user.id}/${stamp}.${extensionOf(media.file)}`) : null;
       const coverUrl = cover ? await send(cover, `${user.id}/covers/${stamp}.${extensionOf(cover.file)}`) : null;
 
-      setProgress({ step: 'checking' });
+      setProgress({ step: 'publishing' });
       const { data: { session } } = await supabase.auth.getSession();
       const response = await fetch('/api/publish-work', {
         method: 'POST',
@@ -265,25 +300,18 @@ export default function UploadWork() {
           hashtags: normalizeHashtags([...tags, tagDraft]),
           isForSale,
           price: isForSale && price ? Number(price) : null,
+          poemFont: workType === 'poema' ? poemFontId : null,
           language,
         }),
       });
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      const { id, held } = await response.json();
-
-      setProgress({ step: 'done' });
-      await new Promise((resolve) => setTimeout(resolve, 650));
-      if (held) {
-        toast.info(es ? 'Tu obra se está revisando. Te avisaremos por correo.' : 'Your work is being reviewed. We will let you know by email.', { duration: 8000 });
-        navigate(profile?.username ? `/u/${profile.username}` : '/');
-      } else {
-        navigate(`/work/${id}`);
-      }
+      const { id } = await response.json();
+      navigate(`/work/${id}`);
     } catch (err: any) {
       console.error('[UploadWork] Could not publish:', err);
       setProgress(null);
       const tooBig = /exceeded|too large|payload/i.test(err?.message ?? '');
-      setError(tooBig
+      notify(tooBig
         ? (es ? 'Algún archivo es demasiado grande.' : 'A file is too large.')
         : (es ? 'No se pudo publicar. Comprueba tu conexión e inténtalo de nuevo.' : 'It could not be published. Check your connection and try again.'));
     }
@@ -300,6 +328,11 @@ export default function UploadWork() {
 
   const publishLabel = es ? 'Publicar' : 'Publish';
   const busy = !!progress;
+  useBodyScrollLock(busy);
+
+  useEffect(() => {
+    if (workType === 'poema') POEM_FONTS.forEach((font) => loadPoemFont(font.id));
+  }, [workType]);
 
   return (
     <div className="min-h-screen bg-[hsl(var(--background))]">
@@ -316,7 +349,7 @@ export default function UploadWork() {
           event.target.value = '';
         }}
       />
-      <input ref={coverInput} type="file" accept="image/*" className="hidden" onChange={(event) => { pickCover(event.target.files); event.target.value = ''; }} />
+      <input ref={coverInput} type="file" accept="image/*" className="hidden" onChange={(event) => { void pickCover(event.target.files); event.target.value = ''; }} />
       <input ref={audioInput} type="file" accept="audio/*" className="hidden" onChange={(event) => { pickRecital(event.target.files); event.target.value = ''; }} />
 
       <main className="w-full page-enter">
@@ -407,7 +440,9 @@ export default function UploadWork() {
                       value={description}
                       onChange={(event) => setDescription(event.target.value)}
                       placeholder={es ? 'Escribe aquí tu poema…' : 'Write your poem here…'}
-                      className={cn(fieldText, 'resize-none text-center font-serif text-lg leading-relaxed min-h-[45vh] p-4')}
+                      data-field="description"
+                      style={poemFontStyle(poemFontId, 1.125)}
+                      className={cn(fieldText, 'resize-none text-center leading-relaxed min-h-[45vh] p-4')}
                     />
                   )}
 
@@ -449,6 +484,7 @@ export default function UploadWork() {
                     {profile?.username && <p className="text-xs text-[hsl(var(--muted-foreground))] mb-2">@{profile.username}</p>}
                     <input
                       ref={titleInput}
+                      data-field="title"
                       value={title}
                       onChange={(event) => setTitle(event.target.value)}
                       maxLength={200}
@@ -463,6 +499,7 @@ export default function UploadWork() {
                         rows={4}
                         maxLength={5000}
                         aria-label={es ? 'Descripción' : 'Description'}
+                        data-field="description"
                         placeholder={es ? 'Cuenta algo sobre esta obra…' : 'Say something about this work…'}
                         className={cn(fieldText, 'mt-3 text-sm resize-none leading-relaxed')}
                       />
@@ -470,7 +507,7 @@ export default function UploadWork() {
                   </div>
 
                   {typeChips.length > 0 && (
-                    <div className={cn(section, 'flex flex-wrap gap-2')} role="radiogroup" aria-label={es ? 'Tipo de obra' : 'Type of work'}>
+                    <div data-field="type" className={cn(section, 'flex flex-wrap gap-2')} role="radiogroup" aria-label={es ? 'Tipo de obra' : 'Type of work'}>
                       {typeChips.map(([value, label]) => (
                         <button
                           key={value}
@@ -487,8 +524,26 @@ export default function UploadWork() {
                     </div>
                   )}
 
+                  {workType === 'poema' && (
+                    <div className={cn(section, 'flex flex-wrap gap-2')} role="radiogroup" aria-label={es ? 'Fuente del poema' : 'Poem typeface'}>
+                      {POEM_FONTS.map((font) => (
+                        <button
+                          key={font.id}
+                          type="button"
+                          role="radio"
+                          aria-checked={poemFontId === font.id}
+                          onClick={() => setPoemFontId(font.id)}
+                          style={{ fontFamily: font.family }}
+                          className={cn('glass-button !min-h-9 !px-4', poemFontId === font.id && 'glass-button--primary')}
+                        >
+                          {es ? font.es : font.en}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
                   {workType === 'cancion' && (
-                    <div className={section}>
+                    <div className={section} data-field="lyrics">
                       <textarea
                         value={lyrics}
                         onChange={(event) => setLyrics(event.target.value)}
@@ -534,38 +589,39 @@ export default function UploadWork() {
                         value={price}
                         onChange={(event) => setPrice(event.target.value)}
                         aria-label={es ? 'Precio en euros' : 'Price in euros'}
+                        data-field="price"
                         placeholder={es ? 'Precio (€)' : 'Price (€)'}
                         className={cn(fieldText, 'mt-3 text-sm')}
                       />
                     )}
                   </SaleRow>
-
-                  {error && <p role="alert" className="px-5 py-3 text-sm text-red-500">{error}</p>}
                 </div>
               </div>
-
-              {/* While it is on its way */}
-              {progress && (
-                <div className="upload-progress absolute inset-0 z-20 flex flex-col items-center justify-center gap-4 p-6 text-center">
-                  {progress.step === 'done'
-                    ? <Check className="icon-pop w-10 h-10 text-[hsl(var(--foreground))]" strokeWidth={1.5} />
-                    : <Loader2 className="w-8 h-8 animate-spin text-[hsl(var(--foreground))]" strokeWidth={1.5} />}
-                  <p className="text-sm text-[hsl(var(--foreground))]">
-                    {progress.step === 'uploading' && (es ? `Subiendo ${Math.min(progress.done + 1, progress.total)} de ${progress.total}…` : `Uploading ${Math.min(progress.done + 1, progress.total)} of ${progress.total}…`)}
-                    {progress.step === 'checking' && (es ? 'Comprobando la obra…' : 'Checking the work…')}
-                    {progress.step === 'done' && (es ? 'Publicada' : 'Published')}
-                  </p>
-                  {progress.step === 'uploading' && (
-                    <div className="w-48 h-1 rounded-full overflow-hidden bg-[hsl(var(--foreground)/0.15)]">
-                      <div className="h-full rounded-full bg-[hsl(var(--foreground))] transition-[width] duration-300 ease-out" style={{ width: `${(progress.done / progress.total) * 100}%` }} />
-                    </div>
-                  )}
-                </div>
-              )}
             </div>
           )}
         </div>
       </main>
+
+      {/* While it is on its way: the whole screen, and the page stays still */}
+      {progress && (
+        <div role="status" className="upload-progress fixed inset-0 z-[70] flex flex-col items-center justify-center gap-4 p-6 text-center">
+          <Loader2 className="w-8 h-8 animate-spin text-[hsl(var(--foreground))]" strokeWidth={1.5} />
+          <p className="text-sm text-[hsl(var(--foreground))]">
+            {progress.step === 'preparing' && (progress.total > 1
+              ? (es ? `Preparando fotos ${progress.done + 1} de ${progress.total}…` : `Preparing photos ${progress.done + 1} of ${progress.total}…`)
+              : (es ? 'Preparando la foto…' : 'Preparing the photo…'))}
+            {progress.step === 'uploading' && (progress.total > 1
+              ? (es ? `Subiendo ${Math.min(progress.done + 1, progress.total)} de ${progress.total}…` : `Uploading ${Math.min(progress.done + 1, progress.total)} of ${progress.total}…`)
+              : (es ? 'Subiendo…' : 'Uploading…'))}
+            {progress.step === 'publishing' && (es ? 'Publicando…' : 'Publishing…')}
+          </p>
+          {progress.step !== 'publishing' && progress.total > 1 && (
+            <div className="w-48 h-1 rounded-full overflow-hidden bg-[hsl(var(--foreground)/0.15)]">
+              <div className="h-full rounded-full bg-[hsl(var(--foreground))] transition-[width] duration-300 ease-out" style={{ width: `${(progress.done / progress.total) * 100}%` }} />
+            </div>
+          )}
+        </div>
+      )}
 
       {/* On small screens the button stays at hand while the page scrolls */}
       {kind && (

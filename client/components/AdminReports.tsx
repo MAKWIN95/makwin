@@ -83,6 +83,10 @@ export default function AdminReports({ reports, setReports }: Props) {
         <span className="ml-auto text-sm text-[hsl(var(--muted-foreground))]">{reports.length}</span>
       </div>
 
+      {reports.some((report) => report.reviewed) && (
+        <p className="text-xs text-[hsl(var(--muted-foreground))]">{es ? 'Los reportes revisados se borran solos a las 48 horas.' : 'Reviewed reports are deleted automatically after 48 hours.'}</p>
+      )}
+
       {reports.length === 0 ? (
         <div className="text-center py-8 text-[hsl(var(--muted-foreground))]">{es ? 'No hay reportes' : 'No reports'}</div>
       ) : (

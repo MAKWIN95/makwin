@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { toast } from 'sonner';
 import { X, Loader2 } from 'lucide-react';
@@ -6,6 +6,9 @@ import { supabase, Work } from '@/lib/supabase';
 import { useI18n } from '@/lib/i18n';
 import { normalizeHashtags, formatHashtagsForInput } from '@/lib/utils';
 import { useBodyScrollLock } from '@/hooks/use-body-scroll-lock';
+import { cn } from '@/lib/utils';
+import { DEFAULT_POEM_FONT, loadPoemFont, POEM_FONTS } from '@/lib/poem-fonts';
+import { rememberWorkExtras, useWorkExtras } from '@/lib/work-extras';
 
 interface Props {
   isOpen: boolean;
@@ -23,6 +26,10 @@ export default function EditWorkModal({ isOpen, onClose, work, onSuccess }: Prop
     description: work.description || '',
     hashtags: formatHashtagsForInput(work.hashtags),
   });
+  const extras = useWorkExtras(work);
+  const [chosenFont, setChosenFont] = useState<string | null>(null);
+  const font = chosenFont ?? work.poem_font ?? extras?.poem_font ?? DEFAULT_POEM_FONT;
+  const isPoem = work.work_type === 'poema';
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -41,10 +48,11 @@ export default function EditWorkModal({ isOpen, onClose, work, onSuccess }: Prop
           'Content-Type': 'application/json',
           ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
         },
-        body: JSON.stringify({ id: work.id, title: form.title, description: form.description, hashtags: tagsArray }),
+        body: JSON.stringify({ id: work.id, title: form.title, description: form.description, hashtags: tagsArray, ...(isPoem ? { poemFont: font } : {}) }),
       });
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const { held } = await response.json();
+      if (isPoem) rememberWorkExtras(work.id, { poem_font: font });
       if (held) {
         toast.info(es ? 'Tu obra se revisará antes de volver a mostrarse.' : 'Your work will be reviewed before it is shown again.');
       }
@@ -61,6 +69,10 @@ export default function EditWorkModal({ isOpen, onClose, work, onSuccess }: Prop
   };
 
   useBodyScrollLock(isOpen);
+
+  useEffect(() => {
+    if (isOpen && isPoem) POEM_FONTS.forEach((item) => loadPoemFont(item.id));
+  }, [isOpen, isPoem]);
 
   if (!isOpen) return null;
 
@@ -128,6 +140,29 @@ export default function EditWorkModal({ isOpen, onClose, work, onSuccess }: Prop
               placeholder="#arte #musica"
             />
           </div>
+
+          {isPoem && (
+            <div>
+              <label className="text-xs font-medium text-[hsl(var(--muted-foreground))] mb-2 block">
+                {es ? 'Fuente del poema' : 'Poem typeface'}
+              </label>
+              <div className="flex flex-wrap gap-2" role="radiogroup" aria-label={es ? 'Fuente del poema' : 'Poem typeface'}>
+                {POEM_FONTS.map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    role="radio"
+                    aria-checked={font === item.id}
+                    onClick={() => setChosenFont(item.id)}
+                    style={{ fontFamily: item.family }}
+                    className={cn('glass-button !min-h-9 !px-3', font === item.id && 'glass-button--primary')}
+                  >
+                    {es ? item.es : item.en}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           {error && <p className="text-sm text-red-500">{error}</p>}
 

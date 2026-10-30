@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Heart, Bookmark, Flag, Pencil, Share2, Trash2 } from 'lucide-react';
 import { supabase, Work } from '@/lib/supabase';
@@ -12,6 +12,8 @@ import DeleteWorkModal from '@/components/DeleteWorkModal';
 import WorkOptionsMenu, { type WorkOption } from '@/components/WorkOptionsMenu';
 import LikeBurst from '@/components/LikeBurst';
 import { useDoubleTap } from '@/hooks/use-double-tap';
+import { useWorkExtras } from '@/lib/work-extras';
+import { loadPoemFont, poemFontStyle } from '@/lib/poem-fonts';
 import { shareWork } from '@/lib/shareWork';
 
 interface Props {
@@ -48,6 +50,7 @@ export default function WorkCard({ work, priorityImage = false, imageDimensions,
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [likeBursts, setLikeBursts] = useState(0);
   const [tapped, setTapped] = useState(false);
+  const extras = useWorkExtras(work);
 
   // Use context as source of truth
   const liked = worksContext.isLiked(work.id);
@@ -62,6 +65,15 @@ export default function WorkCard({ work, priorityImage = false, imageDimensions,
   const hasImage = !!(work.cover_url || (isImageWork && work.file_url));
 
   const isPendingLike = worksContext.isPendingLike(work.id);
+
+  // A carousel shows its second photo peeking out from behind the cover, like a deck of cards.
+  const moreImages = extras?.extra_images ?? [];
+  const isCarousel = isImageWork && !work.cover_url && moreImages.length > 0;
+  const poemFontId = isPoem ? extras?.poem_font : null;
+
+  useEffect(() => {
+    if (poemFontId) loadPoemFont(poemFontId);
+  }, [poemFontId]);
 
   const handleLike = async (e: React.MouseEvent) => {
     e.preventDefault();
@@ -161,6 +173,12 @@ export default function WorkCard({ work, priorityImage = false, imageDimensions,
       {/* Image/Media area */}
       <div onAnimationEnd={(event) => { if (event.animationName === 'work-tapped') setTapped(false); }} className={`relative rounded-2xl transition-transform duration-300 ease-out group-hover:scale-[1.014] group-focus-within:scale-[1.014] ${tapped ? 'work-tapped' : ''}`}>
 
+        {isCarousel && (
+          <div className="work-stack-back" aria-hidden="true">
+            <img src={moreImages[0]} alt="" loading="lazy" decoding="async" />
+          </div>
+        )}
+        <div className="work-stack-top relative" data-stacked={isCarousel || undefined}>
         {/* Options: a folded corner that grows with the work and covers almost nothing */}
         <WorkOptionsMenu
           label={es ? 'Opciones' : 'Options'}
@@ -169,7 +187,7 @@ export default function WorkCard({ work, priorityImage = false, imageDimensions,
         />
 
         {/* Media content */}
-        <Link to={linkPath} state={{ from: 'gallery' }} aria-label={work.title} onClick={(event) => { setTapped(true); handleWorkTap(event); }} className="block rounded-2xl touch-manipulation select-none transition-[filter] duration-300 ease-out group-hover:[filter:drop-shadow(0_10px_16px_rgba(0,0,0,0.22))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))] focus-visible:ring-offset-2 focus-visible:ring-offset-[hsl(var(--background))]">
+        <Link to={linkPath} state={{ from: 'gallery' }} aria-label={work.title} onClick={(event) => { setTapped(true); handleWorkTap(event); }} className="work-media-link relative block rounded-2xl touch-manipulation select-none transition-[filter] duration-300 ease-out group-hover:[filter:drop-shadow(0_10px_16px_rgba(0,0,0,0.22))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))] focus-visible:ring-offset-2 focus-visible:ring-offset-[hsl(var(--background))]">
         {hasImage ? (
           <img
             src={work.cover_url ?? work.file_url ?? ''}
@@ -185,7 +203,7 @@ export default function WorkCard({ work, priorityImage = false, imageDimensions,
           />
         ) : isPoem ? (
           <div className="flex min-h-48 w-full items-center justify-center p-6">
-            <p className="text-center text-[hsl(var(--foreground))] text-sm font-light whitespace-pre-line leading-relaxed line-clamp-6">
+            <p style={poemFontId ? poemFontStyle(poemFontId, 0.875) : undefined} className="text-center text-[hsl(var(--foreground))] text-sm font-light whitespace-pre-line leading-relaxed line-clamp-6">
               &quot;{work.description}&quot;
             </p>
           </div>
@@ -194,8 +212,14 @@ export default function WorkCard({ work, priorityImage = false, imageDimensions,
             {WORK_TYPE_ICONS[work.work_type] ?? '🎨'}
           </div>
         )}
+        {isCarousel && (
+          <span className="work-count absolute bottom-2 left-1/2 -translate-x-1/2 rounded-full bg-black/45 px-2 py-0.5 text-[10px] leading-4 text-white backdrop-blur-sm pointer-events-none">
+            1/{moreImages.length + 1}
+          </span>
+        )}
         </Link>
         <LikeBurst count={likeBursts} className="absolute" />
+        </div>
       </div>
 
       <div className="transition-transform duration-300 ease-out group-hover:translate-y-0.5 group-focus-within:translate-y-0.5">

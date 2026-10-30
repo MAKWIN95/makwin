@@ -1,12 +1,15 @@
 import { createClient } from '@supabase/supabase-js';
+import { waitUntil } from '@vercel/functions';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { getRequestUser } from '../server/lib/admin-auth.js';
 import { alertIfBacklogReached } from '../server/lib/admin-backlog.js';
-import { requestBaseUrl } from '../server/lib/email.js';
+import { HELP_ADDRESS, requestBaseUrl, sendEmail } from '../server/lib/email.js';
 import { findBlockedTerms } from '../server/lib/moderation-text.js';
 
-// Works are saved here so the automatic check always runs first: a work that
-// passes is published right away, any other waits in the admin panel.
+// Works are saved here and the artist moves on straight away. The automatic check
+// runs in the background: the work becomes public when it passes, and otherwise
+// waits in the admin panel and its author gets an email. If the check never
+// finishes, it stays private and reaches the panel anyway.
 const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '';
 const supabaseAdmin = createClient(
   supabaseUrl,
@@ -14,6 +17,8 @@ const supabaseAdmin = createClient(
 );
 
 const PENDING_REVIEW_FLAG = 'pending_review';
+const CHECKING_FLAG = 'checking';
+const POEM_FONTS = ['clasica', 'elegante', 'moderna', 'maquina', 'manuscrita'];
 const WORK_TYPES = ['pintura', 'fotografia', 'poema', 'cancion', 'video'];
 const REQUIRES_FILE = ['pintura', 'fotografia', 'video'];
 const PHOTO_TYPES = ['pintura', 'fotografia'];
@@ -34,6 +39,64 @@ function ownFileUrl(value: unknown, userId: string): string | null {
   return url.startsWith(prefix) ? url : null;
 }
 
+function cleanPoemFont(value: unknown): string | null {
+  return POEM_FONTS.includes(String(value)) ? String(value) : null;
+}
+
+// Only ever for a work that did not pass. A work that passes sends no email at all.
+async function notifyWorkHeld(userId: string, title: string) {
+  const { data } = await supabaseAdmin.auth.admin.getUserById(userId);
+  const email = data?.user?.email;
+  if (!email) return;
+  const language = data.user?.user_metadata?.language_preference === 'en' ? 'en' : 'es';
+  const es = language === 'es';
+  await sendEmail({
+    to: email,
+    subject: es ? `Tu obra «${title}» no se ha publicado todavía` : `Your work "${title}" has not been published yet`,
+    content: {
+      language,
+      title: es ? 'Tu obra no ha pasado los filtros' : 'Your work did not pass our filters',
+      preheader: title,
+      blocks: [
+        { type: 'text', text: es ? `«${title}» no ha pasado los filtros automáticos de MAKWIN, así que todavía no se ha publicado. Una persona del equipo la va a revisar y te escribiremos con la decisión.` : `"${title}" did not pass MAKWIN's automatic filters, so it has not been published yet. Someone from the team will review it and we will write to you with the decision.` },
+        { type: 'note', text: es ? `No tienes que hacer nada. Si tienes alguna duda, escríbenos a ${HELP_ADDRESS}.` : `There is nothing you need to do. If you have any questions, write to us at ${HELP_ADDRESS}.` },
+      ],
+    },
+  });
+}
+
+interface WorkInCheck {
+  id: string;
+  userId: string;
+  title: string;
+  workType: string;
+  fileUrl: string | null;
+  coverUrl: string | null;
+  extraImages: string[];
+  texts: string[];
+}
+
+async function finishCheck(work: WorkInCheck, baseUrl: string) {
+  // Loaded here so the model never slows down or breaks the rest of the API.
+  const { moderateWork } = await import('../server/lib/moderation.js');
+  const flags = await moderateWork(work);
+  const held = flags.length > 0;
+
+  // Only while it is still waiting for this check: its author may have deleted it meanwhile.
+  const { data, error } = await supabaseAdmin
+    .from('works')
+    .update(held ? { policy_flags: [PENDING_REVIEW_FLAG, ...flags] } : { status: 'published', policy_flags: [] })
+    .eq('id', work.id)
+    .contains('policy_flags', [CHECKING_FLAG])
+    .select('id');
+  if (error) throw error;
+
+  if (held && data?.length) {
+    await alertIfBacklogReached(baseUrl);
+    await notifyWorkHeld(work.userId, work.title);
+  }
+}
+
 async function createWork(req: VercelRequest, res: VercelResponse, userId: string) {
   const body = (req.body || {}) as Record<string, unknown>;
   const title = cleanText(body.title, 200);
@@ -45,6 +108,7 @@ async function createWork(req: VercelRequest, res: VercelResponse, userId: strin
   const coverUrl = body.coverUrl ? ownFileUrl(body.coverUrl, userId) : null;
   const rawExtraImages = Array.isArray(body.extraImages) ? body.extraImages : [];
   const extraImages = rawExtraImages.map((url) => ownFileUrl(url, userId)).filter((url): url is string => !!url);
+  const poemFont = workType === 'poema' ? cleanPoemFont(body.poemFont) : null;
   const isForSale = body.isForSale === true;
   const price = isForSale ? Number(body.price) : null;
 
@@ -59,11 +123,6 @@ async function createWork(req: VercelRequest, res: VercelResponse, userId: strin
     return res.status(400).json({ error: 'Datos no válidos' });
   }
 
-  // Loaded here so the model never slows down or breaks the rest of the API.
-  const { moderateWork } = await import('../server/lib/moderation.js');
-  const flags = await moderateWork({ workType, fileUrl, coverUrl, extraImages, texts: [title, description, lyrics, hashtags.join(' ')] });
-  const held = flags.length > 0;
-
   const { data, error } = await supabaseAdmin
     .from('works')
     .insert({
@@ -74,20 +133,26 @@ async function createWork(req: VercelRequest, res: VercelResponse, userId: strin
       file_url: fileUrl,
       cover_url: coverUrl,
       extra_images: extraImages,
+      poem_font: poemFont,
       lyrics: lyrics || null,
       hashtags,
       is_for_sale: isForSale,
       price,
       language: body.language === 'en' ? 'en' : 'es',
-      status: held ? 'removed_policy' : 'published',
-      policy_flags: held ? [PENDING_REVIEW_FLAG, ...flags] : [],
+      status: 'removed_policy',
+      policy_flags: [PENDING_REVIEW_FLAG, CHECKING_FLAG],
     })
     .select('id')
     .single();
   if (error) throw error;
 
-  if (held) await alertIfBacklogReached(requestBaseUrl(req.headers));
-  return res.status(200).json({ id: data.id, held });
+  waitUntil(
+    finishCheck(
+      { id: data.id, userId, title, workType, fileUrl, coverUrl, extraImages, texts: [title, description, lyrics, hashtags.join(' ')] },
+      requestBaseUrl(req.headers),
+    ).catch((checkError) => console.error('[PUBLISH-WORK] Check did not finish:', checkError)),
+  );
+  return res.status(200).json({ id: data.id });
 }
 
 // Editing cannot be a way around the filter, so changed text is checked too.
@@ -115,12 +180,16 @@ async function editWork(req: VercelRequest, res: VercelResponse, userId: string)
       title,
       description,
       hashtags,
+      ...(body.poemFont ? { poem_font: cleanPoemFont(body.poemFont) } : {}),
       ...(held ? { status: 'removed_policy', policy_flags: [PENDING_REVIEW_FLAG, ...flags] } : {}),
     })
     .eq('id', id);
   if (error) throw error;
 
-  if (held) await alertIfBacklogReached(requestBaseUrl(req.headers));
+  if (held) {
+    await alertIfBacklogReached(requestBaseUrl(req.headers));
+    await notifyWorkHeld(userId, title);
+  }
   return res.status(200).json({ id, held });
 }
 

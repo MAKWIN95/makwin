@@ -49,6 +49,8 @@ export interface Work {
   cover_url: string | null;
   /** Carousel: the rest of the photos, after file_url. */
   extra_images?: string[];
+  /** The typeface the author chose for a poem. */
+  poem_font?: string | null;
   lyrics: string | null;
   hashtags: string[];
   is_for_sale: boolean;
