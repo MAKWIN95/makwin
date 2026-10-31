@@ -134,13 +134,13 @@ export default function Header({ showSearch = true, showSearchCentered = false, 
   const isGalleryish = location.pathname.startsWith('/galeria') || location.pathname.startsWith('/merch') || location.pathname.startsWith('/marketplace');
   const isHomePage = location.pathname === '/home';
   const headerRootClass = showSearchCentered
-    ? `sticky top-4 phone:top-0 z-50 bg-transparent phone:py-1.5 border-none fast-theme w-full transition-all duration-500 px-4 phone:px-2 ${isGalleryish ? 'gallery-navbar header-offset' : ''}`
+    ? `sticky top-4 phone:top-0 z-50 bg-transparent phone:py-1.5 border-none fast-theme w-full transition-all duration-500 px-4 sm:px-8 phone:px-2 ${isGalleryish ? 'gallery-navbar header-offset' : ''}`
     : isHomePage
     ? `fixed top-0 left-0 right-0 z-50 bg-[hsl(var(--popover))/0.95] backdrop-blur-md border-b shadow-sm fast-theme w-full transition-all duration-300 ease-out animate-in fade-in slide-in-from-top-1 border-[rgba(80,80,80,0.2)] px-4`
     : `header-glass sticky top-0 z-50 border-b fast-theme w-full transition-all duration-500 border-[rgba(120,120,120,0.16)] px-4 phone:px-2`;
 
   const innerContainerClass = showSearchCentered
-    ? 'w-full px-4 sm:px-6 phone:px-2 py-2 sm:py-3 phone:py-1.5 flex flex-col pointer-events-auto mx-auto max-w-6xl glass-bar rounded-3xl sm:rounded-full transition-all duration-500'
+    ? 'w-full px-4 sm:px-6 phone:px-2 py-2 sm:py-3 phone:py-1.5 flex flex-col pointer-events-auto mx-auto glass-bar rounded-3xl sm:rounded-full transition-all duration-500'
     : isHomePage
     ? 'w-full px-4 sm:px-6 py-4 sm:py-5 flex flex-col transition-all duration-500'
     : breadcrumb
