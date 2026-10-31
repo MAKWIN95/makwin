@@ -87,14 +87,14 @@ export function rememberHeader() {
   last = { shape: bar.dataset.headerBar!, glass, parts: readParts(bar), fading, windowWidth: window.innerWidth, at: Date.now() };
 }
 
-function fadeRestOfPage(bar: HTMLElement) {
+function fadeRestOfPage(bar: HTMLElement): Animation[] {
   // The page's own entrance would carry the header with it, so only the rest does it.
   const wrapper = bar.closest<HTMLElement>('.page-enter');
-  if (!wrapper) return;
+  if (!wrapper) return [];
   wrapper.getAnimations().forEach((animation) => animation.cancel());
-  Array.from(wrapper.children)
+  return Array.from(wrapper.children)
     .filter((child) => child !== bar)
-    .forEach((child) => child.animate(
+    .map((child) => child.animate(
       [{ opacity: 0, transform: 'translateY(10px)' }, { opacity: 1, transform: 'none' }],
       REST,
     ));
@@ -108,7 +108,7 @@ export function morphHeader(bar: HTMLElement | null) {
   if (Date.now() - from.at > STILL_FRESH_MS) return;
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
-  fadeRestOfPage(bar);
+  const moves = fadeRestOfPage(bar);
   const to = readGlass(bar);
   if (!to) return;
 
@@ -129,7 +129,7 @@ export function morphHeader(bar: HTMLElement | null) {
     borderBottomColor: glass.borderBottomColor,
     borderLeftColor: glass.borderLeftColor,
   });
-  layer.animate([place(from.glass), place(to)], MORPH);
+  moves.push(layer.animate([place(from.glass), place(to)], MORPH));
 
   // What stays travels to its new place and size.
   const now = readParts(bar);
@@ -139,11 +139,11 @@ export function morphHeader(bar: HTMLElement | null) {
     if (!box) return;
     const was = from.parts[name];
     if (!was) {
-      part.animate([{ opacity: 0 }, { opacity: 1 }], FADE_IN);
+      moves.push(part.animate([{ opacity: 0 }, { opacity: 1 }], FADE_IN));
       return;
     }
     const scale = was.height / box.height;
-    part.animate(
+    moves.push(part.animate(
       [
         {
           transformOrigin: 'left center',
@@ -152,7 +152,7 @@ export function morphHeader(bar: HTMLElement | null) {
         { transformOrigin: 'left center', transform: 'none' },
       ],
       MORPH,
-    );
+    ));
   });
 
   // What only the old header had leaves; what only this one has arrives.
@@ -166,11 +166,17 @@ export function morphHeader(bar: HTMLElement | null) {
     bar.append(clone);
     const leaving = clone.animate([{ opacity: 1 }, { opacity: 0 }], { ...FADE_OUT, fill: 'forwards' });
     leaving.onfinish = leaving.oncancel = () => clone.remove();
+    moves.push(leaving);
   });
   bar.querySelectorAll<HTMLElement>('[data-morph-fade]').forEach((element) => {
     if (element.classList.contains('header-morph-leaving')) return;
-    element.animate([{ opacity: 0 }, { opacity: 1 }], FADE_IN);
+    moves.push(element.animate([{ opacity: 0 }, { opacity: 1 }], FADE_IN));
   });
+
+  // A heavy new page takes a moment to paint. Everything waits on its first frame
+  // until then, or that moment is spent and the change is already over when it shows.
+  moves.forEach((move) => move.pause());
+  requestAnimationFrame(() => requestAnimationFrame(() => moves.forEach((move) => move.play())));
 }
 
 // The page coming back into view, without its first-time entrance.

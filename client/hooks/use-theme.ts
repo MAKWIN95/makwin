@@ -10,7 +10,8 @@ function fadeThemeChange() {
 }
 
 export function useTheme() {
-  const [isDark, setIsDark] = useState<boolean | null>(null);
+  // Known from the first frame: a new page's header must not show the other icon for a moment.
+  const [isDark, setIsDark] = useState<boolean | null>(() => document.documentElement.classList.contains('dark') || null);
 
   useEffect(() => {
     try {
