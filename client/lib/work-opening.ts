@@ -50,6 +50,9 @@ function fly(target: HTMLElement, from: Opening) {
     target.style.zIndex = zIndex;
     target.style.position = position;
   };
+  // A heavy new page takes a moment to paint: the flight waits for it, or it is over when it shows.
+  flight.pause();
+  requestAnimationFrame(() => requestAnimationFrame(() => flight.play()));
 }
 
 export function flyFrom(target: HTMLElement, from: Opening) {
