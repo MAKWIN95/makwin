@@ -20,6 +20,10 @@ const RING_RADIUS_PX = 34;
 const SETTLE_MS = 80;
 const QUICK_FLICK = 0.35;
 const TAP_PX = 8;
+const RING_ROOM_PX = 104;
+const UNFOLD_MS = 340;
+// However late a frame comes, the unfolding carries on from where it was instead of skipping ahead.
+const LONGEST_FRAME_MS = 34;
 
 const wrap = (index: number, size: number) => ((index % size) + size) % size;
 
@@ -197,19 +201,56 @@ export default function ProfileWorksBar({ choices, value, onChange }: Props) {
   const root = useRef<HTMLDivElement>(null);
   const slot = useRef<HTMLDivElement>(null);
   const title = useRef<HTMLSpanElement>(null);
+  const room = useRef<HTMLDivElement>(null);
+  const chevron = useRef<HTMLSpanElement>(null);
+  const unfolded = useRef(0);
   const hasChoices = choices.length > 1;
   const chosen = choices.find((choice) => choice.value === value) ?? choices[0];
 
-  // The room in the middle goes from the size of the name to the size of the ring.
+  // Everything that changes when it unfolds moves by the same clock, so nothing goes ahead of the rest.
+  const drawUnfolding = () => {
+    if (!slot.current || !title.current) return;
+    const amount = unfolded.current;
+    const named = title.current.offsetWidth;
+    slot.current.style.width = `${named + ((hasChoices ? RING_ROOM_PX : named) - named) * amount}px`;
+    title.current.style.opacity = String(Math.max(0, 1 - amount / 0.45));
+    if (room.current) room.current.style.opacity = String(Math.max(0, Math.min(1, (amount - 0.25) / 0.45)));
+    if (chevron.current) chevron.current.style.transform = `rotate(${180 * amount}deg)`;
+  };
+
   useLayoutEffect(() => {
-    const fit = () => {
-      if (!slot.current || !title.current) return;
-      slot.current.style.width = open ? '' : `${title.current.offsetWidth}px`;
-    };
-    fit();
-    const watcher = new ResizeObserver(fit);
+    drawUnfolding();
+    const watcher = new ResizeObserver(drawUnfolding);
     if (title.current) watcher.observe(title.current);
     return () => watcher.disconnect();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasChoices]);
+
+  const firstRender = useRef(true);
+  useEffect(() => {
+    if (firstRender.current) {
+      firstRender.current = false;
+      return;
+    }
+    const goal = open ? 1 : 0;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      unfolded.current = goal;
+      drawUnfolding();
+      return;
+    }
+    const from = unfolded.current;
+    let spent = 0;
+    let before = performance.now();
+    let frame = requestAnimationFrame(function step(now) {
+      spent += Math.min(LONGEST_FRAME_MS, Math.max(0, now - before));
+      before = now;
+      const progress = Math.min(1, spent / UNFOLD_MS);
+      unfolded.current = from + (goal - from) * (1 - (1 - progress) ** 4);
+      drawUnfolding();
+      if (progress < 1) frame = requestAnimationFrame(step);
+    });
+    return () => cancelAnimationFrame(frame);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
   // A slide of the page is not a tap outside: only a real tap, or Escape, closes it.
@@ -244,6 +285,7 @@ export default function ProfileWorksBar({ choices, value, onChange }: Props) {
   const name = !chosen || !chosen.value ? (es ? 'Obras' : 'Works') : chosen.label;
 
   return (
+    <div className="profile-works-lane">
     <div ref={root} className="profile-works-bar" data-open={open || undefined}>
       {hasChoices && (
         <button
@@ -261,16 +303,17 @@ export default function ProfileWorksBar({ choices, value, onChange }: Props) {
           <span className="ml-1.5 font-normal text-[hsl(var(--muted-foreground))]">{chosen?.count ?? 0}</span>
         </span>
         {hasChoices && (
-          <div className="profile-works-room" {...(open ? {} : { inert: '' })}>
+          <div ref={room} className="profile-works-room" {...(open ? {} : { inert: '' })}>
             <WordRing choices={choices} value={value} onChange={onChange} open={open} />
           </div>
         )}
       </div>
       {hasChoices && (
-        <span className="profile-works-part profile-works-chevron">
+        <span ref={chevron} className="profile-works-part">
           <ChevronRight className="block w-4 h-4 text-[hsl(var(--muted-foreground))]" />
         </span>
       )}
+    </div>
     </div>
   );
 }
