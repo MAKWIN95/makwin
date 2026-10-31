@@ -49,6 +49,14 @@ html.theme-switching * {
   pointer-events: none;
 }
 
+/* What only the old header had, leaving: it floats in its old place and takes up no room. */
+.header-morph-leaving {
+  position: fixed;
+  z-index: 0;
+  margin: 0;
+  pointer-events: none;
+}
+
 /* Inner page header: see-through like a mirror on the wall. Only its lower line shows. */
 .header-glass-layer.header-glass-flat {
   inset: 0 0 -1px;
