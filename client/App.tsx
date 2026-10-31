@@ -5,8 +5,8 @@ import { createRoot } from "react-dom/client";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigationType, type Location } from "react-router-dom";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
 // Global components
 import GlobalStars from "./components/GlobalStars";
@@ -37,6 +37,7 @@ import GoogleOnboardingPage from '@/pages/GoogleOnboarding';
 import { AuthProvider, useAuth } from "@/lib/AuthContext";
 import { WorksProvider } from "@/lib/WorksContext";
 import { FollowProvider } from "@/lib/FollowContext";
+import { PageShown, rememberHeader } from "@/lib/header-morph";
 
 const queryClient = new QueryClient();
 
@@ -87,6 +88,31 @@ const RoutesWrapper = () => {
   const { loading, initializationError, retryInitialization, needsUsernameSetup } = useAuth();
   const { language } = useI18n();
   const location = useLocation();
+  const navigationType = useNavigationType();
+
+  // Read while the old page is still on screen: the next header starts from this one.
+  const lastPath = useRef(location.pathname);
+  if (lastPath.current !== location.pathname) {
+    lastPath.current = location.pathname;
+    rememberHeader();
+  }
+
+  // The gallery stays alive once visited, so coming back finds it exactly as it was.
+  // Its address is held while it is out of sight, or it would react to the other pages'.
+  const onGallery = location.pathname === '/' || location.pathname === '/galeria';
+  const galleryLocation = useRef<Location | null>(null);
+  if (onGallery) galleryLocation.current = location;
+  const wasOnGallery = useRef(onGallery);
+  const galleryScroll = useRef(0);
+  if (wasOnGallery.current && !onGallery) galleryScroll.current = window.scrollY;
+
+  useLayoutEffect(() => {
+    if (onGallery && !wasOnGallery.current) {
+      window.scrollTo(0, navigationType === 'POP' ? galleryScroll.current : 0);
+    }
+    wasOnGallery.current = onGallery;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [onGallery]);
 
   // Track last page for redirect after settings changes
   useEffect(() => {
@@ -131,11 +157,21 @@ const RoutesWrapper = () => {
   }
 
   return (
+    <>
+    {galleryLocation.current && (
+      <div style={onGallery ? undefined : { display: 'none' }}>
+        <PageShown.Provider value={onGallery}>
+          <Routes location={galleryLocation.current}>
+            <Route path="*" element={<Gallery />} />
+          </Routes>
+        </PageShown.Provider>
+      </div>
+    )}
     <Routes>
-      {/* Main: Gallery is now home */}
-      <Route path="/" element={<Gallery />} />
+      {/* Main: Gallery is now home, kept alive above */}
+      <Route path="/" element={null} />
       <Route path="/home" element={<Home />} />
-      <Route path="/galeria" element={<Gallery />} />
+      <Route path="/galeria" element={null} />
       <Route path="/merch" element={<Merch />} />
       <Route path="/marketplace" element={<Marketplace />} />
 
@@ -165,6 +201,7 @@ const RoutesWrapper = () => {
       {/* 404 */}
       <Route path="*" element={<NotFound />} />
     </Routes>
+    </>
   );
 };
 

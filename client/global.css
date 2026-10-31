@@ -52,6 +52,45 @@ html.theme-switching * {
   backdrop-filter: blur(22px) saturate(180%);
 }
 
+/* While the header changes shape, this one piece of glass is its background. */
+.header-morph-glass {
+  position: fixed;
+  z-index: -1;
+  box-sizing: border-box;
+  border: 1px solid transparent;
+  pointer-events: none;
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  backdrop-filter: blur(24px) saturate(180%);
+}
+
+.header-morphing {
+  border-color: transparent !important;
+}
+
+.header-morphing,
+.header-morphing > .glass-bar {
+  transition: none !important;
+}
+
+.header-morphing::before {
+  display: none;
+}
+
+.header-morphing > .glass-bar {
+  background: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  border-color: transparent;
+  box-shadow: none;
+}
+
+.header-morph-leaving {
+  position: fixed;
+  z-index: 0;
+  margin: 0;
+  pointer-events: none;
+}
+
 /* The site's one glass: menus, windows and the floating header all share it. */
 .glass-menu,
 .glass-panel,
@@ -394,7 +433,7 @@ a.work-media-link:active {
   place-self: center;
   display: flex;
   justify-content: center;
-  max-width: 100%;
+  width: 100%;
   will-change: transform;
   backface-visibility: hidden;
 }

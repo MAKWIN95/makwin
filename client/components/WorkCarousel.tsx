@@ -3,6 +3,7 @@ import { animate, motion, motionValue, useReducedMotion, type MotionValue } from
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
+import { fitArtwork } from '@/lib/fit-artwork';
 
 interface Props {
   images: string[];
@@ -246,6 +247,7 @@ export default function WorkCarousel({ images, alt, onImageClick, className }: P
               className={cn('deck-card', position !== 0 && 'pointer-events-none')}
             >
               <img
+                ref={fitArtwork}
                 src={src}
                 alt={position === 0 ? `${alt} (${slide + 1}/${count})` : ''}
                 aria-hidden={position !== 0}

@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
+import { useContext, useState, useMemo, useEffect, useLayoutEffect, useRef, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { supabase, Work } from '@/lib/supabase';
 import { useAuth } from '@/lib/AuthContext';
@@ -9,6 +9,7 @@ import WorkCard from '@/components/WorkCard';
 import MasonryGrid, { type MasonryColumns } from '@/components/MasonryGrid';
 import { useI18n } from '@/lib/i18n';
 import { useStarsBackground } from '@/hooks/use-stars-background';
+import { PageShown, returnToPage } from '@/lib/header-morph';
 
 const PAGE_SIZE = 40;
 
@@ -66,21 +67,34 @@ export default function Gallery() {
   const requestSequenceRef = useRef(0);
   const activeUserIdRef = useRef<string | null>(user?.id ?? null);
   activeUserIdRef.current = user?.id ?? null;
+  const shown = useContext(PageShown);
+  const main = useRef<HTMLElement>(null);
+  const pageRef = useRef(0);
+  pageRef.current = page;
+  // Coming back is not arriving: the entrance only plays the first time.
+  const beenAway = useRef(false);
+  const wasAway = beenAway.current;
+  if (!shown) beenAway.current = true;
 
   useStarsBackground('gallery-stars-background');
 
   // ── Fetch feed from Supabase ──────────────────────────────────────────────
-  const fetchWorks = useCallback(async (pageNum: number, replace = false) => {
+  const fetchWorks = useCallback(async (pageNum: number, replace = false, silently = false) => {
     const requestSequence = ++requestSequenceRef.current;
     const requestUserId = user?.id ?? null;
-    if (replace) setLoadError(false);
-    if (pageNum === 0) setLoadingInitial(true);
-    else setLoadingMore(true);
+    if (replace && !silently) setLoadError(false);
+    // Silently, what is on screen stays until the fresh list arrives.
+    if (!silently) {
+      if (pageNum === 0) setLoadingInitial(true);
+      else setLoadingMore(true);
+    }
+    // Everything already scrolled through comes back, so the page keeps its length.
+    const limit = silently ? (pageRef.current + 1) * PAGE_SIZE : PAGE_SIZE;
 
     try {
       const { data, error } = await supabase.rpc('get_feed', {
         p_user_id: user?.id ?? null,
-        p_limit: PAGE_SIZE,
+        p_limit: limit,
         p_offset: pageNum * PAGE_SIZE,
       });
 
@@ -132,7 +146,7 @@ export default function Gallery() {
       // images otherwise begin at zero height and reflow the columns/footer as
       // they load, which is especially noticeable when the first card is hovered.
       const preloadedDimensions = await Promise.all(
-        fetched.slice(0, 3).map(async work => {
+        (silently ? [] as Work[] : fetched.slice(0, 3)).map(async work => {
           const src = work.cover_url ?? (
             work.work_type === 'pintura' || work.work_type === 'fotografia'
               ? work.file_url
@@ -152,8 +166,8 @@ export default function Gallery() {
       }));
 
       setWorks(prev => replace ? fetched : [...prev, ...fetched]);
-      setHasMore(fetched.length === PAGE_SIZE);
-      setPage(pageNum);
+      setHasMore(fetched.length === limit);
+      if (!silently) setPage(pageNum);
 
       // The feed is the render-critical request. Hydrate user-specific
       // interactions independently so a delayed likes/saves query cannot leave
@@ -168,7 +182,7 @@ export default function Gallery() {
     } catch (err) {
       if (requestSequence === requestSequenceRef.current && requestUserId === activeUserIdRef.current) {
         console.error('[Gallery] Feed request failed:', err);
-        setLoadError(true);
+        if (!silently) setLoadError(true);
       }
     } finally {
       if (requestSequence === requestSequenceRef.current && requestUserId === activeUserIdRef.current) {
@@ -180,6 +194,27 @@ export default function Gallery() {
   }, [user?.id, loadUserInteractions]);
 
   useEffect(() => { fetchWorks(0, true); }, [fetchWorks]);
+
+  // Back in view straight away, as it was left; anything new arrives by itself.
+  useEffect(() => {
+    if (shown && wasAway) void fetchWorks(0, true, true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [shown]);
+
+  useLayoutEffect(() => {
+    if (shown && wasAway) returnToPage(main.current);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [shown]);
+
+  // Deleted from its own page: it must not reappear for a moment on the way back.
+  useEffect(() => {
+    const onDeleted = (event: Event) => {
+      const id = (event as CustomEvent<string>).detail;
+      setWorks(current => current.filter(work => work.id !== id));
+    };
+    document.addEventListener('workDeleted', onDeleted);
+    return () => document.removeEventListener('workDeleted', onDeleted);
+  }, []);
 
   // Reload on header MAKWIN click
   useEffect(() => {
@@ -242,10 +277,10 @@ export default function Gallery() {
   return (
     <div className="relative min-h-screen bg-[hsl(var(--background))]">
       <div id="gallery-stars-background" className="absolute inset-0 z-0 stars-background" />
-      <div className="relative z-10 page-enter">
+      <div className={`relative z-10 ${beenAway.current ? '' : 'page-enter'}`}>
         <Header showSearchCentered />
 
-        <main className="w-full page-enter">
+        <main ref={main} className={`w-full ${beenAway.current ? '' : 'page-enter'}`}>
           <div className="px-4 sm:px-8 py-4 sm:py-6">
 
             {/* Loading skeleton - only show if we don't have cached data */}

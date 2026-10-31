@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useContext, useState, useEffect, useLayoutEffect, useRef } from "react";
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/custom-dialog";
 import LanguageSelector from "./LanguageSelector";
@@ -8,6 +8,7 @@ import { useI18n } from '@/lib/i18n';
 import { useAuth } from '@/lib/AuthContext';
 import { useTheme } from "@/hooks/use-theme";
 import { authHeaders } from "@/lib/adminApi";
+import { morphHeader, PageShown } from "@/lib/header-morph";
 
 const readSearch = (search: string) => (new URLSearchParams(search).get('search') ?? '').replace(/^#/, '').trim();
 
@@ -48,6 +49,8 @@ export default function Header({ showSearch = true, showSearchCentered = false, 
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const searchRef = useRef<HTMLDivElement | null>(null);
   const userMenuRef = useRef<HTMLDivElement | null>(null);
+  const barRef = useRef<HTMLElement | null>(null);
+  const shown = useContext(PageShown);
   const { t } = useI18n();
   const { language } = useI18n();
   const es = language === 'es';
@@ -56,6 +59,11 @@ export default function Header({ showSearch = true, showSearchCentered = false, 
   const location = useLocation();
   const { isDark, toggleTheme } = useTheme();
   const MUSIC_FEATURE_ENABLED = false;
+
+  // Before the first paint: this header starts as the shape the last one had.
+  useLayoutEffect(() => {
+    if (shown) morphHeader(barRef.current);
+  }, [shown]);
 
   const handleMakwinClick = () => navigate('/');
   const handleGoHome = () => navigate('/');
@@ -134,21 +142,21 @@ export default function Header({ showSearch = true, showSearchCentered = false, 
   const isGalleryish = location.pathname.startsWith('/galeria') || location.pathname.startsWith('/merch') || location.pathname.startsWith('/marketplace');
   const isHomePage = location.pathname === '/home';
   const headerRootClass = showSearchCentered
-    ? `sticky top-4 phone:top-0 z-50 bg-transparent phone:py-1.5 border-none fast-theme w-full transition-all duration-500 px-4 sm:px-8 phone:px-2 ${isGalleryish ? 'gallery-navbar header-offset' : ''}`
+    ? `sticky top-4 phone:top-0 z-50 bg-transparent phone:py-1.5 border-none fast-theme w-full px-4 sm:px-8 phone:px-2 ${isGalleryish ? 'gallery-navbar header-offset' : ''}`
     : isHomePage
     ? `fixed top-0 left-0 right-0 z-50 bg-[hsl(var(--popover))/0.95] backdrop-blur-md border-b shadow-sm fast-theme w-full transition-all duration-300 ease-out animate-in fade-in slide-in-from-top-1 border-[rgba(80,80,80,0.2)] px-4`
-    : `header-glass sticky top-0 z-50 border-b fast-theme w-full transition-all duration-500 border-[rgba(120,120,120,0.16)] px-4 phone:px-2`;
+    : `header-glass sticky top-0 z-50 border-b fast-theme w-full border-[rgba(120,120,120,0.16)] px-4 phone:px-2`;
 
   const innerContainerClass = showSearchCentered
-    ? 'w-full px-4 sm:px-6 phone:px-2 py-2 sm:py-3 phone:py-1.5 flex flex-col pointer-events-auto mx-auto glass-bar rounded-3xl sm:rounded-full transition-all duration-500'
+    ? 'w-full px-4 sm:px-6 phone:px-2 py-2 sm:py-3 phone:py-1.5 flex flex-col pointer-events-auto mx-auto glass-bar rounded-3xl sm:rounded-full'
     : isHomePage
     ? 'w-full px-4 sm:px-6 py-4 sm:py-5 flex flex-col transition-all duration-500'
     : breadcrumb
-    ? 'w-full px-4 sm:px-6 phone:px-1 py-4 sm:py-5 phone:py-1.5 flex flex-col transition-all duration-500'
-    : 'w-full px-4 sm:px-6 phone:px-1 py-3 sm:py-4 phone:py-1.5 flex flex-col transition-all duration-500';
+    ? 'w-full px-4 sm:px-6 phone:px-1 py-4 sm:py-5 phone:py-1.5 flex flex-col'
+    : 'w-full px-4 sm:px-6 phone:px-1 py-3 sm:py-4 phone:py-1.5 flex flex-col';
 
   return (
-    <header className={headerRootClass}>
+    <header ref={barRef} data-header-bar={showSearchCentered ? 'floating' : isHomePage ? undefined : 'flat'} className={headerRootClass}>
       <div className={innerContainerClass}>
         {isHomePage ? (
           /* HOME PAGE LAYOUT - CENTERED MAKWIN */
@@ -165,16 +173,16 @@ export default function Header({ showSearch = true, showSearchCentered = false, 
 
           {/* Left: navigation + logo */}
           <div className={`${isHomePage ? 'hidden' : 'col-span-1'} flex items-center gap-1 sm:gap-2 min-w-0 relative`}>
-            <button onClick={handleGoBack} className={`${isGallery ? 'max-sm:hidden' : ''} max-[359px]:hidden header-button ios-press p-0 w-10 h-10 phone:w-11 phone:h-11 max-[429px]:!w-9 max-[374px]:!w-8 flex items-center justify-center shrink-0`} aria-label={es ? 'Atrás' : 'Back'}>
+            <button data-morph="back" onClick={handleGoBack} className={`${isGallery ? 'max-sm:hidden' : ''} max-[359px]:hidden header-button ios-press p-0 w-10 h-10 phone:w-11 phone:h-11 max-[429px]:!w-9 max-[374px]:!w-8 flex items-center justify-center shrink-0`} aria-label={es ? 'Atrás' : 'Back'}>
               <ArrowLeft className="w-5 h-5 text-[hsl(var(--muted-foreground))] phone:text-[hsl(var(--foreground))] transition-colors duration-300" />
             </button>
-            <div onClick={handleMakwinClick} className={`cursor-pointer flex items-center gap-2 ml-1 min-w-0 overflow-hidden phone:min-h-11 ${isGallery ? 'max-sm:ml-2 max-[359px]:ml-1' : ''}`}>
+            <div data-morph="logo" onClick={handleMakwinClick} className={`cursor-pointer flex items-center gap-2 ml-1 min-w-0 overflow-hidden phone:min-h-11 ${isGallery ? 'max-sm:ml-2 max-[359px]:ml-1' : ''}`}>
               <span className={`logo-makwin tracking-widest hover:opacity-80 transition-opacity duration-200 whitespace-nowrap leading-tight max-[374px]:!text-sm ${hideSearch ? 'text-base sm:text-lg' : 'text-lg sm:text-xl md:text-2xl'}`}>
                 MAKWIN
               </span>
               {breadcrumb && <>
-                <span className="max-sm:hidden text-[hsl(var(--muted-foreground))] font-light">/</span>
-                <span className="max-sm:hidden text-base sm:text-lg text-[hsl(var(--muted-foreground))] font-light truncate">{breadcrumb}</span>
+                <span data-morph-fade className="max-sm:hidden text-[hsl(var(--muted-foreground))] font-light">/</span>
+                <span data-morph-fade className="max-sm:hidden text-base sm:text-lg text-[hsl(var(--muted-foreground))] font-light truncate">{breadcrumb}</span>
               </>}
             </div>
           </div>
@@ -182,7 +190,7 @@ export default function Header({ showSearch = true, showSearchCentered = false, 
           {/* Center: search */}
           <div className={`${isHomePage || hideSearch || !showSearch ? 'hidden sm:flex' : 'flex'} order-last col-span-2 sm:order-none sm:col-span-1 items-center justify-center`} ref={searchRef}>
             {!hideSearch && showSearch && (
-              <form role="search" onSubmit={handleSearchSubmit} className="relative flex items-stretch w-full sm:max-w-xl">
+              <form data-morph-fade role="search" onSubmit={handleSearchSubmit} className="relative flex items-stretch w-full sm:max-w-xl">
                 <input
                   id="site-search-input"
                   type="search"
@@ -199,7 +207,7 @@ export default function Header({ showSearch = true, showSearchCentered = false, 
           </div>
 
           {/* Right: lang + music + user */}
-          <div className={`${isHomePage ? 'col-span-3 flex justify-center' : 'col-span-1 flex justify-end'} flex items-center gap-1`}>
+          <div data-morph="tools" className={`${isHomePage ? 'col-span-3 flex justify-center' : 'col-span-1 flex justify-end'} flex items-center gap-1`}>
             <div id="lang-selector-wrap" className="whitespace-nowrap">
               <LanguageSelector />
             </div>

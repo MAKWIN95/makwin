@@ -15,6 +15,7 @@ import WorkCarousel from '@/components/WorkCarousel';
 import EditWorkModal from '@/components/EditWorkModal';
 import DeleteWorkModal from '@/components/DeleteWorkModal';
 import { flyFrom, openingOf } from '@/lib/work-opening';
+import { fitArtwork } from '@/lib/fit-artwork';
 import { loadPoemFont, poemFontStyle } from '@/lib/poem-fonts';
 import { useDoubleTap } from '@/hooks/use-double-tap';
 import FollowButton from '@/components/FollowButton';
@@ -352,7 +353,7 @@ export default function WorkDetail() {
             {/* Primary Image/Cover */}
             {work.cover_url && (
               <div data-work-hero className="flex items-start justify-center pt-12" style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'center', minHeight: '50vh' }}>
-                <img src={work.cover_url} alt={work.title} decoding="sync" onClick={handleImageTap} className="touch-manipulation select-none rounded-lg border border-[rgba(255,255,255,0.1)] max-h-[80vh] w-auto h-auto object-contain" />
+                <img ref={fitArtwork} src={work.cover_url} alt={work.title} decoding="sync" onClick={handleImageTap} className="touch-manipulation select-none rounded-lg border border-[rgba(255,255,255,0.1)] max-h-[80vh] max-w-full w-auto h-auto object-contain" />
               </div>
             )}
 
@@ -377,7 +378,7 @@ export default function WorkDetail() {
 
             {(work.work_type === 'pintura' || work.work_type === 'fotografia') && work.file_url && !work.extra_images?.length && work.file_url !== work.cover_url && (
               <div data-work-hero={work.cover_url ? undefined : ''} className="flex items-center justify-center" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '80vh' }}>
-                <img src={work.file_url} alt={work.title} decoding="sync" onClick={handleImageTap} className="touch-manipulation select-none rounded-lg border border-[rgba(255,255,255,0.1)] max-h-[80vh] max-w-full w-auto h-auto object-contain" />
+                <img ref={fitArtwork} src={work.file_url} alt={work.title} decoding="sync" onClick={handleImageTap} className="touch-manipulation select-none rounded-lg border border-[rgba(255,255,255,0.1)] max-h-[80vh] max-w-full w-auto h-auto object-contain" />
               </div>
             )}
 
@@ -555,7 +556,10 @@ export default function WorkDetail() {
               onClose={() => setShowDeleteModal(false)}
               workId={work.id}
               workTitle={work.title}
-              onSuccess={() => navigate(author ? `/u/${author.username}` : '/galeria', { replace: true })}
+              onSuccess={() => {
+                document.dispatchEvent(new CustomEvent('workDeleted', { detail: work.id }));
+                navigate(author ? `/u/${author.username}` : '/galeria', { replace: true });
+              }}
             />
           </>
         )}
