@@ -28,6 +28,11 @@ const FLY_SHARE = 0.68;
 const TUCK_MS = 110;
 const SPRING = { type: 'spring', stiffness: 560, damping: 44, mass: 0.7 } as const;
 const OUT = { type: 'spring', stiffness: 700, damping: 48, mass: 0.6 } as const;
+// Dragging back: this share of the way, the previous photo is still coming out from behind.
+const COMES_OUT_SHARE = 0.2;
+const COMES_OUT_MS = 150;
+const CLEAR_GAP = 8;
+const OUT_TILT = 5;
 
 // Each photo sits behind the next, and the deck has no end.
 const RESTING = [
@@ -50,7 +55,7 @@ export default function WorkCarousel({ images, alt, onImageClick, className }: P
   const [current, setCurrent] = useState(0);
   const currentRef = useRef(0);
   const deck = useRef<HTMLDivElement>(null);
-  const drag = useRef<{ x: number; y: number; from: number; id: number; moved: boolean } | null>(null);
+  const drag = useRef<{ x: number; y: number; from: number; id: number; moved: boolean; at: number; lastX: number; speed: number; back: boolean; landing: boolean } | null>(null);
   const swallowClick = useRef(false);
   const timers = useRef(new Map<string, ReturnType<typeof setTimeout>>());
   const cards = useRef(new Map<string, Card>());
@@ -100,6 +105,13 @@ export default function WorkCarousel({ images, alt, onImageClick, className }: P
 
   const flyWidth = () => (deck.current?.offsetWidth ?? 320) * FLY_SHARE;
 
+  // How far a photo must be to the left of the top one for the two not to touch,
+  // so it can change from behind to in front without anything showing the change.
+  const clearOfTop = (slide: number, topSlide: number) => {
+    const widthOf = (index: number) => deck.current?.children[index]?.querySelector('img')?.offsetWidth ?? flyWidth();
+    return (widthOf(slide) + widthOf(topSlide)) / 2 + CLEAR_GAP;
+  };
+
   const moveTo = (target: number, special: string) => {
     currentRef.current = target;
     setCurrent(target);
@@ -120,34 +132,70 @@ export default function WorkCarousel({ images, alt, onImageClick, className }: P
     clearTimeout(timers.current.get(src));
     card.z.set(30);
     spring(card.x, side * flyWidth(), velocity, OUT);
-    spring(card.rotate, side * 5, undefined, OUT);
+    spring(card.rotate, side * OUT_TILT, undefined, OUT);
     timers.current.set(src, setTimeout(() => settle(src, positionOf(images.indexOf(src), currentRef.current)), TUCK_MS));
   };
 
-  // The card from the back slips out on one side and lands on top.
-  const previous = (side = -1, velocity?: number) => {
+  // The way back is the same path backwards: the card that left to the left and
+  // behind comes out from behind on the left and lands on top. The right is never used.
+  const previous = () => {
     if (count < 2) return;
-    const target = (currentRef.current - 1 + count) % count;
+    const leaving = currentRef.current;
+    const target = (leaving - 1 + count) % count;
     const src = images[target];
     const card = cards.current.get(src);
-    const leaving = images[currentRef.current];
     if (!card || reduced) return moveTo(target, '');
     moveTo(target, src);
-    if (velocity !== undefined) settle(leaving, 1, velocity);
     clearTimeout(timers.current.get(src));
-    card.z.set(0);
+    card.z.set(1);
     spring(card.opacity, 1);
     spring(card.scale, 0.96);
     spring(card.y, 0);
-    spring(card.x, side * flyWidth(), undefined, OUT);
-    spring(card.rotate, side * 5, undefined, OUT);
-    timers.current.set(src, setTimeout(() => settle(src, positionOf(images.indexOf(src), currentRef.current)), TUCK_MS));
+    spring(card.x, -clearOfTop(target, leaving), undefined, OUT);
+    spring(card.rotate, -OUT_TILT, undefined, OUT);
+    timers.current.set(src, setTimeout(() => settle(src, positionOf(images.indexOf(src), currentRef.current)), COMES_OUT_MS));
   };
 
   const handlePointerDown = (event: PointerEvent<HTMLDivElement>) => {
     if (count < 2 || (event.pointerType === 'mouse' && event.button !== 0)) return;
     const top = cards.current.get(images[currentRef.current]);
-    drag.current = { x: event.clientX, y: event.clientY, from: top?.x.get() ?? 0, id: event.pointerId, moved: false };
+    drag.current = { x: event.clientX, y: event.clientY, from: top?.x.get() ?? 0, id: event.pointerId, moved: false, at: event.timeStamp, lastX: top?.x.get() ?? 0, speed: 0, back: false, landing: false };
+  };
+
+  // First the previous photo comes out from behind towards the left, then it follows
+  // the finger back over the deck while the others make room.
+  const dragBack = (active: NonNullable<typeof drag.current>, topSlide: number, x: number) => {
+    active.back = true;
+    const share = Math.min(1, x / flyWidth());
+    const out = Math.min(1, share / COMES_OUT_SHARE);
+    const land = Math.max(0, (share - COMES_OUT_SHARE) / (1 - COMES_OUT_SHARE));
+    active.landing = land > 0;
+    images.forEach((src, slide) => {
+      const card = cards.current.get(src);
+      if (!card) return;
+      const position = positionOf(slide, topSlide);
+      card.y.stop();
+      card.scale.stop();
+      card.opacity.stop();
+      if (position === count - 1) {
+        const from = restAt(position);
+        const side = land > 0 ? 1 - land : out;
+        card.x.stop();
+        card.rotate.stop();
+        card.x.set(-clearOfTop(slide, topSlide) * side);
+        card.rotate.set(-OUT_TILT * side);
+        card.z.set(land > 0 ? 30 : 1);
+        card.y.set(between(from.y, 0, out));
+        card.opacity.set(between(from.opacity, 1, out));
+        card.scale.set(land > 0 ? between(0.96, 1, land) : between(from.scale, 0.96, out));
+        return;
+      }
+      const from = restAt(position);
+      const to = restAt(position + 1);
+      card.y.set(between(from.y, to.y, land));
+      card.scale.set(between(from.scale, to.scale, land));
+      card.opacity.set(between(from.opacity, to.opacity, land));
+    });
   };
 
   const handlePointerMove = (event: PointerEvent<HTMLDivElement>) => {
@@ -167,8 +215,28 @@ export default function WorkCarousel({ images, alt, onImageClick, className }: P
     const top = cards.current.get(images[topSlide]);
     if (!top) return;
     const x = active.from + dx;
+    const elapsed = event.timeStamp - active.at;
+    if (elapsed > 0) active.speed = ((x - active.lastX) / elapsed) * 1000;
+    active.at = event.timeStamp;
+    active.lastX = x;
     top.x.stop();
     top.rotate.stop();
+
+    // To the right the top photo stays where it is: it is the previous one that moves.
+    if (x > 0) {
+      top.x.set(0);
+      top.rotate.set(0);
+      dragBack(active, topSlide, x);
+      return;
+    }
+    if (active.back) {
+      active.back = false;
+      active.landing = false;
+      const passed = cards.current.get(images[(topSlide - 1 + count) % count]);
+      passed?.x.set(0);
+      passed?.rotate.set(0);
+      images.forEach((src, slide) => cards.current.get(src)?.z.set(restAt(positionOf(slide, topSlide)).z));
+    }
     top.x.set(x);
     top.rotate.set(x * 0.018);
 
@@ -202,9 +270,16 @@ export default function WorkCarousel({ images, alt, onImageClick, className }: P
     const x = top.x.get();
     const speed = top.x.getVelocity();
     const width = deck.current?.offsetWidth ?? 320;
+    if (active.back) {
+      const back = !cancelled && (active.lastX > width * SWIPE_SHARE || active.speed > FLICK_SPEED);
+      if (!back) return images.forEach((src, slide) => settle(src, positionOf(slide, topSlide)));
+      // Already over the deck it simply lands; still behind, it finishes coming out first.
+      if (active.landing) return moveTo((topSlide - 1 + count) % count, '');
+      return previous();
+    }
     const goes = !cancelled && (Math.abs(x) > width * SWIPE_SHARE || Math.abs(speed) > FLICK_SPEED);
     if (goes && (x < 0 || speed < -FLICK_SPEED) && speed < FLICK_SPEED) return next(-1, speed);
-    if (goes && (x > 0 || speed > FLICK_SPEED) && speed > -FLICK_SPEED) return previous(1, speed);
+    if (goes && (x > 0 || speed > FLICK_SPEED) && speed > -FLICK_SPEED) return previous();
     images.forEach((src, slide) => settle(src, positionOf(slide, topSlide), slide === topSlide ? speed : undefined));
   };
 

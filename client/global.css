@@ -39,6 +39,15 @@ html.theme-switching * {
               border-color 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+/* Works are not one long press or drag away from being saved. */
+img,
+video {
+  -webkit-touch-callout: none;
+  -webkit-user-drag: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
 /* The header's glass is one layer of its own, in both shapes, and the same layer
    changes shape between them: nothing is swapped, so nothing can blink.
    It sits behind the content so menus inside the header can blur the page too. */

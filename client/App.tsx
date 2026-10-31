@@ -76,6 +76,19 @@ const BeatsPage = () => {
 
 // Wrapper that waits for auth to be ready
 const AppLayout = () => {
+  // No "save image" on long press or right click, and no dragging a work out of the page.
+  useEffect(() => {
+    const keepWork = (event: Event) => {
+      if ((event.target as Element).closest?.('img, video')) event.preventDefault();
+    };
+    document.addEventListener('contextmenu', keepWork);
+    document.addEventListener('dragstart', keepWork);
+    return () => {
+      document.removeEventListener('contextmenu', keepWork);
+      document.removeEventListener('dragstart', keepWork);
+    };
+  }, []);
+
   return (
     <div className="relative w-full">
       {/* Routes wrapper */}

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { supabase, Profile, Work } from '@/lib/supabase';
 import { useAuth } from '@/lib/AuthContext';
@@ -83,7 +83,11 @@ export default function UserProfile() {
     return () => clearTimeout(timer);
   }, [works]);
 
+  // Who is looking is only known a moment after loading, so this runs twice: the
+  // first answer must not replace the second, or your own held works would vanish.
+  const latestLoad = useRef(0);
   const loadProfile = async (silent = false) => {
+    const load = ++latestLoad.current;
     if (!silent) setLoading(true);
 
     const { data: profileData } = await supabase
@@ -92,6 +96,7 @@ export default function UserProfile() {
       .eq('username', username!)
       .single();
 
+    if (load !== latestLoad.current) return;
     if (!profileData) { setProfile(null); setLoading(false); return; }
     setProfile(profileData as Profile);
     setEditForm({ 
@@ -111,6 +116,7 @@ export default function UserProfile() {
       // Your own works can be seen and changed while they wait for review.
       .in('status', user?.id === profileData.id ? ['published', 'removed_policy'] : ['published'])
       .order('created_at', { ascending: false });
+    if (load !== latestLoad.current) return;
     
     // Map profile data to each work
     const worksWithProfile = (worksData ?? []).map(work => ({
@@ -140,6 +146,7 @@ export default function UserProfile() {
       supabase.from('follows').select('*', { count: 'exact', head: true }).eq('following_id', profileData.id),
       supabase.from('follows').select('*', { count: 'exact', head: true }).eq('follower_id', profileData.id),
     ]);
+    if (load !== latestLoad.current) return;
     setFollowerCount(fwrCount ?? 0);
     setFollowingCount(fwgCount ?? 0);
 

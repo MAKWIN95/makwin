@@ -238,7 +238,8 @@ export default function WorkCard({ work: givenWork, priorityImage = false, image
           </span>
         )}
         </Link>
-        {isMine && work.status !== 'published' && (
+        {/* The gallery's list carries no state, and everything in it is published. */}
+        {isMine && work.status && work.status !== 'published' && (
           <span className="absolute top-2 left-2 z-10 rounded-full bg-black/55 px-2 py-0.5 text-[11px] leading-4 text-white backdrop-blur-sm pointer-events-none">
             {takenDown ? (es ? 'Retirada' : 'Taken down') : (es ? 'En revisión' : 'In review')}
           </span>

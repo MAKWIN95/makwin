@@ -365,7 +365,7 @@ export default function WorkDetail() {
             {/* Video */}
             {work.work_type === 'video' && work.file_url && (
               <div data-work-hero={work.cover_url ? undefined : ''} className="flex items-center justify-center" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '80vh' }}>
-                <video src={work.file_url} controls playsInline className="rounded-lg border border-[rgba(255,255,255,0.1)] max-h-[80vh] max-w-full w-auto object-contain" />
+                <video src={work.file_url} controls controlsList="nodownload" disablePictureInPicture playsInline className="rounded-lg border border-[rgba(255,255,255,0.1)] max-h-[80vh] max-w-full w-auto object-contain" />
               </div>
             )}
 
