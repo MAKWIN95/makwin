@@ -556,34 +556,47 @@ a.work-media-link:active {
 
 /* The profile's works: a small button that stretches to the right, the corner of a work mirrored. */
 .profile-works-bar {
+  position: relative;
   display: flex;
   align-items: center;
+  gap: 0.5rem;
   width: fit-content;
   max-width: 100%;
+  height: 2.75rem;
   margin-bottom: 1rem;
+  padding: 0 0.625rem 0 0.75rem;
   border-radius: 9999px;
   border: 1px solid hsl(var(--foreground) / 0.12);
-  background: hsl(var(--card) / 0.7);
-  -webkit-backdrop-filter: blur(16px);
-  backdrop-filter: blur(16px);
+  background: hsl(var(--card));
+  color: hsl(var(--foreground));
+  font-size: 0.875rem;
+  font-weight: 500;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
-.profile-works-fold {
-  display: grid;
-  grid-template-columns: 0fr;
-  min-width: 0;
-  opacity: 0;
-  overflow: hidden;
-  transition: grid-template-columns 0.34s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.22s ease-out;
+.profile-works-toggle {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  outline: none;
+  transition: background-color 0.2s ease-out;
+  -webkit-tap-highlight-color: transparent;
 }
 
-.profile-works-fold > * {
-  overflow: hidden;
+.profile-works-toggle:active {
+  background: hsl(var(--foreground) / 0.06);
 }
 
-.profile-works-bar[data-open] .profile-works-fold {
-  grid-template-columns: 1fr;
-  opacity: 1;
+.profile-works-toggle:focus-visible {
+  box-shadow: 0 0 0 2px hsl(var(--ring));
+}
+
+.profile-works-part {
+  position: relative;
+  flex: none;
+  pointer-events: none;
 }
 
 .profile-works-chevron {
@@ -594,33 +607,105 @@ a.work-media-link:active {
   transform: rotate(180deg);
 }
 
-.profile-works-title {
-  display: inline-block;
-  max-width: 14rem;
+.profile-works-slot {
+  position: relative;
+  flex: none;
+  width: 6.5rem;
+  height: 100%;
   overflow: hidden;
-  vertical-align: bottom;
-  transition: max-width 0.34s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.2s ease-out;
+  pointer-events: none;
+  transition: width 0.34s cubic-bezier(0.32, 0.72, 0, 1);
 }
 
-/* On a phone the choices need the room: the name steps aside while they are out. */
-@media (max-width: 640px) {
-  /* And what does not fit fades at the edge, so it is clear there is more. */
-  .profile-works-kinds {
-    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 14px), transparent);
-    mask-image: linear-gradient(to right, #000 calc(100% - 14px), transparent);
-  }
+.profile-works-title {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  white-space: nowrap;
+  transition: opacity 0.16s ease-out 0.08s;
+}
 
-  .profile-works-bar[data-open] .profile-works-title {
-    max-width: 0;
-    opacity: 0;
-  }
+.profile-works-room {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 0.14s ease-out;
+}
+
+.profile-works-bar[data-open] .profile-works-slot {
+  pointer-events: auto;
+}
+
+.profile-works-bar[data-open] .profile-works-title {
+  opacity: 0;
+  transition: opacity 0.14s ease-out;
+}
+
+.profile-works-bar[data-open] .profile-works-room {
+  opacity: 1;
+  transition: opacity 0.16s ease-out 0.08s;
+}
+
+/* Up and down still scroll the page; only sideways belongs to the ring. */
+.profile-works-ring {
+  position: absolute;
+  inset: 0;
+  outline: none;
+  cursor: grab;
+  touch-action: pan-y;
+}
+
+.profile-works-ring:active {
+  cursor: grabbing;
+}
+
+.profile-works-word {
+  position: absolute;
+  left: 50%;
+  top: calc(50% - 2px);
+  white-space: nowrap;
+  will-change: transform, opacity;
+}
+
+.profile-works-dots {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 5px;
+  display: flex;
+  justify-content: center;
+  gap: 4px;
+}
+
+.profile-works-dots > span {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: currentColor;
+  transition: opacity 0.2s ease-out;
+}
+
+/* A new choice of works comes in softly instead of replacing the old ones at a stroke. */
+.works-shelf {
+  animation: works-shelf-in 0.28s ease-out both;
+}
+
+@keyframes works-shelf-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .profile-works-fold,
+  .profile-works-slot,
   .profile-works-chevron,
-  .profile-works-title {
+  .profile-works-title,
+  .profile-works-room {
     transition-duration: 1ms !important;
+  }
+
+  .works-shelf {
+    animation-duration: 1ms !important;
   }
 
   .glass-menu,
@@ -635,6 +720,23 @@ a.work-media-link:active {
   .theme-icon,
   .icon-pop {
     animation-duration: 1ms !important;
+  }
+}
+
+/* The room a work has. In one column it leaves space for the header above and its title below. */
+:root {
+  --art-room: 80vh;
+}
+
+@media (max-width: 1023px) {
+  :root {
+    --art-room: max(16rem, calc(100vh - 12rem));
+  }
+
+  @supports (height: 100svh) {
+    :root {
+      --art-room: max(16rem, calc(100svh - 12rem));
+    }
   }
 }
 

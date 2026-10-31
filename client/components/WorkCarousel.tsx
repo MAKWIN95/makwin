@@ -329,7 +329,7 @@ export default function WorkCarousel({ images, alt, onImageClick, className }: P
                 draggable={false}
                 decoding={slide === 0 ? 'sync' : 'async'}
                 onClick={onImageClick}
-                className="select-none rounded-lg max-w-full max-h-[80vh] w-auto h-auto object-contain"
+                className="select-none rounded-lg max-w-full max-h-[var(--art-room)] w-auto h-auto object-contain"
               />
             </motion.div>
           );

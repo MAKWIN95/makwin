@@ -353,8 +353,8 @@ export default function WorkDetail() {
           <div className="lg:col-span-2 space-y-6">
             {/* Primary Image/Cover */}
             {work.cover_url && (
-              <div data-work-hero className="flex items-start justify-center pt-12" style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'center', minHeight: '50vh' }}>
-                <img ref={fitArtwork} src={work.cover_url} alt={work.title} decoding="sync" onClick={handleImageTap} className="touch-manipulation select-none rounded-lg border border-[rgba(255,255,255,0.1)] max-h-[80vh] max-w-full w-auto h-auto object-contain" />
+              <div data-work-hero className="flex items-start justify-center lg:pt-12 lg:min-h-[50vh]">
+                <img ref={fitArtwork} src={work.cover_url} alt={work.title} decoding="sync" onClick={handleImageTap} className="touch-manipulation select-none rounded-lg border border-[rgba(255,255,255,0.1)] max-h-[var(--art-room)] max-w-full w-auto h-auto object-contain" />
               </div>
             )}
 
@@ -365,8 +365,8 @@ export default function WorkDetail() {
 
             {/* Video */}
             {work.work_type === 'video' && work.file_url && (
-              <div data-work-hero={work.cover_url ? undefined : ''} className="flex items-center justify-center" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '80vh' }}>
-                <video src={work.file_url} controls controlsList="nodownload" disablePictureInPicture playsInline className="rounded-lg border border-[rgba(255,255,255,0.1)] max-h-[80vh] max-w-full w-auto object-contain" />
+              <div data-work-hero={work.cover_url ? undefined : ''} className="flex items-center justify-center lg:min-h-[80vh]">
+                <video src={work.file_url} controls controlsList="nodownload" disablePictureInPicture playsInline className="rounded-lg border border-[rgba(255,255,255,0.1)] max-h-[var(--art-room)] max-w-full w-auto object-contain" />
               </div>
             )}
 
@@ -378,8 +378,8 @@ export default function WorkDetail() {
             )}
 
             {(work.work_type === 'pintura' || work.work_type === 'fotografia') && work.file_url && !work.extra_images?.length && work.file_url !== work.cover_url && (
-              <div data-work-hero={work.cover_url ? undefined : ''} className="flex items-center justify-center" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '80vh' }}>
-                <img ref={fitArtwork} src={work.file_url} alt={work.title} decoding="sync" onClick={handleImageTap} className="touch-manipulation select-none rounded-lg border border-[rgba(255,255,255,0.1)] max-h-[80vh] max-w-full w-auto h-auto object-contain" />
+              <div data-work-hero={work.cover_url ? undefined : ''} className="flex items-center justify-center lg:min-h-[80vh]">
+                <img ref={fitArtwork} src={work.file_url} alt={work.title} decoding="sync" onClick={handleImageTap} className="touch-manipulation select-none rounded-lg border border-[rgba(255,255,255,0.1)] max-h-[var(--art-room)] max-w-full w-auto h-auto object-contain" />
               </div>
             )}
 
@@ -403,7 +403,7 @@ export default function WorkDetail() {
 
           {/* RIGHT: Info (40%) */}
           <div className={`lg:col-span-1 space-y-6 ${restClass}`}>
-            {isMine && work.status !== 'published' && (
+            {isMine && work.status && work.status !== 'published' && (
               <p role="status" className="rounded-lg border border-[rgba(120,120,120,0.25)] px-3 py-2 text-sm text-[hsl(var(--muted-foreground))]">
                 {takenDown
                   ? (es ? 'El equipo ha retirado esta obra. Solo la ves tú.' : 'The team has taken this work down. Only you can see it.')

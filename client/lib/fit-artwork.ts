@@ -1,5 +1,5 @@
 // A work fills the room it has, however few pixels its file happens to have.
-const ROOM_HEIGHT = '80vh';
+const ROOM_HEIGHT = 'var(--art-room)';
 
 function fit(image: HTMLImageElement) {
   if (!image.naturalWidth || !image.naturalHeight) return;

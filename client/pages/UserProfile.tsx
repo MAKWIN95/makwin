@@ -12,9 +12,19 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import WorkCard from '@/components/WorkCard';
 import MasonryGrid, { type MasonryColumns } from '@/components/MasonryGrid';
-import ProfileWorksBar from '@/components/ProfileWorksBar';
+import ProfileWorksBar, { type WorksChoice } from '@/components/ProfileWorksBar';
+import type { TranslationKey } from '@/lib/i18n/translations';
 import FollowersModal from '@/components/FollowersModal';
 import { Camera, Check, X, ExternalLink, Loader2 } from 'lucide-react';
+
+const TAKEN_DOWN = 'retiradas';
+const KINDS: [string, TranslationKey][] = [
+  ['pintura', 'filter.painting'],
+  ['fotografia', 'filter.photography'],
+  ['poema', 'filter.poem'],
+  ['cancion', 'filter.song'],
+  ['video', 'filter.video'],
+];
 
 const GRID_COLUMNS: MasonryColumns = { base: 2, sm: 3, lg: 4 };
 const MAX_AVATAR_MB = 5;
@@ -38,7 +48,7 @@ export default function UserProfile() {
   const { username } = useParams<{ username: string }>();
   const { user, profile: myProfile, updateProfile, refreshProfile } = useAuth();
   const { isFollowing: isFollowingUser, setFollowing } = useFollow();
-  const { language } = useI18n();
+  const { language, t } = useI18n();
   
   // Initialize stars background animation
   useStarsBackground('profile-stars-background');
@@ -50,7 +60,7 @@ export default function UserProfile() {
   const [loading, setLoading] = useState(true);
   // In the address, so coming back from a work finds the same view.
   const [searchParams, setSearchParams] = useSearchParams();
-  const chosenType = searchParams.get('tipo') ?? '';
+  const wanted = searchParams.get('ver') ?? '';
   const [followerCount, setFollowerCount] = useState(0);
   const [followingCount, setFollowingCount] = useState(0);
   const [editing, setEditing] = useState(false);
@@ -61,7 +71,6 @@ export default function UserProfile() {
   const [showFollowersModal, setShowFollowersModal] = useState<'followers' | 'following' | null>(null);
 
   const isOwnProfile = !!profile && myProfile?.id === profile.id;
-  const showRemoved = isOwnProfile && searchParams.get('retiradas') === '1';
   const isFollowing = !!profile && isFollowingUser(profile.id);
   const websiteUrl = safeExternalUrl(profile?.website);
   const instagramUrl = safeExternalUrl(profile?.instagram_url);
@@ -74,24 +83,32 @@ export default function UserProfile() {
     return !bannedKeywords.some(keyword => url.toLowerCase().includes(keyword));
   };
 
-  const setView = (name: string, value: string) => {
+  const setView = (value: string) => {
     setSearchParams((current) => {
       const next = new URLSearchParams(current);
-      if (value) next.set(name, value);
-      else next.delete(name);
+      if (value) next.set('ver', value);
+      else next.delete('ver');
       return next;
     }, { replace: true, preventScrollReset: true });
   };
 
-  // What was taken down does not live with the rest: it has its own view.
+  // What was taken down does not live with the rest: it has its own place at the end.
   const isTakenDown = (work: Work) => work.status === 'removed_policy' && !work.policy_flags?.includes('pending_review');
-  const shelf = useMemo(() => {
-    const onShow = works.filter((work) => isTakenDown(work) === showRemoved);
-    const types = [...new Set(onShow.map((work) => work.work_type))];
-    const visible = types.includes(chosenType as Work['work_type']) ? onShow.filter((work) => work.work_type === chosenType) : onShow;
-    return { types, visible, active: types.includes(chosenType as Work['work_type']) ? chosenType : '' };
-  }, [works, showRemoved, chosenType]);
-  const standingCount = useMemo(() => works.filter((work) => !isTakenDown(work)).length, [works]);
+  const standing = useMemo(() => works.filter((work) => !isTakenDown(work)), [works]);
+  const takenDown = useMemo(() => (isOwnProfile ? works.filter(isTakenDown) : []), [works, isOwnProfile]);
+  const choices = useMemo<WorksChoice[]>(() => {
+    const list: WorksChoice[] = [{ value: '', label: es ? 'Todas' : 'All', count: standing.length }];
+    KINDS.forEach(([kind, label]) => {
+      const count = standing.filter((work) => work.work_type === kind).length;
+      if (count) list.push({ value: kind, label: t(label), count });
+    });
+    if (takenDown.length) list.push({ value: TAKEN_DOWN, label: es ? 'Retiradas' : 'Taken down', count: takenDown.length });
+    return list;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [standing, takenDown, es]);
+  const shown = choices.some((choice) => choice.value === wanted) ? wanted : '';
+  const visible = shown === TAKEN_DOWN ? takenDown : shown ? standing.filter((work) => work.work_type === shown) : standing;
+  const standingCount = standing.length;
 
   useEffect(() => {
     if (!username) return;
@@ -514,24 +531,15 @@ export default function UserProfile() {
           </div>
         ) : (
           <>
-            <ProfileWorksBar
-              count={shelf.visible.length}
-              types={shelf.types}
-              type={shelf.active}
-              onTypeChange={(value) => setView('tipo', value)}
-              canShowRemoved={isOwnProfile}
-              showRemoved={showRemoved}
-              onShowRemovedChange={(value) => setView('retiradas', value ? '1' : '')}
-            />
-            {shelf.visible.length === 0 ? (
+            <ProfileWorksBar choices={choices} value={shown} onChange={setView} />
+            {visible.length === 0 ? (
               <p className="py-16 text-center text-sm text-[hsl(var(--muted-foreground))]">
-                {showRemoved
-                  ? (es ? 'No tienes obras retiradas.' : 'You have no works taken down.')
-                  : (es ? 'Aquí no hay obras ahora mismo.' : 'There are no works here right now.')}
+                {es ? 'Aquí no hay obras ahora mismo.' : 'There are no works here right now.'}
               </p>
             ) : (
+              <div key={shown} className="works-shelf">
               <MasonryGrid
-                items={shelf.visible}
+                items={visible}
                 columns={GRID_COLUMNS}
                 getKey={work => work.id}
                 renderItem={work => (
@@ -543,6 +551,7 @@ export default function UserProfile() {
                   </div>
                 )}
               />
+              </div>
             )}
           </>
         )}

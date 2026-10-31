@@ -21,7 +21,7 @@ export default function Footer() {
           </div>
           <button
             onClick={() => setHelpOpen(true)}
-            className="mt-2 inline-flex items-center gap-1 text-xs phone:text-sm px-3 py-1.5 phone:px-4 phone:py-2.5 rounded-full border border-[hsl(var(--primary))] text-[hsl(var(--primary))] hover:bg-[hsl(var(--primary))]/10 transition"
+            className="mt-2 inline-flex items-center gap-1 text-xs phone:text-sm px-3 py-1.5 phone:px-4 phone:py-2.5 rounded-full border border-[hsl(var(--muted-foreground)/0.35)] text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] transition"
           >
             <HelpCircle className="w-3.5 h-3.5" />
             {language === 'es' ? 'Ayuda & Contacto' : 'Help & Contact'}
