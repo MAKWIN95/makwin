@@ -9,6 +9,9 @@ const BREAKPOINTS = [
   ['2xl', 1536],
 ] as const;
 
+// A few works share the whole width between them; a single one never takes it all.
+const FEWEST_SHARES = 3;
+
 type Breakpoint = (typeof BREAKPOINTS)[number][0];
 export type MasonryColumns = { base: number } & Partial<Record<Breakpoint, number>>;
 
@@ -55,13 +58,15 @@ interface Props<T> {
  */
 export default function MasonryGrid<T>({ items, columns, getKey, renderItem, className = '' }: Props<T>) {
   const count = useColumnCount(columns);
-  const grid = Array.from({ length: count }, () => [] as { item: T; index: number }[]);
-  items.forEach((item, index) => grid[index % count].push({ item, index }));
+  const shares = Math.min(count, Math.max(items.length, FEWEST_SHARES));
+  const grid = Array.from({ length: Math.min(shares, Math.max(items.length, 1)) }, () => [] as { item: T; index: number }[]);
+  items.forEach((item, index) => grid[index % grid.length].push({ item, index }));
+  const columnWidth = `calc((100% - ${shares - 1}rem) / ${shares})`;
 
   return (
-    <div className={`flex items-start gap-4 ${className}`}>
+    <div className={`flex items-start justify-center gap-4 ${className}`}>
       {grid.map((column, columnIndex) => (
-        <div key={columnIndex} className="flex min-w-0 flex-1 flex-col">
+        <div key={columnIndex} className="flex min-w-0 flex-col" style={{ flex: `0 0 ${columnWidth}` }}>
           {column.map(({ item, index }) => (
             <Fragment key={getKey(item)}>{renderItem(item, index)}</Fragment>
           ))}
