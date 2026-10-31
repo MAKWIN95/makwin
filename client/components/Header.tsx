@@ -47,6 +47,7 @@ export default function Header({ showSearch = true, showSearchCentered = false, 
   const [filterExpanded, setFilterExpanded] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [themeTapped, setThemeTapped] = useState(false);
   const searchRef = useRef<HTMLDivElement | null>(null);
   const userMenuRef = useRef<HTMLDivElement | null>(null);
   const barRef = useRef<HTMLElement | null>(null);
@@ -145,10 +146,10 @@ export default function Header({ showSearch = true, showSearchCentered = false, 
     ? `sticky top-4 phone:top-0 z-50 bg-transparent phone:py-1.5 border-none fast-theme w-full px-4 sm:px-8 phone:px-2 ${isGalleryish ? 'gallery-navbar header-offset' : ''}`
     : isHomePage
     ? `fixed top-0 left-0 right-0 z-50 bg-[hsl(var(--popover))/0.95] backdrop-blur-md border-b shadow-sm fast-theme w-full transition-all duration-300 ease-out animate-in fade-in slide-in-from-top-1 border-[rgba(80,80,80,0.2)] px-4`
-    : `header-glass sticky top-0 z-50 border-b fast-theme w-full border-[rgba(120,120,120,0.16)] px-4 phone:px-2`;
+    : `sticky top-0 z-50 border-b border-transparent fast-theme w-full px-4 phone:px-2`;
 
   const innerContainerClass = showSearchCentered
-    ? 'w-full px-4 sm:px-6 phone:px-2 py-2 sm:py-3 phone:py-1.5 flex flex-col pointer-events-auto mx-auto glass-bar rounded-3xl sm:rounded-full'
+    ? 'w-full px-4 sm:px-6 phone:px-2 py-2 sm:py-3 phone:py-1.5 relative flex flex-col pointer-events-auto mx-auto border border-transparent'
     : isHomePage
     ? 'w-full px-4 sm:px-6 py-4 sm:py-5 flex flex-col transition-all duration-500'
     : breadcrumb
@@ -157,7 +158,9 @@ export default function Header({ showSearch = true, showSearchCentered = false, 
 
   return (
     <header ref={barRef} data-header-bar={showSearchCentered ? 'floating' : isHomePage ? undefined : 'flat'} className={headerRootClass}>
+      {!showSearchCentered && !isHomePage && <div data-header-glass aria-hidden="true" className="header-glass-layer header-glass-flat" />}
       <div className={innerContainerClass}>
+        {showSearchCentered && <div data-header-glass aria-hidden="true" className="header-glass-layer glass-bar" />}
         {isHomePage ? (
           /* HOME PAGE LAYOUT - CENTERED MAKWIN */
           <div className="w-full flex items-center justify-center">
@@ -232,8 +235,8 @@ export default function Header({ showSearch = true, showSearchCentered = false, 
             )}
 
             {/* Light / dark */}
-            <button type="button" onClick={toggleTheme} className="ios-press header-button inline-flex items-center justify-center shrink-0 p-2 phone:p-0 phone:w-11 phone:h-11 max-[429px]:!w-9 max-[374px]:!w-8" aria-label={isDark ? (es ? 'Modo claro' : 'Light mode') : (es ? 'Modo oscuro' : 'Dark mode')}>
-              <span key={String(isDark)} className="theme-icon">
+            <button type="button" onClick={() => { setThemeTapped(true); toggleTheme(); }} className="ios-press header-button inline-flex items-center justify-center shrink-0 p-2 phone:p-0 phone:w-11 phone:h-11 max-[429px]:!w-9 max-[374px]:!w-8" aria-label={isDark ? (es ? 'Modo claro' : 'Light mode') : (es ? 'Modo oscuro' : 'Dark mode')}>
+              <span key={String(isDark)} className={themeTapped ? 'theme-icon' : 'block'} onAnimationEnd={() => setThemeTapped(false)}>
                 {isDark ? <Sun className="w-4 h-4 phone:w-5 phone:h-5 text-[hsl(var(--foreground))]" /> : <Moon className="w-4 h-4 phone:w-5 phone:h-5 text-[hsl(var(--foreground))]" />}
               </span>
             </button>

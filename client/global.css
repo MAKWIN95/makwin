@@ -39,56 +39,24 @@ html.theme-switching * {
               border-color 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Inner page header: see-through like a mirror on the wall. The glass lives on a
-   pseudo-element so menus inside the header can blur the page behind them too. */
-.header-glass::before {
-  content: '';
+/* The header's glass is one layer of its own, in both shapes, and the same layer
+   changes shape between them: nothing is swapped, so nothing can blink.
+   It sits behind the content so menus inside the header can blur the page too. */
+.header-glass-layer {
   position: absolute;
-  inset: 0;
+  inset: -1px;
   z-index: -1;
   pointer-events: none;
+}
+
+/* Inner page header: see-through like a mirror on the wall. Only its lower line shows. */
+.header-glass-layer.header-glass-flat {
+  inset: 0 0 -1px;
+  border: 1px solid transparent;
+  border-bottom-color: rgba(120, 120, 120, 0.16);
   background: hsl(var(--background) / 0.42);
   -webkit-backdrop-filter: blur(22px) saturate(180%);
   backdrop-filter: blur(22px) saturate(180%);
-}
-
-/* While the header changes shape, this one piece of glass is its background. */
-.header-morph-glass {
-  position: fixed;
-  z-index: -1;
-  box-sizing: border-box;
-  border: 1px solid transparent;
-  pointer-events: none;
-  -webkit-backdrop-filter: blur(24px) saturate(180%);
-  backdrop-filter: blur(24px) saturate(180%);
-}
-
-.header-morphing {
-  border-color: transparent !important;
-}
-
-.header-morphing,
-.header-morphing > .glass-bar {
-  transition: none !important;
-}
-
-.header-morphing::before {
-  display: none;
-}
-
-.header-morphing > .glass-bar {
-  background: none;
-  -webkit-backdrop-filter: none;
-  backdrop-filter: none;
-  border-color: transparent;
-  box-shadow: none;
-}
-
-.header-morph-leaving {
-  position: fixed;
-  z-index: 0;
-  margin: 0;
-  pointer-events: none;
 }
 
 /* The site's one glass: menus, windows and the floating header all share it. */

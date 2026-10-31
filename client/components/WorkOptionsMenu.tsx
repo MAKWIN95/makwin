@@ -77,7 +77,7 @@ export default function WorkOptionsMenu({ label, options, onArtwork = true }: Pr
       {(open || closing) && (
         <div className="work-options absolute inset-x-1 top-1 h-8" data-count={options.length}>
           <div className="work-options-bar absolute inset-y-0 right-0 pointer-events-auto" data-closing={closing || undefined}>
-            <div role="menu" aria-label={label} className="work-options-row absolute inset-y-0 right-0 flex items-stretch gap-0.5 p-0.5 pr-8">
+            <div role="menu" aria-label={label} className="work-options-row absolute inset-y-0 right-0 flex items-stretch gap-0.5 p-0.5 pr-6">
               {options.map((option) => (
                 <button
                   key={option.label}
@@ -88,7 +88,7 @@ export default function WorkOptionsMenu({ label, options, onArtwork = true }: Pr
                     hide();
                     option.onSelect();
                   }}
-                  className="work-options-item flex-1 min-w-0 flex items-center justify-center rounded-full text-xs font-medium text-white whitespace-nowrap outline-none"
+                  className="work-options-item flex-auto min-w-0 flex items-center justify-center rounded-full text-xs font-medium text-white whitespace-nowrap outline-none"
                 >
                   <span className="work-options-label">{option.label}</span>
                   <span className="work-options-icon">{option.icon}</span>

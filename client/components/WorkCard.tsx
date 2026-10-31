@@ -124,6 +124,8 @@ export default function WorkCard({ work: givenWork, priorityImage = false, image
       worksContext.toggleLike(work.id, user.id).then((result) => onLikeToggle?.(work.id, result.liked));
     },
     () => {
+      // This card stays alive behind the work, and must not bounce again on the way back.
+      setTapped(false);
       rememberOpening(work.id, mediaLink.current?.querySelector('img') ?? mediaLink.current);
       navigate(linkPath, { state: linkState });
     },

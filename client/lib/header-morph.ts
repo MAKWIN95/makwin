@@ -14,7 +14,10 @@ interface Glass {
   borderRadius: string;
   backgroundColor: string;
   boxShadow: string;
-  borderColor: string;
+  borderTopColor: string;
+  borderRightColor: string;
+  borderBottomColor: string;
+  borderLeftColor: string;
 }
 
 interface Remembered {
@@ -35,11 +38,10 @@ const REST = { duration: 420, easing: 'cubic-bezier(0.32, 0.72, 0, 1)' };
 let last: Remembered | null = null;
 
 function readGlass(bar: HTMLElement): Glass | null {
-  const floating = bar.dataset.headerBar === 'floating';
-  const element = floating ? bar.querySelector<HTMLElement>('.glass-bar') : bar;
-  if (!element) return null;
-  const { left, top, width, height } = element.getBoundingClientRect();
-  const style = getComputedStyle(element);
+  const layer = bar.querySelector<HTMLElement>('[data-header-glass]');
+  if (!layer) return null;
+  const { left, top, width, height } = layer.getBoundingClientRect();
+  const style = getComputedStyle(layer);
   // A pill's radius is far bigger than the bar: only this much of it can be seen change.
   const radius = Math.min(parseFloat(style.borderTopLeftRadius) || 0, height / 2);
   return {
@@ -48,9 +50,12 @@ function readGlass(bar: HTMLElement): Glass | null {
     width,
     height,
     borderRadius: `${radius}px`,
-    backgroundColor: floating ? style.backgroundColor : getComputedStyle(bar, '::before').backgroundColor,
+    backgroundColor: style.backgroundColor,
     boxShadow: style.boxShadow,
-    borderColor: floating ? style.borderTopColor : style.borderBottomColor,
+    borderTopColor: style.borderTopColor,
+    borderRightColor: style.borderRightColor,
+    borderBottomColor: style.borderBottomColor,
+    borderLeftColor: style.borderLeftColor,
   };
 }
 
@@ -107,35 +112,24 @@ export function morphHeader(bar: HTMLElement | null) {
   const to = readGlass(bar);
   if (!to) return;
 
-  const leftovers: HTMLElement[] = [];
-
-  // The glass itself: the real one stays out of sight until this one becomes it.
-  const glass = document.createElement('div');
-  glass.className = 'header-morph-glass';
-  glass.setAttribute('aria-hidden', 'true');
-  bar.prepend(glass);
-  leftovers.push(glass);
-  bar.classList.add('header-morphing');
-  const place = ({ left, top, width, height, borderRadius, backgroundColor, boxShadow, borderColor }: Glass) => ({
-    left: `${left}px`,
-    top: `${top}px`,
-    width: `${width}px`,
-    height: `${height}px`,
-    borderRadius,
-    backgroundColor,
-    boxShadow,
-    borderColor,
+  // The glass itself: it starts as the old one and ends exactly as its own resting self.
+  const layer = bar.querySelector<HTMLElement>('[data-header-glass]')!;
+  const place = (glass: Glass) => ({
+    left: `${glass.left - to.left}px`,
+    top: `${glass.top - to.top}px`,
+    right: 'auto',
+    bottom: 'auto',
+    width: `${glass.width}px`,
+    height: `${glass.height}px`,
+    borderRadius: glass.borderRadius,
+    backgroundColor: glass.backgroundColor,
+    boxShadow: glass.boxShadow,
+    borderTopColor: glass.borderTopColor,
+    borderRightColor: glass.borderRightColor,
+    borderBottomColor: glass.borderBottomColor,
+    borderLeftColor: glass.borderLeftColor,
   });
-  const morph = glass.animate([place(from.glass), place(to)], MORPH);
-  morph.onfinish = morph.oncancel = () => {
-    leftovers.forEach((element) => element.remove());
-    // The real glass is simply there at once, not fading in after the other has gone.
-    const real = [bar, bar.querySelector<HTMLElement>('.glass-bar')];
-    real.forEach((element) => element?.style.setProperty('transition', 'none'));
-    bar.classList.remove('header-morphing');
-    void bar.offsetHeight;
-    real.forEach((element) => element?.style.removeProperty('transition'));
-  };
+  layer.animate([place(from.glass), place(to)], MORPH);
 
   // What stays travels to its new place and size.
   const now = readParts(bar);
@@ -170,8 +164,8 @@ export function morphHeader(bar: HTMLElement | null) {
     clone.style.width = `${box.width}px`;
     clone.style.height = `${box.height}px`;
     bar.append(clone);
-    leftovers.push(clone);
-    clone.animate([{ opacity: 1 }, { opacity: 0 }], { ...FADE_OUT, fill: 'forwards' });
+    const leaving = clone.animate([{ opacity: 1 }, { opacity: 0 }], { ...FADE_OUT, fill: 'forwards' });
+    leaving.onfinish = leaving.oncancel = () => clone.remove();
   });
   bar.querySelectorAll<HTMLElement>('[data-morph-fade]').forEach((element) => {
     if (element.classList.contains('header-morph-leaving')) return;
