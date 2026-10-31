@@ -544,7 +544,85 @@ a.work-media-link:active {
   100% { transform: scale(1); }
 }
 
+/* A row of small things that slides sideways, with no bar to look at. */
+.thumb-strip {
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.thumb-strip::-webkit-scrollbar {
+  display: none;
+}
+
+/* The profile's works: a small button that stretches to the right, the corner of a work mirrored. */
+.profile-works-bar {
+  display: flex;
+  align-items: center;
+  width: fit-content;
+  max-width: 100%;
+  margin-bottom: 1rem;
+  border-radius: 9999px;
+  border: 1px solid hsl(var(--foreground) / 0.12);
+  background: hsl(var(--card) / 0.7);
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
+}
+
+.profile-works-fold {
+  display: grid;
+  grid-template-columns: 0fr;
+  min-width: 0;
+  opacity: 0;
+  overflow: hidden;
+  transition: grid-template-columns 0.34s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.22s ease-out;
+}
+
+.profile-works-fold > * {
+  overflow: hidden;
+}
+
+.profile-works-bar[data-open] .profile-works-fold {
+  grid-template-columns: 1fr;
+  opacity: 1;
+}
+
+.profile-works-chevron {
+  transition: transform 0.34s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.profile-works-bar[data-open] .profile-works-chevron {
+  transform: rotate(180deg);
+}
+
+.profile-works-title {
+  display: inline-block;
+  max-width: 14rem;
+  overflow: hidden;
+  vertical-align: bottom;
+  transition: max-width 0.34s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.2s ease-out;
+}
+
+/* On a phone the choices need the room: the name steps aside while they are out. */
+@media (max-width: 640px) {
+  /* And what does not fit fades at the edge, so it is clear there is more. */
+  .profile-works-kinds {
+    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 14px), transparent);
+    mask-image: linear-gradient(to right, #000 calc(100% - 14px), transparent);
+  }
+
+  .profile-works-bar[data-open] .profile-works-title {
+    max-width: 0;
+    opacity: 0;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .profile-works-fold,
+  .profile-works-chevron,
+  .profile-works-title {
+    transition-duration: 1ms !important;
+  }
+
   .glass-menu,
   .glass-menu[data-state="closed"],
   .work-options-bar,

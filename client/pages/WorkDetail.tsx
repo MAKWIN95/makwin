@@ -12,6 +12,7 @@ import AuthModal from '@/components/AuthModal';
 import ReportModal from '@/components/ReportModal';
 import LikeBurst from '@/components/LikeBurst';
 import WorkCarousel from '@/components/WorkCarousel';
+import MoreFromArtist from '@/components/MoreFromArtist';
 import EditWorkModal from '@/components/EditWorkModal';
 import DeleteWorkModal from '@/components/DeleteWorkModal';
 import { flyFrom, openingOf } from '@/lib/work-opening';
@@ -512,6 +513,8 @@ export default function WorkDetail() {
                 </Button>
               )}
             </div>
+
+            {author && <MoreFromArtist author={author} artistId={work.user_id} workId={work.id} isMine={isMine} />}
           </div>
         </div>
 

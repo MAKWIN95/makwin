@@ -5,7 +5,7 @@ import { createRoot } from "react-dom/client";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigationType, type Location } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigationType, useParams, type Location } from "react-router-dom";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
 // Global components
@@ -95,6 +95,12 @@ const AppLayout = () => {
       <RoutesWrapper />
     </div>
   );
+};
+
+// Each work is a page of its own, also when you go from one straight to another.
+const WorkPage = () => {
+  const { id } = useParams();
+  return <WorkDetail key={id} />;
 };
 
 const RoutesWrapper = () => {
@@ -191,7 +197,7 @@ const RoutesWrapper = () => {
       {/* Onboarding for Google users */}
       <Route path="/completar-perfil" element={<GoogleOnboardingPage />} />
 
-      <Route path="/work/:id" element={<WorkDetail />} />
+      <Route path="/work/:id" element={<WorkPage />} />
 
       {/* Auth */}
       <Route path="/login" element={<Login />} />

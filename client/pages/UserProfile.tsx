@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useState, useEffect, useMemo, useRef } from 'react';
+import { useParams, Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase, Profile, Work } from '@/lib/supabase';
 import { useAuth } from '@/lib/AuthContext';
 import { useFollow } from '@/lib/FollowContext';
@@ -12,6 +12,7 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import WorkCard from '@/components/WorkCard';
 import MasonryGrid, { type MasonryColumns } from '@/components/MasonryGrid';
+import ProfileWorksBar from '@/components/ProfileWorksBar';
 import FollowersModal from '@/components/FollowersModal';
 import { Camera, Check, X, ExternalLink, Loader2 } from 'lucide-react';
 
@@ -47,6 +48,9 @@ export default function UserProfile() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [works, setWorks] = useState<Work[]>([]);
   const [loading, setLoading] = useState(true);
+  // In the address, so coming back from a work finds the same view.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const chosenType = searchParams.get('tipo') ?? '';
   const [followerCount, setFollowerCount] = useState(0);
   const [followingCount, setFollowingCount] = useState(0);
   const [editing, setEditing] = useState(false);
@@ -57,6 +61,7 @@ export default function UserProfile() {
   const [showFollowersModal, setShowFollowersModal] = useState<'followers' | 'following' | null>(null);
 
   const isOwnProfile = !!profile && myProfile?.id === profile.id;
+  const showRemoved = isOwnProfile && searchParams.get('retiradas') === '1';
   const isFollowing = !!profile && isFollowingUser(profile.id);
   const websiteUrl = safeExternalUrl(profile?.website);
   const instagramUrl = safeExternalUrl(profile?.instagram_url);
@@ -68,6 +73,25 @@ export default function UserProfile() {
     const bannedKeywords = ['gore', 'porn', '+18', '18+', 'xxx', 'adult', 'nsfw'];
     return !bannedKeywords.some(keyword => url.toLowerCase().includes(keyword));
   };
+
+  const setView = (name: string, value: string) => {
+    setSearchParams((current) => {
+      const next = new URLSearchParams(current);
+      if (value) next.set(name, value);
+      else next.delete(name);
+      return next;
+    }, { replace: true, preventScrollReset: true });
+  };
+
+  // What was taken down does not live with the rest: it has its own view.
+  const isTakenDown = (work: Work) => work.status === 'removed_policy' && !work.policy_flags?.includes('pending_review');
+  const shelf = useMemo(() => {
+    const onShow = works.filter((work) => isTakenDown(work) === showRemoved);
+    const types = [...new Set(onShow.map((work) => work.work_type))];
+    const visible = types.includes(chosenType as Work['work_type']) ? onShow.filter((work) => work.work_type === chosenType) : onShow;
+    return { types, visible, active: types.includes(chosenType as Work['work_type']) ? chosenType : '' };
+  }, [works, showRemoved, chosenType]);
+  const standingCount = useMemo(() => works.filter((work) => !isTakenDown(work)).length, [works]);
 
   useEffect(() => {
     if (!username) return;
@@ -424,7 +448,7 @@ export default function UserProfile() {
 
                 {/* Stats */}
                 <div className="flex items-center gap-6 phone:gap-4 justify-center sm:justify-start text-sm mb-4">
-                  <span><strong>{works.length}</strong> <span className="text-[hsl(var(--muted-foreground))]">{es ? 'obras' : 'works'}</span></span>
+                  <span><strong>{standingCount}</strong> <span className="text-[hsl(var(--muted-foreground))]">{es ? 'obras' : 'works'}</span></span>
                   <button onClick={() => setShowFollowersModal('followers')} className="phone:min-h-11 phone:px-1 group transition-all duration-200 ease-out cursor-pointer">
                     <strong className="group-hover:text-[hsl(var(--foreground))] text-[hsl(var(--foreground))] transition-colors">{followerCount}</strong> <span className="text-[hsl(var(--muted-foreground))] group-hover:text-[hsl(var(--foreground))] transition-colors">{es ? 'seguidores' : 'followers'}</span>
                   </button>
@@ -489,19 +513,38 @@ export default function UserProfile() {
             )}
           </div>
         ) : (
-          <MasonryGrid
-            items={works}
-            columns={GRID_COLUMNS}
-            getKey={work => work.id}
-            renderItem={work => (
-              <div className="mb-4 phone:mb-3 w-full">
-                <WorkCard
-                  work={work}
-                  onWorkChange={() => loadProfile(true)}
-                />
-              </div>
+          <>
+            <ProfileWorksBar
+              count={shelf.visible.length}
+              types={shelf.types}
+              type={shelf.active}
+              onTypeChange={(value) => setView('tipo', value)}
+              canShowRemoved={isOwnProfile}
+              showRemoved={showRemoved}
+              onShowRemovedChange={(value) => setView('retiradas', value ? '1' : '')}
+            />
+            {shelf.visible.length === 0 ? (
+              <p className="py-16 text-center text-sm text-[hsl(var(--muted-foreground))]">
+                {showRemoved
+                  ? (es ? 'No tienes obras retiradas.' : 'You have no works taken down.')
+                  : (es ? 'Aquí no hay obras ahora mismo.' : 'There are no works here right now.')}
+              </p>
+            ) : (
+              <MasonryGrid
+                items={shelf.visible}
+                columns={GRID_COLUMNS}
+                getKey={work => work.id}
+                renderItem={work => (
+                  <div className="mb-4 phone:mb-3 w-full">
+                    <WorkCard
+                      work={work}
+                      onWorkChange={() => loadProfile(true)}
+                    />
+                  </div>
+                )}
+              />
             )}
-          />
+          </>
         )}
       </main>
 
