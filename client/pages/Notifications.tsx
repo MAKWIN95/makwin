@@ -1,6 +1,6 @@
 import { useEffect, useState, type ComponentType } from 'react';
 import { Link } from 'react-router-dom';
-import { Bell, CheckCircle2, Clock, Loader2, Shield, UserPlus, XCircle } from 'lucide-react';
+import { Bell, CheckCircle2, Clock, Heart, Loader2, Shield, Sparkles, UserPlus, XCircle } from 'lucide-react';
 import { useAuth } from '@/lib/AuthContext';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
 import { useI18n } from '@/lib/i18n';
@@ -16,10 +16,21 @@ const ICONS: Record<AppNotification['kind'], ComponentType<{ className?: string 
   admin_granted: Shield,
   admin_revoked: Shield,
   new_follower: UserPlus,
+  work_liked: Heart,
+  work_milestone: Sparkles,
 };
 
+const SHOWS_THE_WORK: AppNotification['kind'][] = ['work_liked', 'work_milestone'];
+
+function pictureOf(item: AppNotification): string | null {
+  if (!item.work || !SHOWS_THE_WORK.includes(item.kind)) return null;
+  if (item.work.cover_url) return item.work.cover_url;
+  return item.work.work_type === 'pintura' || item.work.work_type === 'fotografia' ? item.work.file_url : null;
+}
+
 function wordsFor(item: AppNotification, es: boolean): { title: string; detail: string } {
-  const work = item.title ?? (es ? 'Tu obra' : 'Your work');
+  const work = item.work?.title ?? item.title ?? (es ? 'Tu obra' : 'Your work');
+  const number = (value: number) => value.toLocaleString(es ? 'es-ES' : 'en-US');
   switch (item.kind) {
     case 'work_held':
       return {
@@ -43,6 +54,20 @@ function wordsFor(item: AppNotification, es: boolean): { title: string; detail: 
         detail: item.actor ? `@${item.actor.username}` : '',
       };
     }
+    case 'work_liked': {
+      const people = item.amount ?? 1;
+      if (!item.actor) return { title: es ? `A ${number(people)} ${people === 1 ? 'persona le' : 'personas les'} ha gustado «${work}»` : `${number(people)} ${people === 1 ? 'person' : 'people'} liked "${work}"`, detail: '' };
+      const name = item.actor.display_name || item.actor.username;
+      const others = Math.max(people - 1, 0);
+      if (others === 0) return { title: es ? `A ${name} le ha gustado «${work}»` : `${name} liked "${work}"`, detail: '' };
+      if (others === 1) return { title: es ? `A ${name} y a otra persona les ha gustado «${work}»` : `${name} and 1 other liked "${work}"`, detail: '' };
+      return { title: es ? `A ${name} y a ${number(others)} personas más les ha gustado «${work}»` : `${name} and ${number(others)} others liked "${work}"`, detail: '' };
+    }
+    case 'work_milestone':
+      return {
+        title: es ? `¡«${work}» ya tiene ${number(item.amount ?? 0)} me gusta!` : `"${work}" just reached ${number(item.amount ?? 0)} likes!`,
+        detail: '',
+      };
     case 'admin_granted':
       return {
         title: es ? 'Ya eres administrador' : 'You are now an admin',
@@ -89,7 +114,8 @@ export default function Notifications() {
     loadNotifications(user.id)
       .then((list) => {
         if (!current) return;
-        setItems(list);
+        // A kind this version does not know yet is skipped, not a broken page.
+        setItems(list.filter((item) => ICONS[item.kind]));
         if (list.some((item) => !item.read_at)) void markAllRead(user.id);
       })
       .catch((error) => {
@@ -122,7 +148,7 @@ export default function Notifications() {
             <div className="text-center py-20 border border-dashed border-[hsl(var(--border))] rounded-2xl">
               <Bell className="w-10 h-10 text-[hsl(var(--muted-foreground))] mx-auto mb-3" />
               <p className="text-[hsl(var(--muted-foreground))] text-sm">
-                {es ? 'Aquí verás tus nuevos seguidores y las novedades de tus obras y de tu cuenta.' : 'New followers and news about your works and your account will appear here.'}
+                {es ? 'Aquí verás lo que pase con tus seguidores, tus obras y tu cuenta.' : 'What happens with your followers, your works and your account will appear here.'}
               </p>
             </div>
           ) : (
@@ -131,14 +157,16 @@ export default function Notifications() {
                 const Icon = ICONS[item.kind];
                 const { title, detail } = wordsFor(item, es);
                 const to = linkFor(item);
+                const picture = pictureOf(item);
                 const body = (
                   <>
                     <Icon className="w-5 h-5 mt-0.5 shrink-0 text-[hsl(var(--muted-foreground))]" />
                     <span className="min-w-0 flex-1">
                       <span className="block text-sm font-medium text-[hsl(var(--foreground))] break-words">{title}</span>
-                      <span className="block mt-0.5 text-sm text-[hsl(var(--muted-foreground))]">{detail}</span>
+                      {detail && <span className="block mt-0.5 text-sm text-[hsl(var(--muted-foreground))]">{detail}</span>}
                       <span className="block mt-1 text-xs text-[hsl(var(--muted-foreground))]">{whenFor(item.created_at, language)}</span>
                     </span>
+                    {picture && <img src={picture} alt="" loading="lazy" decoding="async" draggable={false} className="w-11 h-11 shrink-0 rounded-lg object-cover" />}
                     {!item.read_at && <span aria-label={es ? 'Nueva' : 'New'} className="w-2 h-2 mt-1.5 shrink-0 rounded-full bg-red-500" />}
                   </>
                 );
