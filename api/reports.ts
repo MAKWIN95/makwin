@@ -3,6 +3,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { getRequestUser, roleOf, signedInRecently, type AdminRole } from '../server/lib/admin-auth.js';
 import { alertIfBacklogReached } from '../server/lib/admin-backlog.js';
 import { HELP_ADDRESS, requestBaseUrl, sendEmail } from '../server/lib/email.js';
+import { notify } from '../server/lib/notify.js';
 
 // policy_reports only lets reporters read their own rows, so moderators and the
 // team notification go through this endpoint.
@@ -109,7 +110,9 @@ function storagePath(url: string | null): string | null {
   return url && at >= 0 ? decodeURIComponent(url.slice(at + marker.length)) : null;
 }
 
-async function notifyArtist(userId: string, title: string, approved: boolean, baseUrl: string, workId: string) {
+// A removal is rare and serious enough to also be worth an email: its author may
+// never come back to read it. Everything else only waits in the app.
+async function emailRemoval(userId: string, title: string) {
   const { data } = await supabaseAdmin.auth.admin.getUserById(userId);
   const email = data?.user?.email;
   if (!email) return;
@@ -117,22 +120,15 @@ async function notifyArtist(userId: string, title: string, approved: boolean, ba
   const es = language === 'es';
   await sendEmail({
     to: email,
-    subject: approved
-      ? (es ? `Tu obra «${title}» ya está publicada` : `Your work "${title}" is now published`)
-      : (es ? `Tu obra «${title}» no se ha publicado` : `Your work "${title}" was not published`),
+    subject: es ? `Tu obra «${title}» no se ha publicado` : `Your work "${title}" was not published`,
     content: {
       language,
-      title: approved ? (es ? 'Tu obra ya está publicada' : 'Your work is now published') : (es ? 'Tu obra no se ha publicado' : 'Your work was not published'),
+      title: es ? 'Tu obra no se ha publicado' : 'Your work was not published',
       preheader: title,
-      blocks: approved
-        ? [
-            { type: 'text', text: es ? `Hemos revisado «${title}» y ya puede verla todo el mundo en MAKWIN.` : `We have reviewed "${title}" and everyone can now see it on MAKWIN.` },
-            ...(baseUrl ? [{ type: 'button' as const, label: es ? 'VER MI OBRA' : 'SEE MY WORK', url: `${baseUrl}/work/${workId}` }] : []),
-          ]
-        : [
-            { type: 'text', text: es ? `Hemos revisado «${title}» y no cumple las normas de MAKWIN, así que la hemos eliminado.` : `We have reviewed "${title}". It does not meet MAKWIN's rules, so it has been removed.` },
-            { type: 'note', text: es ? `Si crees que es un error, escríbenos a ${HELP_ADDRESS}.` : `If you think this is a mistake, write to us at ${HELP_ADDRESS}.` },
-          ],
+      blocks: [
+        { type: 'text', text: es ? `Hemos revisado «${title}» y no cumple las normas de MAKWIN, así que la hemos eliminado.` : `We have reviewed "${title}" and it does not follow the MAKWIN rules, so we have removed it.` },
+        { type: 'note', text: es ? `Si crees que es un error, escríbenos a ${HELP_ADDRESS}.` : `If you think this is a mistake, write to us at ${HELP_ADDRESS}.` },
+      ],
     },
   });
 }
@@ -161,7 +157,12 @@ async function decideHeldWork(req: VercelRequest, res: VercelResponse) {
       if (storageError) console.warn('[REPORTS] Could not remove held files:', storageError.message);
     }
   }
-  await notifyArtist(work.user_id, work.title, decision === 'approve', requestBaseUrl(req.headers), work.id);
+  if (decision === 'approve') {
+    await notify(supabaseAdmin, work.user_id, 'work_approved', { id: work.id, title: work.title });
+  } else {
+    await notify(supabaseAdmin, work.user_id, 'work_rejected', { id: null, title: work.title });
+    await emailRemoval(work.user_id, work.title);
+  }
   return res.status(200).json({ success: true });
 }
 
@@ -219,35 +220,7 @@ async function changeAdmin(req: VercelRequest, res: VercelResponse, actorId: str
   if (error) throw error;
   console.info(`[ADMIN-ACCESS] ${actorId} ${adminAction} ${profile.id}`);
 
-  const email = target.user.email;
-  if (email) {
-    const language = target.user.user_metadata?.language_preference === 'en' ? 'en' : 'es';
-    const es = language === 'es';
-    const baseUrl = requestBaseUrl(req.headers);
-    await sendEmail({
-      to: email,
-      subject: granting
-        ? (es ? 'Ya eres administrador de MAKWIN' : 'You are now a MAKWIN admin')
-        : (es ? 'Ya no eres administrador de MAKWIN' : 'You are no longer a MAKWIN admin'),
-      content: {
-        language,
-        title: granting ? (es ? 'Ya eres administrador' : 'You are now an admin') : (es ? 'Ya no eres administrador' : 'You are no longer an admin'),
-        preheader: es ? 'Cambio en los permisos de tu cuenta de MAKWIN.' : 'A change to your MAKWIN account permissions.',
-        blocks: [
-          {
-            type: 'text',
-            text: granting
-              ? (es ? 'Te han dado permisos de administrador en MAKWIN. Encontrarás el panel en el menú de tu perfil.' : 'You have been given admin access on MAKWIN. You will find the panel in your profile menu.')
-              : (es ? 'Tus permisos de administrador en MAKWIN se han retirado.' : 'Your admin access on MAKWIN has been removed.'),
-          },
-          ...(granting && baseUrl ? [{ type: 'button' as const, label: es ? 'ABRIR EL PANEL' : 'OPEN THE PANEL', url: `${baseUrl}/admin` }] : []),
-          ...(granting
-            ? [{ type: 'note' as const, text: es ? 'Protege tu cuenta: activa la verificación en dos pasos en tu correo.' : 'Protect your account: turn on two-step verification on your email.' }]
-            : []),
-        ],
-      },
-    });
-  }
+  await notify(supabaseAdmin, profile.id, granting ? 'admin_granted' : 'admin_revoked');
   return res.status(200).json({ success: true });
 }
 

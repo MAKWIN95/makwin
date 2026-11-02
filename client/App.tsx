@@ -21,6 +21,7 @@ import WorkDetail from "./pages/WorkDetail";
 import UploadWork from "./pages/UploadWork";
 import UserProfile from "./pages/UserProfile";
 import Saved from "./pages/Saved";
+import Notifications from "./pages/Notifications";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import ResetPassword from "./pages/ResetPassword";
@@ -146,7 +147,7 @@ const RoutesWrapper = () => {
   // Public pages can render while Supabase restores a persisted session. Keep
   // protected routes gated until Auth has a definitive result; profile loading
   // is already independent and must not hold up the public gallery.
-  const requiresAuthResolution = ['/subir-obra', '/favoritos', '/siguiendo', '/configuracion', '/completar-perfil']
+  const requiresAuthResolution = ['/subir-obra', '/favoritos', '/notificaciones', '/siguiendo', '/configuracion', '/completar-perfil']
     .some((route) => location.pathname === route || location.pathname.startsWith(`${route}/`));
   if (loading && requiresAuthResolution) {
     return (
@@ -207,6 +208,7 @@ const RoutesWrapper = () => {
       {/* Authenticated */}
       <Route path="/subir-obra" element={<UploadWork />} />
       <Route path="/favoritos" element={<Saved />} />
+      <Route path="/notificaciones" element={<Notifications />} />
       <Route path="/siguiendo" element={<Following />} />
       <Route path="/configuracion" element={<Settings />} />
       <Route path="/u/:username" element={<UserProfile />} />

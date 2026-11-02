@@ -3,7 +3,8 @@ import { waitUntil } from '@vercel/functions';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { getRequestUser } from '../server/lib/admin-auth.js';
 import { alertIfBacklogReached } from '../server/lib/admin-backlog.js';
-import { HELP_ADDRESS, requestBaseUrl, sendEmail } from '../server/lib/email.js';
+import { requestBaseUrl } from '../server/lib/email.js';
+import { notify } from '../server/lib/notify.js';
 import { findBlockedTerms } from '../server/lib/moderation-text.js';
 
 // Works are saved here and the artist moves on straight away. The automatic check
@@ -55,28 +56,6 @@ function cleanPoemFont(value: unknown): string | null {
   return POEM_FONTS.includes(String(value)) ? String(value) : null;
 }
 
-// Only ever for a work that did not pass. A work that passes sends no email at all.
-async function notifyWorkHeld(userId: string, title: string) {
-  const { data } = await supabaseAdmin.auth.admin.getUserById(userId);
-  const email = data?.user?.email;
-  if (!email) return;
-  const language = data.user?.user_metadata?.language_preference === 'en' ? 'en' : 'es';
-  const es = language === 'es';
-  await sendEmail({
-    to: email,
-    subject: es ? `Tu obra «${title}» no se ha publicado todavía` : `Your work "${title}" has not been published yet`,
-    content: {
-      language,
-      title: es ? 'Tu obra no ha pasado los filtros' : 'Your work did not pass our filters',
-      preheader: title,
-      blocks: [
-        { type: 'text', text: es ? `«${title}» no ha pasado los filtros automáticos de MAKWIN, así que todavía no se ha publicado. Una persona del equipo la va a revisar y te escribiremos con la decisión.` : `"${title}" did not pass MAKWIN's automatic filters, so it has not been published yet. Someone from the team will review it and we will write to you with the decision.` },
-        { type: 'note', text: es ? `No tienes que hacer nada. Si tienes alguna duda, escríbenos a ${HELP_ADDRESS}.` : `There is nothing you need to do. If you have any questions, write to us at ${HELP_ADDRESS}.` },
-      ],
-    },
-  });
-}
-
 interface WorkInCheck {
   id: string;
   userId: string;
@@ -112,7 +91,7 @@ async function finishCheck(work: WorkInCheck, baseUrl: string, tellAuthor = true
 
   if (held && data?.length) {
     await alertIfBacklogReached(baseUrl);
-    if (tellAuthor) await notifyWorkHeld(work.userId, work.title);
+    if (tellAuthor) await notify(supabaseAdmin, work.userId, 'work_held', { id: work.id, title: work.title });
   }
 }
 
@@ -253,7 +232,7 @@ async function editWork(req: VercelRequest, res: VercelResponse, userId: string)
   const baseUrl = requestBaseUrl(req.headers);
   if (held && !wasHeld) {
     await alertIfBacklogReached(baseUrl);
-    await notifyWorkHeld(userId, title);
+    await notify(supabaseAdmin, userId, 'work_held', { id, title });
   }
   if (checking) {
     waitUntil(

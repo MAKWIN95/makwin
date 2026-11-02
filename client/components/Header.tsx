@@ -3,12 +3,13 @@ import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/custom-dialog";
 import LanguageSelector from "./LanguageSelector";
 import GalleryFilter from "./GalleryFilter";
-import { ArrowLeft, Upload, Bookmark, User, LogOut, Settings, Heart, Moon, Sun, Shield } from 'lucide-react';
+import { ArrowLeft, Bell, Upload, Bookmark, User, LogOut, Settings, Heart, Moon, Sun, Shield } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
 import { useAuth } from '@/lib/AuthContext';
 import { useTheme } from "@/hooks/use-theme";
 import { authHeaders } from "@/lib/adminApi";
 import { morphHeader, PageShown } from "@/lib/header-morph";
+import { useUnreadNotifications } from "@/lib/notifications";
 
 const readSearch = (search: string) => (new URLSearchParams(search).get('search') ?? '').replace(/^#/, '').trim();
 
@@ -59,6 +60,7 @@ export default function Header({ showSearch = true, showSearchCentered = false, 
   const navigate = useNavigate();
   const location = useLocation();
   const { isDark, toggleTheme } = useTheme();
+  const unread = useUnreadNotifications(user?.id, location.pathname);
   const MUSIC_FEATURE_ENABLED = false;
 
   // Before the first paint: this header starts as the shape the last one had.
@@ -246,13 +248,21 @@ export default function Header({ showSearch = true, showSearchCentered = false, 
               <Upload className="w-4 h-4 phone:w-5 phone:h-5 text-[hsl(var(--foreground))]" />
             </Link>
 
+            {/* News: on a phone the bar is full, so it lives in the avatar's menu and shows as a dot on it */}
+            {user && (
+              <Link to="/notificaciones" aria-label={es ? `Notificaciones${unread ? `: ${unread} nuevas` : ''}` : `Notifications${unread ? `: ${unread} new` : ''}`} className="phone:hidden ios-press header-button relative inline-flex items-center justify-center shrink-0 p-2">
+                <Bell className="w-4 h-4 text-[hsl(var(--foreground))]" />
+                {unread > 0 && <span aria-hidden="true" className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-red-500" />}
+              </Link>
+            )}
+
             {/* User avatar / login */}
             {user ? (
               <div className="relative" ref={userMenuRef}>
                 <button
                   onClick={() => setShowUserMenu(p => !p)}
                   aria-label={es ? 'Menú de usuario' : 'User menu'}
-                  className="h-8 w-8 phone:h-11 phone:w-11 flex items-center justify-center shrink-0 rounded-xl p-0 transition-opacity hover:bg-transparent hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))] focus-visible:ring-offset-2 focus-visible:ring-offset-[hsl(var(--background))]"
+                  className="relative h-8 w-8 phone:h-11 phone:w-11 flex items-center justify-center shrink-0 rounded-xl p-0 transition-opacity hover:bg-transparent hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))] focus-visible:ring-offset-2 focus-visible:ring-offset-[hsl(var(--background))]"
                 >
                   <div className="w-8 h-8 rounded-xl overflow-hidden bg-[hsl(var(--muted))] border border-[rgba(120,120,120,0.25)] flex items-center justify-center text-sm font-medium">
                     {profile?.avatar_url
@@ -260,6 +270,7 @@ export default function Header({ showSearch = true, showSearchCentered = false, 
                       : <span>{(profile?.display_name ?? profile?.username ?? 'U').charAt(0).toUpperCase()}</span>
                     }
                   </div>
+                  {unread > 0 && <span aria-hidden="true" className="hidden phone:block absolute top-1 right-1 w-2.5 h-2.5 rounded-full bg-red-500 ring-2 ring-[hsl(var(--background))]" />}
                 </button>
 
                 {showUserMenu && (
@@ -272,6 +283,11 @@ export default function Header({ showSearch = true, showSearchCentered = false, 
                       <Link to={`/u/${profile?.username}`} onClick={() => setShowUserMenu(false)}
                         className="flex items-center gap-3 px-4 py-2.5 phone:py-3 text-sm text-[hsl(var(--foreground))] hover:bg-[hsl(var(--muted))] transition-colors">
                         <User className="w-4 h-4" /> {es ? 'Mi perfil' : 'My profile'}
+                      </Link>
+                      <Link to="/notificaciones" onClick={() => setShowUserMenu(false)}
+                        className="flex items-center gap-3 px-4 py-2.5 phone:py-3 text-sm text-[hsl(var(--foreground))] hover:bg-[hsl(var(--muted))] transition-colors">
+                        <Bell className="w-4 h-4" /> <span className="flex-1">{es ? 'Notificaciones' : 'Notifications'}</span>
+                        {unread > 0 && <span className="min-w-5 h-5 px-1.5 rounded-full bg-red-500 text-white text-xs font-medium flex items-center justify-center">{unread}</span>}
                       </Link>
                       <Link to="/favoritos" onClick={() => setShowUserMenu(false)}
                         className="flex items-center gap-3 px-4 py-2.5 phone:py-3 text-sm text-[hsl(var(--foreground))] hover:bg-[hsl(var(--muted))] transition-colors">
