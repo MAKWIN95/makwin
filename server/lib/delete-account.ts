@@ -57,22 +57,28 @@ export async function pruneOrphanedProfileByUsername(username: string): Promise<
   return { available: true, cleaned: true };
 }
 
-async function removeUserFiles(userId: string): Promise<void> {
-  for (const bucket of ['works', 'avatars']) {
-    const storage = supabaseAdmin.storage.from(bucket);
-    const folders = [userId, `${userId}/covers`];
-    for (const folder of folders) {
-      const { data, error } = await storage.list(folder, { limit: 1000 });
-      if (error) {
-        console.warn(`[DELETE-ACCOUNT] Could not list ${bucket}:`, error.message);
-        continue;
-      }
-      const files = (data ?? []).filter((item) => item.id).map((item) => `${folder}/${item.name}`);
-      if (files.length) {
-        const { error: removeError } = await storage.remove(files);
-        if (removeError) console.warn(`[DELETE-ACCOUNT] Could not remove files from ${bucket}:`, removeError.message);
-      }
+const FILE_BUCKETS = ['works', 'avatars'];
+const FILES_AT_ONCE = 1000;
+
+// Everything under the folder, however deep and however many: entries without an id are folders.
+async function listFiles(bucket: string, folder: string): Promise<string[]> {
+  const storage = supabaseAdmin.storage.from(bucket);
+  const found: string[] = [];
+  for (let offset = 0; ; offset += FILES_AT_ONCE) {
+    const { data, error } = await storage.list(folder, { limit: FILES_AT_ONCE, offset });
+    if (error) throw new Error(`Could not list ${bucket}: ${error.message}`);
+    for (const item of data ?? []) {
+      if (item.id) found.push(`${folder}/${item.name}`);
+      else found.push(...await listFiles(bucket, `${folder}/${item.name}`));
     }
+    if ((data ?? []).length < FILES_AT_ONCE) return found;
+  }
+}
+
+async function removeFiles(bucket: string, files: string[]): Promise<void> {
+  for (let start = 0; start < files.length; start += FILES_AT_ONCE) {
+    const { error } = await supabaseAdmin.storage.from(bucket).remove(files.slice(start, start + FILES_AT_ONCE));
+    if (error) console.error(`[DELETE-ACCOUNT] Could not remove files from ${bucket}:`, error.message);
   }
 }
 
@@ -110,9 +116,10 @@ export async function deleteAccountForUser(userId: string): Promise<void> {
   }
   const { email, user_metadata: metadata } = data.user;
 
-  await removeUserFiles(userId);
+  // Known before anything goes: not being able to tell what is theirs stops the deletion here.
+  const files = await Promise.all(FILE_BUCKETS.map((bucket) => listFiles(bucket, userId)));
 
-  // Profile, works, likes, saves and follows all cascade from the auth user.
+  // Profile, works, likes, saves, follows, reports, help messages and notifications all cascade from the auth user.
   const { error: deleteAuthError } = await supabaseAdmin.auth.admin.deleteUser(userId);
   if (deleteAuthError) {
     throw new Error(`Failed to delete auth user: ${deleteAuthError.message}`);
@@ -123,6 +130,9 @@ export async function deleteAccountForUser(userId: string): Promise<void> {
   if (deleteProfileError) {
     console.warn("[DELETE-ACCOUNT] Profile cleanup warning:", deleteProfileError.message);
   }
+
+  // Their files go last: if the account could not be deleted, its works still have their pictures.
+  await Promise.all(FILE_BUCKETS.map((bucket, index) => removeFiles(bucket, files[index])));
 
   if (email) await sendDeletionConfirmation(email, metadata?.language_preference);
 }
