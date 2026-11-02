@@ -94,7 +94,7 @@ export default function Notifications() {
     <div className="min-h-screen bg-[hsl(var(--background))] relative">
       <div id="notifications-stars-background" className="absolute inset-0 z-0 stars-background" />
       <div className="relative z-10">
-        <Header showSearchCentered />
+        <Header showSearchCentered hideSearch />
         <main className="max-w-2xl mx-auto px-4 sm:px-8 py-10 phone:py-6 page-enter">
           <div className="flex items-center gap-3 mb-6">
             <Bell className="w-5 h-5 text-[hsl(var(--muted-foreground))]" />

@@ -120,7 +120,7 @@ export default function FollowersModal({ isOpen, onClose, userId, type, userName
                 <Link to={`/u/${profile.username}`} onClick={onClose} className="flex-1 flex items-center gap-3 min-w-0">
                   <div className="w-10 h-10 rounded-xl overflow-hidden flex-shrink-0 bg-[hsl(var(--muted))]">
                     {profile.avatar_url ? (
-                      <img src={profile.avatar_url} alt={profile.username} className="w-full h-full object-cover" />
+                      <img src={profile.avatar_url} referrerPolicy="no-referrer" alt={profile.username} className="w-full h-full object-cover" />
                     ) : (
                       <span className="flex items-center justify-center w-full h-full text-xs font-medium">
                         {(profile.display_name || profile.username)?.charAt(0).toUpperCase()}

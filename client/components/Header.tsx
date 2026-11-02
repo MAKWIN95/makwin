@@ -183,7 +183,7 @@ export default function Header({ showSearch = true, showSearchCentered = false, 
             </button>
             <div data-morph="logo" onClick={handleMakwinClick} className={`cursor-pointer flex items-center gap-2 ml-1 min-w-0 overflow-hidden phone:min-h-11 ${isGallery ? 'max-sm:ml-2 max-[359px]:ml-1' : ''}`}>
               <span className={`logo-makwin tracking-widest hover:opacity-80 transition-opacity duration-200 whitespace-nowrap leading-tight max-[374px]:!text-sm ${hideSearch ? 'text-base sm:text-lg' : 'text-lg sm:text-xl md:text-2xl'}`}>
-                MAKWIN
+                MKWN
               </span>
               {breadcrumb && <>
                 <span data-morph-fade className="max-sm:hidden text-[hsl(var(--muted-foreground))] font-light">/</span>
@@ -266,7 +266,7 @@ export default function Header({ showSearch = true, showSearchCentered = false, 
                 >
                   <div className="w-8 h-8 rounded-xl overflow-hidden bg-[hsl(var(--muted))] border border-[rgba(120,120,120,0.25)] flex items-center justify-center text-sm font-medium">
                     {profile?.avatar_url
-                      ? <img src={profile.avatar_url} alt={profile.display_name ?? ''} className="w-full h-full object-cover" />
+                      ? <img src={profile.avatar_url} referrerPolicy="no-referrer" alt={profile.display_name ?? ''} className="w-full h-full object-cover" />
                       : <span>{(profile?.display_name ?? profile?.username ?? 'U').charAt(0).toUpperCase()}</span>
                     }
                   </div>

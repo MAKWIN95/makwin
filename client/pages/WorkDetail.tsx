@@ -427,7 +427,7 @@ export default function WorkDetail() {
                   <Link to={`/u/${author.username}`} className="flex items-center gap-3 hover:opacity-70 transition-opacity duration-250 flex-1 min-w-0">
                     <div className="w-12 h-12 rounded-xl overflow-hidden bg-[hsl(var(--muted))] flex-shrink-0">
                       {author.avatar_url ? (
-                        <img src={author.avatar_url} alt={author.display_name} className="w-full h-full object-cover" />
+                        <img src={author.avatar_url} referrerPolicy="no-referrer" alt={author.display_name} className="w-full h-full object-cover" />
                       ) : (
                         <span className="text-sm font-medium flex items-center justify-center w-full h-full">{author.display_name?.charAt(0)}</span>
                       )}

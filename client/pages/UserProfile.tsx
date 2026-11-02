@@ -15,7 +15,7 @@ import MasonryGrid, { type MasonryColumns } from '@/components/MasonryGrid';
 import ProfileWorksBar, { type WorksChoice } from '@/components/ProfileWorksBar';
 import type { TranslationKey } from '@/lib/i18n/translations';
 import FollowersModal from '@/components/FollowersModal';
-import { Camera, Check, X, ExternalLink, Loader2 } from 'lucide-react';
+import { Camera, Check, X, ExternalLink, Loader2, Pencil, Plus } from 'lucide-react';
 
 const TAKEN_DOWN = 'retiradas';
 const KINDS: [string, TranslationKey][] = [
@@ -349,35 +349,51 @@ export default function UserProfile() {
     <div className="min-h-screen bg-[hsl(var(--background))] relative">
       <div id="profile-stars-background" className="stars-background" />
       <div className="relative z-10">
-      <Header showSearchCentered />
+      <Header showSearchCentered hideSearch />
 
-      <main className="max-w-4xl mx-auto px-4 sm:px-8 py-10 page-enter">
+      <main className="max-w-4xl mx-auto px-4 sm:px-8 py-10 max-sm:pt-4 page-enter">
 
         {/* Profile header */}
         <div className="profile-head flex flex-col sm:flex-row items-center sm:items-start gap-6 mb-10">
 
           {/* Avatar */}
           <div className="profile-head-avatar relative shrink-0">
-            <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl overflow-hidden bg-[hsl(var(--muted))] border-2 border-[hsl(var(--border))]">
+            <div className="w-16 h-16 sm:w-24 sm:h-24 rounded-2xl overflow-hidden bg-[hsl(var(--muted))] border-2 border-[hsl(var(--border))]">
               {profile.avatar_url
-                ? <img src={profile.avatar_url} alt={profile.display_name ?? profile.username} className="w-full h-full object-cover" />
+                ? <img src={profile.avatar_url} referrerPolicy="no-referrer" alt={profile.display_name ?? profile.username} className="w-full h-full object-cover" />
                 : <div className="w-full h-full flex items-center justify-center text-3xl font-light text-[hsl(var(--muted-foreground))]">
                     {(profile.display_name ?? profile.username).charAt(0).toUpperCase()}
                   </div>
               }
             </div>
             {isOwnProfile && (
-              <label className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-[hsl(var(--foreground))] text-[hsl(var(--background))] flex items-center justify-center cursor-pointer hover:opacity-80 transition-opacity">
+              <label className="tap-area absolute -bottom-1 -right-1 w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-[hsl(var(--foreground))] text-[hsl(var(--background))] flex items-center justify-center cursor-pointer hover:opacity-80 transition-opacity">
                 {avatarUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Camera className="w-4 h-4" />}
                 <input type="file" accept=".jpg,.jpeg,.png,.webp" onChange={handleAvatarChange} className="hidden" aria-label={es ? 'Cambiar foto de perfil' : 'Change profile photo'} />
               </label>
             )}
+            {/* On a phone, following is the same corner of the photo where your own has its camera */}
+            {!isOwnProfile && (
+              <button
+                type="button"
+                onClick={handleFollow}
+                aria-pressed={isFollowing}
+                aria-label={isFollowing ? (es ? 'Dejar de seguir' : 'Unfollow') : (es ? 'Seguir' : 'Follow')}
+                className={`profile-follow-badge tap-area sm:hidden absolute -bottom-1 -right-1 w-7 h-7 rounded-full flex items-center justify-center transition-colors duration-200 ${isFollowing
+                  ? 'bg-[hsl(var(--muted))] text-[hsl(var(--foreground))] border border-[hsl(var(--border))]'
+                  : 'bg-[hsl(var(--foreground))] text-[hsl(var(--background))]'}`}
+              >
+                {isFollowing
+                  ? <Check key="on" className="icon-pop w-4 h-4" />
+                  : <Plus key="off" className="icon-pop w-4 h-4" />}
+              </button>
+            )}
           </div>
 
           {/* Info */}
-          <div className="profile-head-info flex-1 min-w-0 text-left">
+          <div className="profile-head-info flex-1 min-w-0 text-center sm:text-left">
             {editing ? (
-              <div className="profile-head-edit space-y-3 max-w-sm">
+              <div className="profile-head-edit space-y-3 max-w-sm text-left">
                 <div>
                   <label className="text-xs font-medium text-[hsl(var(--muted-foreground))] mb-1 block">
                     {es ? 'Nombre de usuario' : 'Username'}
@@ -418,21 +434,31 @@ export default function UserProfile() {
               </div>
             ) : (
               <>
-                <div className="profile-head-name">
+                <div className="profile-head-name max-sm:relative max-sm:max-w-[calc(100%-4.5rem)]">
                   <h1 className="text-xl sm:text-2xl font-light text-[hsl(var(--foreground))] break-words phone:line-clamp-2 sm:mb-1" title={profile.display_name ?? profile.username}>
                     {profile.display_name ?? profile.username}
                     {profile.is_verified && <span className="ml-2 text-blue-500 text-sm">✓</span>}
                   </h1>
-                  <p className="text-sm text-[hsl(var(--muted-foreground))] truncate sm:mb-2">@{profile.username || username}</p>
+                  <p className="max-sm:hidden text-sm text-[hsl(var(--muted-foreground))] truncate sm:mb-2">@{profile.username || username}</p>
+                  {isOwnProfile && (
+                    <button
+                      type="button"
+                      onClick={() => setEditing(true)}
+                      aria-label={es ? 'Editar perfil' : 'Edit profile'}
+                      className="tap-area sm:hidden !absolute left-full top-1/2 -translate-y-1/2 ml-2 w-6 h-6 flex items-center justify-center text-[hsl(var(--muted-foreground))]"
+                    >
+                      <Pencil className="w-3.5 h-3.5" />
+                    </button>
+                  )}
                 </div>
                 <div className="profile-head-about">
-                {profile.bio && <p className="text-sm text-[hsl(var(--foreground))] mb-2 max-w-md break-words">{profile.bio}</p>}
+                {profile.bio && <p className="text-sm text-[hsl(var(--foreground))] mb-2 max-w-md max-sm:mx-auto break-words">{profile.bio}</p>}
                 {profile.website && websiteUrl && (
                   <a 
                     href={websiteUrl}
                     target="_blank" 
                     rel="noopener noreferrer"
-                    className="text-xs text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] flex items-center gap-1 mb-2"
+                    className="text-xs text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] flex items-center max-sm:justify-center gap-1 mb-2"
                   >
                     <ExternalLink className="w-3 h-3" /> {profile.website.replace(/^https?:\/\//, '')}
                   </a>
@@ -440,7 +466,7 @@ export default function UserProfile() {
 
                 {/* Social Media Links */}
                 {(instagramUrl || tiktokUrl) && (
-                <div className="flex gap-3 mb-3 phone:mb-0">
+                <div className="flex max-sm:justify-center gap-3 mb-3 phone:mb-0">
                   {instagramUrl && (
                     <a 
                       href={instagramUrl}
@@ -469,10 +495,10 @@ export default function UserProfile() {
 
                 <div className="profile-head-side">
                 {/* Stats */}
-                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-1.5 sm:gap-6 text-sm mb-3 sm:mb-4">
-                  <span><strong>{standingCount}</strong> <span className="text-[hsl(var(--muted-foreground))]">{standingCount === 1 ? (es ? 'obra' : 'work') : (es ? 'obras' : 'works')}</span></span>
+                <div className="flex items-center max-sm:justify-center gap-5 sm:gap-6 text-sm sm:mb-4">
+                  <span className="max-sm:hidden"><strong>{standingCount}</strong> <span className="text-[hsl(var(--muted-foreground))]">{standingCount === 1 ? (es ? 'obra' : 'work') : (es ? 'obras' : 'works')}</span></span>
                   <button onClick={() => setShowFollowersModal('followers')} className="tap-area group transition-all duration-200 ease-out cursor-pointer">
-                    <strong className="group-hover:text-[hsl(var(--foreground))] text-[hsl(var(--foreground))] transition-colors">{followerCount}</strong> <span className="text-[hsl(var(--muted-foreground))] group-hover:text-[hsl(var(--foreground))] transition-colors">{es ? 'seguidores' : 'followers'}</span>
+                    <strong className="group-hover:text-[hsl(var(--foreground))] text-[hsl(var(--foreground))] transition-colors">{followerCount}</strong> <span className="text-[hsl(var(--muted-foreground))] group-hover:text-[hsl(var(--foreground))] transition-colors">{followerCount === 1 ? (es ? 'seguidor' : 'follower') : (es ? 'seguidores' : 'followers')}</span>
                   </button>
                   <button onClick={() => setShowFollowersModal('following')} className="tap-area group transition-all duration-200 ease-out cursor-pointer">
                     <strong className="group-hover:text-[hsl(var(--foreground))] text-[hsl(var(--foreground))] transition-colors">{followingCount}</strong> <span className="text-[hsl(var(--muted-foreground))] group-hover:text-[hsl(var(--foreground))] transition-colors">{es ? 'siguiendo' : 'following'}</span>
@@ -480,7 +506,7 @@ export default function UserProfile() {
                 </div>
 
                 {/* Actions */}
-                <div className="flex gap-2 [&>button]:w-full sm:[&>button]:w-auto">
+                <div className="flex gap-2 max-sm:hidden">
                   {isOwnProfile ? (
                     <button onClick={() => setEditing(true)}
                       className="phone:min-h-11 px-4 py-2 rounded-lg border border-[hsl(var(--border))] text-sm hover:bg-[hsl(var(--muted))] transition-colors">
