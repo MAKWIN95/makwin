@@ -354,11 +354,11 @@ export default function UserProfile() {
       <main className="max-w-4xl mx-auto px-4 sm:px-8 py-10 page-enter">
 
         {/* Profile header */}
-        <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6 mb-10">
+        <div className="profile-head flex flex-col sm:flex-row items-center sm:items-start gap-6 mb-10">
 
           {/* Avatar */}
-          <div className="relative shrink-0">
-            <div className="w-24 h-24 rounded-2xl overflow-hidden bg-[hsl(var(--muted))] border-2 border-[hsl(var(--border))]">
+          <div className="profile-head-avatar relative shrink-0">
+            <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl overflow-hidden bg-[hsl(var(--muted))] border-2 border-[hsl(var(--border))]">
               {profile.avatar_url
                 ? <img src={profile.avatar_url} alt={profile.display_name ?? profile.username} className="w-full h-full object-cover" />
                 : <div className="w-full h-full flex items-center justify-center text-3xl font-light text-[hsl(var(--muted-foreground))]">
@@ -375,9 +375,9 @@ export default function UserProfile() {
           </div>
 
           {/* Info */}
-          <div className="flex-1 text-center sm:text-left">
+          <div className="profile-head-info flex-1 min-w-0 text-left">
             {editing ? (
-              <div className="space-y-3 max-w-sm">
+              <div className="profile-head-edit space-y-3 max-w-sm">
                 <div>
                   <label className="text-xs font-medium text-[hsl(var(--muted-foreground))] mb-1 block">
                     {es ? 'Nombre de usuario' : 'Username'}
@@ -418,27 +418,29 @@ export default function UserProfile() {
               </div>
             ) : (
               <>
-                <div className="flex items-center gap-3 justify-center sm:justify-start mb-1">
-                  <h1 className="text-2xl font-light text-[hsl(var(--foreground))]">
+                <div className="profile-head-name">
+                  <h1 className="text-xl sm:text-2xl font-light text-[hsl(var(--foreground))] break-words phone:line-clamp-2 sm:mb-1" title={profile.display_name ?? profile.username}>
                     {profile.display_name ?? profile.username}
                     {profile.is_verified && <span className="ml-2 text-blue-500 text-sm">✓</span>}
                   </h1>
+                  <p className="text-sm text-[hsl(var(--muted-foreground))] truncate sm:mb-2">@{profile.username || username}</p>
                 </div>
-                <p className="text-sm text-[hsl(var(--muted-foreground))] mb-2">@{profile.username || username}</p>
-                {profile.bio && <p className="text-sm text-[hsl(var(--foreground))] mb-2 max-w-md">{profile.bio}</p>}
+                <div className="profile-head-about">
+                {profile.bio && <p className="text-sm text-[hsl(var(--foreground))] mb-2 max-w-md break-words">{profile.bio}</p>}
                 {profile.website && websiteUrl && (
                   <a 
                     href={websiteUrl}
                     target="_blank" 
                     rel="noopener noreferrer"
-                    className="text-xs text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] flex items-center gap-1 justify-center sm:justify-start mb-2"
+                    className="text-xs text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] flex items-center gap-1 mb-2"
                   >
                     <ExternalLink className="w-3 h-3" /> {profile.website.replace(/^https?:\/\//, '')}
                   </a>
                 )}
 
                 {/* Social Media Links */}
-                <div className="flex gap-3 justify-center sm:justify-start mb-3">
+                {(instagramUrl || tiktokUrl) && (
+                <div className="flex gap-3 mb-3 phone:mb-0">
                   {instagramUrl && (
                     <a 
                       href={instagramUrl}
@@ -462,20 +464,23 @@ export default function UserProfile() {
                     </a>
                   )}
                 </div>
+                )}
+                </div>
 
+                <div className="profile-head-side">
                 {/* Stats */}
-                <div className="flex items-center gap-6 phone:gap-4 justify-center sm:justify-start text-sm mb-4">
-                  <span><strong>{standingCount}</strong> <span className="text-[hsl(var(--muted-foreground))]">{es ? 'obras' : 'works'}</span></span>
-                  <button onClick={() => setShowFollowersModal('followers')} className="phone:min-h-11 phone:px-1 group transition-all duration-200 ease-out cursor-pointer">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-1.5 sm:gap-6 text-sm mb-3 sm:mb-4">
+                  <span><strong>{standingCount}</strong> <span className="text-[hsl(var(--muted-foreground))]">{standingCount === 1 ? (es ? 'obra' : 'work') : (es ? 'obras' : 'works')}</span></span>
+                  <button onClick={() => setShowFollowersModal('followers')} className="tap-area group transition-all duration-200 ease-out cursor-pointer">
                     <strong className="group-hover:text-[hsl(var(--foreground))] text-[hsl(var(--foreground))] transition-colors">{followerCount}</strong> <span className="text-[hsl(var(--muted-foreground))] group-hover:text-[hsl(var(--foreground))] transition-colors">{es ? 'seguidores' : 'followers'}</span>
                   </button>
-                  <button onClick={() => setShowFollowersModal('following')} className="phone:min-h-11 phone:px-1 group transition-all duration-200 ease-out cursor-pointer">
+                  <button onClick={() => setShowFollowersModal('following')} className="tap-area group transition-all duration-200 ease-out cursor-pointer">
                     <strong className="group-hover:text-[hsl(var(--foreground))] text-[hsl(var(--foreground))] transition-colors">{followingCount}</strong> <span className="text-[hsl(var(--muted-foreground))] group-hover:text-[hsl(var(--foreground))] transition-colors">{es ? 'siguiendo' : 'following'}</span>
                   </button>
                 </div>
 
                 {/* Actions */}
-                <div className="flex gap-2 justify-center sm:justify-start">
+                <div className="flex gap-2 [&>button]:w-full sm:[&>button]:w-auto">
                   {isOwnProfile ? (
                     <button onClick={() => setEditing(true)}
                       className="phone:min-h-11 px-4 py-2 rounded-lg border border-[hsl(var(--border))] text-sm hover:bg-[hsl(var(--muted))] transition-colors">
@@ -491,20 +496,22 @@ export default function UserProfile() {
                   )}
                 </div>
 
+                </div>
+
                 {/* Social Media Suggestion Banner */}
                 {isOwnProfile && !profile?.instagram_url && !profile?.tiktok_url && (
-                  <div className="mt-4 p-4 rounded-lg bg-blue-500/10 border border-blue-500/30 text-blue-600 dark:text-blue-400 text-xs">
-                    <p className="font-medium mb-2">
+                  <div className="profile-head-hint mt-4 phone:mt-2 p-4 phone:px-3 phone:py-2.5 phone:flex phone:items-center phone:justify-between phone:gap-3 rounded-lg bg-blue-500/10 border border-blue-500/30 text-blue-600 dark:text-blue-400 text-xs">
+                    <p className="font-medium mb-2 phone:mb-0">
                       {es ? '🎵 Agrega tus redes sociales' : '🎵 Add your social media'}
                     </p>
-                    <p className="mb-3">
+                    <p className="mb-3 phone:hidden">
                       {es 
                         ? 'Conecta tu Instagram o TikTok para que tus seguidores te encuentren más fácilmente.'
                         : 'Connect your Instagram or TikTok so your followers can find you more easily.'}
                     </p>
                     <button 
                       onClick={() => setEditing(true)}
-                      className="tap-area text-xs underline hover:opacity-80 transition-opacity"
+                      className="tap-area shrink-0 text-xs underline hover:opacity-80 transition-opacity"
                     >
                       {es ? 'Editar perfil →' : 'Edit profile →'}
                     </button>

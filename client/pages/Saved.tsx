@@ -14,6 +14,11 @@ import { Loader2, Bookmark } from 'lucide-react';
 
 const GRID_COLUMNS: MasonryColumns = { base: 2, sm: 3, lg: 4, xl: 5, '2xl': 6 };
 
+const FIRST_ON_SCREEN = 4;
+
+// Coming back shows at once what was here; it is brought up to date out of sight.
+let lastSeen: { userId: string; works: Work[] } | null = null;
+
 export default function Saved() {
   useRequireAuth();
   useStarsBackground('saved-stars-background');
@@ -22,126 +27,58 @@ export default function Saved() {
   const { language } = useI18n();
   const es = language === 'es';
 
-  const [works, setWorks] = useState<Work[]>([]);
-  const [loading, setLoading] = useState(true);
+  const known = lastSeen?.userId === user?.id ? lastSeen : null;
+  const [works, setWorks] = useState<Work[]>(known?.works ?? []);
+  const [loading, setLoading] = useState(!known);
 
   useEffect(() => {
     if (!user) return;
+    let current = true;
     const load = async () => {
-      setLoading(true);
       try {
-        // Get saved works with full details
-        const { data: savesData, error: savesError } = await supabase
+        // All in one request. A work no longer visible to you simply does not come back.
+        const { data, error } = await supabase
           .from('saves')
-          .select('work_id')
+          .select('created_at, works!inner(*, profiles!user_id(id, username, display_name, avatar_url, is_verified, is_banned))')
           .eq('user_id', user.id)
           .order('created_at', { ascending: false });
+        if (error) throw error;
+        if (!current) return;
 
-        if (savesError) throw savesError;
-
-        if (!savesData || savesData.length === 0) {
-          setWorks([]);
-          setLoading(false);
-          return;
-        }
-
-        const workIds = savesData.map(s => s.work_id);
-
-        // Fetch works independently of profiles so a missing/filtered profile
-        // relation cannot hide an otherwise valid saved work.
-        const { data: worksData, error: worksError } = await supabase
-          .from('works')
-          .select(`
-            id,
-            user_id,
-            title,
-            description,
-            work_type,
-            file_url,
-            cover_url,
-            lyrics,
-            hashtags,
-            is_for_sale,
-            price,
-            status,
-            like_count,
-            view_count,
-            language,
-            created_at,
-            updated_at
-          `)
-          .in('id', workIds)
-          .order('created_at', { ascending: false });
-
-        if (worksError) throw worksError;
-
-        if (!worksData || worksData.length === 0) {
-          setWorks([]);
-          setLoading(false);
-          return;
-        }
-
-        const profileIds = [...new Set(worksData.map((work: any) => work.user_id))];
-        const { data: profilesData, error: profilesError } = await supabase
-          .from('profiles')
-          .select('id, username, display_name, avatar_url, bio, website, instagram_url, tiktok_url, is_verified, is_banned')
-          .in('id', profileIds);
-
-        if (profilesError) {
-          console.warn('[Saved] Profiles could not be loaded; showing saved works without profile metadata:', profilesError);
-        }
-
-        const profilesById = new Map((profilesData || []).map(profile => [profile.id, profile]));
-
-        // Transform data and load interactions into context
-        const transformed = worksData.map((work: any) => ({
-          id: work.id,
-          user_id: work.user_id,
-          title: work.title,
-          description: work.description,
-          work_type: work.work_type,
-          file_url: work.file_url,
-          cover_url: work.cover_url,
-          lyrics: work.lyrics,
-          hashtags: work.hashtags || [],
-          is_for_sale: work.is_for_sale,
-          price: work.price,
-          status: work.status,
-          like_count: work.like_count,
-          view_count: work.view_count,
-          language: work.language,
-          created_at: work.created_at,
-          updated_at: work.updated_at,
-          profiles: profilesById.get(work.user_id),
+        const saved = (data ?? []).map((save: any) => ({
+          ...save.works,
+          hashtags: save.works.hashtags || [],
           liked_by_me: false,
           saved_by_me: true,
         })) as Work[];
+        lastSeen = { userId: user.id, works: saved };
+        setWorks(saved);
+        setLoading(false);
 
-        setWorks(transformed);
-
-        // Load interactions into context
-        if (transformed.length > 0) {
-          await worksContext.loadUserInteractions(
-            transformed.map(w => w.id),
+        // The works are already on screen: hearts and counts catch up behind them.
+        if (saved.length > 0) {
+          void worksContext.loadUserInteractions(
+            saved.map(w => w.id),
             user.id,
-            Object.fromEntries(transformed.map(work => [work.id, Number(work.like_count) || 0]))
+            Object.fromEntries(saved.map(work => [work.id, Number(work.like_count) || 0]))
           );
         }
       } catch (err) {
         console.error('[Saved] Error loading saved works:', err);
-        setWorks([]);
-      } finally {
-        setLoading(false);
+        if (current && !lastSeen) setWorks([]);
+        if (current) setLoading(false);
       }
     };
 
     load();
+    return () => { current = false; };
   }, [user?.id]);
 
   const handleSaveToggle = (workId: string, saved: boolean) => {
     // Optimistic update: remove from local state when unsaved
     if (!saved) {
       setWorks(prev => prev.filter(w => w.id !== workId));
+      if (lastSeen) lastSeen = { ...lastSeen, works: lastSeen.works.filter(w => w.id !== workId) };
     }
   };
 
@@ -178,9 +115,9 @@ export default function Saved() {
             items={works}
             columns={GRID_COLUMNS}
             getKey={work => work.id}
-            renderItem={work => (
+            renderItem={(work, index) => (
               <div className="mb-4 phone:mb-3 w-full">
-                <WorkCard work={work} onSaveToggle={handleSaveToggle} />
+                <WorkCard work={work} onSaveToggle={handleSaveToggle} priorityImage={index < FIRST_ON_SCREEN} />
               </div>
             )}
           />

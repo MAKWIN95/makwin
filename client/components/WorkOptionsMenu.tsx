@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { X } from 'lucide-react';
 
 export interface WorkOption {
@@ -75,7 +75,7 @@ export default function WorkOptionsMenu({ label, options, onArtwork = true }: Pr
   return (
     <div ref={root} data-work-options className="absolute inset-x-0 top-0 z-30 h-10 pointer-events-none">
       {(open || closing) && (
-        <div className="work-options absolute inset-x-1 top-1 h-8" data-count={options.length}>
+        <div className="work-options absolute inset-x-1 top-1 h-8" style={{ '--option-count': options.length } as CSSProperties}>
           <div className="work-options-bar absolute inset-y-0 right-0 pointer-events-auto" data-closing={closing || undefined}>
             <div role="menu" aria-label={label} className="work-options-row absolute inset-y-0 right-0 flex items-stretch gap-0.5 p-0.5 pr-6">
               {options.map((option) => (
@@ -84,14 +84,14 @@ export default function WorkOptionsMenu({ label, options, onArtwork = true }: Pr
                   type="button"
                   role="menuitem"
                   aria-label={option.label}
+                  title={option.label}
                   onClick={() => {
                     hide();
                     option.onSelect();
                   }}
-                  className="work-options-item flex-auto min-w-0 flex items-center justify-center rounded-full text-xs font-medium text-white whitespace-nowrap outline-none"
+                  className="work-options-item flex-none w-8 flex items-center justify-center rounded-full text-white outline-none"
                 >
-                  <span className="work-options-label">{option.label}</span>
-                  <span className="work-options-icon">{option.icon}</span>
+                  {option.icon}
                 </button>
               ))}
             </div>
