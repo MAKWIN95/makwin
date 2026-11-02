@@ -1,6 +1,6 @@
 import { useEffect, useState, type ComponentType } from 'react';
 import { Link } from 'react-router-dom';
-import { Bell, CheckCircle2, Clock, Loader2, Shield, XCircle } from 'lucide-react';
+import { Bell, CheckCircle2, Clock, Loader2, Shield, UserPlus, XCircle } from 'lucide-react';
 import { useAuth } from '@/lib/AuthContext';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
 import { useI18n } from '@/lib/i18n';
@@ -15,6 +15,7 @@ const ICONS: Record<AppNotification['kind'], ComponentType<{ className?: string 
   work_rejected: XCircle,
   admin_granted: Shield,
   admin_revoked: Shield,
+  new_follower: UserPlus,
 };
 
 function wordsFor(item: AppNotification, es: boolean): { title: string; detail: string } {
@@ -35,6 +36,13 @@ function wordsFor(item: AppNotification, es: boolean): { title: string; detail: 
         title: es ? `«${work}» no se ha publicado` : `"${work}" was not published`,
         detail: es ? 'No cumple las normas de MAKWIN y la hemos eliminado.' : 'It does not follow the MAKWIN rules, so we have removed it.',
       };
+    case 'new_follower': {
+      const name = item.actor?.display_name || item.actor?.username || (es ? 'Alguien' : 'Someone');
+      return {
+        title: es ? `${name} ha empezado a seguirte` : `${name} started following you`,
+        detail: item.actor ? `@${item.actor.username}` : '',
+      };
+    }
     case 'admin_granted':
       return {
         title: es ? 'Ya eres administrador' : 'You are now an admin',
@@ -50,6 +58,7 @@ function wordsFor(item: AppNotification, es: boolean): { title: string; detail: 
 
 function linkFor(item: AppNotification): string | null {
   if (item.kind === 'admin_granted') return '/admin';
+  if (item.kind === 'new_follower') return item.actor ? `/u/${item.actor.username}` : null;
   return item.kind !== 'admin_revoked' && item.work_id ? `/work/${item.work_id}` : null;
 }
 
@@ -113,7 +122,7 @@ export default function Notifications() {
             <div className="text-center py-20 border border-dashed border-[hsl(var(--border))] rounded-2xl">
               <Bell className="w-10 h-10 text-[hsl(var(--muted-foreground))] mx-auto mb-3" />
               <p className="text-[hsl(var(--muted-foreground))] text-sm">
-                {es ? 'Aquí verás las novedades de tus obras y de tu cuenta.' : 'News about your works and your account will appear here.'}
+                {es ? 'Aquí verás tus nuevos seguidores y las novedades de tus obras y de tu cuenta.' : 'New followers and news about your works and your account will appear here.'}
               </p>
             </div>
           ) : (

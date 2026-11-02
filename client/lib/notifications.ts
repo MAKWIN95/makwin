@@ -3,11 +3,12 @@ import { supabase } from '@/lib/supabase';
 
 export interface AppNotification {
   id: string;
-  kind: 'work_held' | 'work_approved' | 'work_rejected' | 'admin_granted' | 'admin_revoked';
+  kind: 'work_held' | 'work_approved' | 'work_rejected' | 'admin_granted' | 'admin_revoked' | 'new_follower';
   work_id: string | null;
   title: string | null;
   read_at: string | null;
   created_at: string;
+  actor: { username: string; display_name: string | null } | null;
 }
 
 const CHECK_EVERY_MS = 2 * 60 * 1000;
@@ -45,12 +46,12 @@ export async function refreshUnread(userId: string | null) {
 export async function loadNotifications(userId: string): Promise<AppNotification[]> {
   const { data, error } = await supabase
     .from('notifications')
-    .select('id, kind, work_id, title, read_at, created_at')
+    .select('id, kind, work_id, title, read_at, created_at, actor:profiles!notifications_actor_id_fkey(username, display_name)')
     .eq('user_id', userId)
     .order('created_at', { ascending: false })
     .limit(50);
   if (error) throw error;
-  return (data ?? []) as AppNotification[];
+  return (data ?? []) as unknown as AppNotification[];
 }
 
 export async function markAllRead(userId: string) {
