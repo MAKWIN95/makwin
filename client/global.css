@@ -681,6 +681,16 @@ a.work-media-link:active {
   }
 }
 
+/* A wait too short to notice shows nothing at all. */
+.profile-wait {
+  animation: profile-wait-in 0.25s ease-out 0.35s both;
+}
+
+@keyframes profile-wait-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
 /* On a phone the head of a profile is one short centred column: photo, name, followers. */
 @media (max-width: 639px) {
   .profile-head {

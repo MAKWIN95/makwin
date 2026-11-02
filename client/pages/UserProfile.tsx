@@ -326,9 +326,16 @@ export default function UserProfile() {
     e.target.value = '';
   };
 
+  // The bar and the sky stay where they are while the profile arrives: only what is below it waits.
   if (loading) return (
-    <div className="min-h-screen bg-[hsl(var(--background))] flex items-center justify-center">
-      <Loader2 className="w-8 h-8 animate-spin text-[hsl(var(--muted-foreground))]" />
+    <div className="min-h-screen bg-[hsl(var(--background))] relative">
+      <div id="profile-stars-background" className="stars-background" />
+      <div className="relative z-10">
+      <Header showSearchCentered hideSearch />
+      <main key="waiting" className="min-h-[60vh] flex items-center justify-center">
+        <span className="profile-wait"><Loader2 className="w-8 h-8 animate-spin text-[hsl(var(--muted-foreground))]" /></span>
+      </main>
+      </div>
     </div>
   );
 
@@ -351,7 +358,7 @@ export default function UserProfile() {
       <div className="relative z-10">
       <Header showSearchCentered hideSearch />
 
-      <main className="max-w-4xl mx-auto px-4 sm:px-8 py-10 max-sm:pt-4 page-enter">
+      <main key="profile" className="max-w-4xl mx-auto px-4 sm:px-8 py-10 max-sm:pt-4 page-enter">
 
         {/* Profile header */}
         <div className="profile-head flex flex-col sm:flex-row items-center sm:items-start gap-6 mb-10">
