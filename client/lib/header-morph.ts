@@ -3,7 +3,7 @@ import { createContext } from 'react';
 // False while a page is kept alive out of sight, ready for the way back.
 export const PageShown = createContext(true);
 
-// The floating bar and the flat bar are one header changing shape: the shape and
+// The floating bar, with or without its search, and the flat bar are one header changing shape: the shape and
 // the places of what is in it are read just before the page changes, and the new
 // header starts from them and travels to its own.
 interface Glass {
@@ -104,13 +104,16 @@ export function morphHeader(bar: HTMLElement | null) {
   const from = last;
   last = null;
   if (!bar || !from) return;
-  if (from.shape === bar.dataset.headerBar || from.windowWidth !== window.innerWidth) return;
+  if (from.windowWidth !== window.innerWidth) return;
   if (Date.now() - from.at > STILL_FRESH_MS) return;
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
-  const moves = fadeRestOfPage(bar);
   const to = readGlass(bar);
   if (!to) return;
+  // The same bar with the same things in it has nothing to travel.
+  if (from.shape === bar.dataset.headerBar && Math.abs(from.glass.height - to.height) < 1) return;
+
+  const moves = fadeRestOfPage(bar);
 
   // The glass itself: it starts as the old one and ends exactly as its own resting self.
   const layer = bar.querySelector<HTMLElement>('[data-header-glass]')!;
