@@ -273,6 +273,12 @@ export default function WorkDetail() {
     if (!user || !liked) handleLike();
   });
 
+  const [popping, setPopping] = useState<'like' | 'save' | null>(null);
+  const popIcon = (which: 'like' | 'save') => {
+    setPopping(which);
+    setTimeout(() => setPopping(null), 400);
+  };
+
   const handleSave = async () => {
     if (!user) {
       setAuthModalAction('save');
@@ -467,50 +473,48 @@ export default function WorkDetail() {
               </div>
             )}
 
-            <div className="space-y-2 pt-4">
-              <Button
-                onClick={handleLike}
+            {/* One quiet row of icons: each one says what it does without a word, and says it aloud to whoever cannot see it. */}
+            <div className="work-actions" role="group" aria-label={es ? 'Acciones' : 'Actions'}>
+              <button
+                type="button"
+                onClick={() => { if (user && !isPendingLike) popIcon('like'); handleLike(); }}
                 disabled={isPendingLike}
-                variant={liked ? 'default' : 'outline'}
-                className="w-full transition-all duration-250 ease-out"
+                aria-pressed={liked}
+                aria-label={es ? 'Me gusta' : 'Like'}
+                title={es ? 'Me gusta' : 'Like'}
+                className="work-like"
               >
-                <Heart className={`w-4 h-4 mr-2 transition-all duration-200 ${liked ? 'fill-current' : ''}`} />
-                {likeCount}
-              </Button>
-
-              <Button
-                onClick={handleSave}
+                <Heart className={`w-5 h-5 ${popping === 'like' ? 'icon-pop' : ''} ${liked ? 'fill-current' : ''}`} />
+                {likeCount > 0 && <span className="text-sm font-medium tabular-nums">{likeCount.toLocaleString(es ? 'es-ES' : 'en-GB')}</span>}
+              </button>
+              <button
+                type="button"
+                onClick={() => { if (user && !isPendingSave) popIcon('save'); handleSave(); }}
                 disabled={isPendingSave}
-                variant={saved ? 'default' : 'outline'}
-                className="w-full transition-all duration-250 ease-out"
+                aria-pressed={saved}
+                aria-label={es ? 'Guardar' : 'Save'}
+                title={es ? 'Guardar' : 'Save'}
               >
-                <Bookmark className={`w-4 h-4 mr-2 transition-all duration-200 ${saved ? 'fill-current' : ''}`} />
-                {currentLang === 'es' ? 'Guardar' : 'Save'}
-              </Button>
-
-              <Button onClick={() => shareWork(work, currentLang === 'es')} variant="outline" className="w-full transition-all duration-250 ease-out">
-                <Share2 className="w-4 h-4 mr-2" />
-                {currentLang === 'es' ? 'Compartir' : 'Share'}
-              </Button>
-
+                <Bookmark className={`w-5 h-5 ${popping === 'save' ? 'icon-pop' : ''} ${saved ? 'fill-current' : ''}`} />
+              </button>
+              <button type="button" onClick={() => shareWork(work, es)} aria-label={es ? 'Compartir' : 'Share'} title={es ? 'Compartir' : 'Share'}>
+                <Share2 className="w-5 h-5" />
+              </button>
               {isMine ? (
                 <>
                   {!takenDown && (
-                    <Button onClick={() => setShowEditModal(true)} variant="outline" className="w-full transition-all duration-250 ease-out">
-                      <Pencil className="w-4 h-4 mr-2" />
-                      {es ? 'Editar' : 'Edit'}
-                    </Button>
+                    <button type="button" onClick={() => setShowEditModal(true)} aria-label={es ? 'Editar' : 'Edit'} title={es ? 'Editar' : 'Edit'}>
+                      <Pencil className="w-5 h-5" />
+                    </button>
                   )}
-                  <Button onClick={() => setShowDeleteModal(true)} variant="outline" className="w-full transition-all duration-250 ease-out text-red-500 hover:text-red-500">
-                    <Trash2 className="w-4 h-4 mr-2" />
-                    {es ? 'Eliminar' : 'Delete'}
-                  </Button>
+                  <button type="button" onClick={() => setShowDeleteModal(true)} aria-label={es ? 'Eliminar' : 'Delete'} title={es ? 'Eliminar' : 'Delete'} className="work-danger">
+                    <Trash2 className="w-5 h-5" />
+                  </button>
                 </>
               ) : (
-                <Button onClick={handleReport} variant="outline" className="w-full transition-all duration-250 ease-out">
-                  <Flag className="w-4 h-4 mr-2" />
-                  {es ? 'Reportar' : 'Report'}
-                </Button>
+                <button type="button" onClick={handleReport} aria-label={es ? 'Reportar' : 'Report'} title={es ? 'Reportar' : 'Report'}>
+                  <Flag className="w-5 h-5" />
+                </button>
               )}
             </div>
 

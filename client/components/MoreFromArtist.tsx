@@ -1,11 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, FileText, Music, Play } from 'lucide-react';
+import { ChevronLeft, ChevronRight, FileText, Loader2, Music, Play } from 'lucide-react';
 import { supabase, type Profile, type Work } from '@/lib/supabase';
 import { useI18n } from '@/lib/i18n';
 import { rememberOpening } from '@/lib/work-opening';
 
-const MOST_SHOWN = 12;
+// They come a few at a time as you slide, so an artist with hundreds costs nothing until you go looking.
+const AT_ONCE = 12;
+// The next ones are asked for this far before the end, so sliding rarely meets the wait.
+const AHEAD_PX = 400;
 
 function pictureOf(work: Work) {
   if (work.cover_url) return work.cover_url;
@@ -14,29 +17,60 @@ function pictureOf(work: Work) {
 
 const SIGN_OF: Record<string, typeof Play> = { video: Play, cancion: Music, poema: FileText };
 
-// If you liked this work, the artist's others are right there, without leaving it.
+// If you liked this work, all the artist's others are right there, without leaving it.
 export default function MoreFromArtist({ author, artistId, workId, isMine }: { author: Profile; artistId: string; workId: string; isMine: boolean }) {
   const { language } = useI18n();
   const es = language === 'es';
   const [works, setWorks] = useState<Work[]>([]);
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const strip = useRef<HTMLDivElement>(null);
+  const asking = useRef(false);
+  const generation = useRef(0);
   const [canGo, setCanGo] = useState({ back: false, on: false });
 
+  const fetchPage = (from: number) => supabase
+    .from('works')
+    .select('*')
+    .eq('user_id', artistId)
+    .eq('status', 'published')
+    .neq('id', workId)
+    .order('created_at', { ascending: false })
+    .order('id', { ascending: false })
+    .range(from, from + AT_ONCE - 1);
+
   useEffect(() => {
-    let cancelled = false;
-    void supabase
-      .from('works')
-      .select('*')
-      .eq('user_id', artistId)
-      .eq('status', 'published')
-      .neq('id', workId)
-      .order('created_at', { ascending: false })
-      .limit(MOST_SHOWN)
-      .then(({ data }) => {
-        if (!cancelled) setWorks((data ?? []) as Work[]);
-      });
-    return () => { cancelled = true; };
+    const current = ++generation.current;
+    asking.current = false;
+    setWorks([]);
+    setHasMore(false);
+    void fetchPage(0).then(({ data }) => {
+      if (current !== generation.current) return;
+      const page = (data ?? []) as Work[];
+      setWorks(page);
+      setHasMore(page.length === AT_ONCE);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [artistId, workId]);
+
+  const loadMore = () => {
+    if (asking.current || !hasMore) return;
+    asking.current = true;
+    setLoadingMore(true);
+    const current = generation.current;
+    void fetchPage(works.length).then(({ data, error }) => {
+      if (current !== generation.current) return;
+      asking.current = false;
+      setLoadingMore(false);
+      if (error) return;
+      const page = (data ?? []) as Work[];
+      setWorks((shown) => {
+        const seen = new Set(shown.map((work) => work.id));
+        return [...shown, ...page.filter((work) => !seen.has(work.id))];
+      });
+      setHasMore(page.length === AT_ONCE);
+    });
+  };
 
   const measure = () => {
     const element = strip.current;
@@ -45,13 +79,15 @@ export default function MoreFromArtist({ author, artistId, workId, isMine }: { a
       back: element.scrollLeft > 4,
       on: element.scrollLeft + element.clientWidth < element.scrollWidth - 4,
     });
+    if (element.scrollLeft + element.clientWidth > element.scrollWidth - AHEAD_PX) loadMore();
   };
 
   useEffect(() => {
     measure();
     window.addEventListener('resize', measure);
     return () => window.removeEventListener('resize', measure);
-  }, [works]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [works, hasMore]);
 
   if (works.length === 0) return null;
 
@@ -69,7 +105,7 @@ export default function MoreFromArtist({ author, artistId, workId, isMine }: { a
           {isMine ? (es ? 'Más obras tuyas' : 'More of your works') : `${es ? 'Más de' : 'More by'} ${name}`}
         </h2>
         <Link to={`/u/${author.username}`} className="tap-area shrink-0 text-xs text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] transition-colors">
-          {es ? 'Ver todas' : 'See all'}
+          {isMine ? (es ? 'Ir a tu perfil' : 'Go to your profile') : (es ? 'Ir al perfil' : 'Go to profile')}
         </Link>
       </div>
 
@@ -100,6 +136,11 @@ export default function MoreFromArtist({ author, artistId, workId, isMine }: { a
               </Link>
             );
           })}
+          {hasMore && (
+            <span aria-hidden={!loadingMore} className="shrink-0 w-24 h-24 rounded-xl bg-[hsl(var(--muted))]/50 flex items-center justify-center">
+              {loadingMore && <Loader2 aria-label={es ? 'Cargando más' : 'Loading more'} className="w-5 h-5 animate-spin text-[hsl(var(--muted-foreground))]" />}
+            </span>
+          )}
         </div>
         {canGo.back && (
           <button type="button" aria-label={es ? 'Anteriores' : 'Previous'} onClick={() => go(-1)} className={`${arrow} left-1`}>
