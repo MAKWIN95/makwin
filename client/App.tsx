@@ -82,11 +82,26 @@ const AppLayout = () => {
     const keepWork = (event: Event) => {
       if ((event.target as Element).closest?.('img, video')) event.preventDefault();
     };
+    // Holding a work only presses it: while the finger is on it, nothing on the page can be
+    // selected, or the phone would reach for the nearest text and offer to copy it.
+    const root = document.documentElement;
+    const notePress = (event: Event) => {
+      if ((event.target as Element).closest?.('a:has(img), a:has(video), .thumb-press, .thumb-strip, img, video')) root.classList.add('holding-work');
+    };
+    const letGo = () => {
+      setTimeout(() => root.classList.remove('holding-work'), 0);
+    };
     document.addEventListener('contextmenu', keepWork);
     document.addEventListener('dragstart', keepWork);
+    document.addEventListener('touchstart', notePress, { passive: true, capture: true });
+    document.addEventListener('touchend', letGo, { capture: true });
+    document.addEventListener('touchcancel', letGo, { capture: true });
     return () => {
       document.removeEventListener('contextmenu', keepWork);
       document.removeEventListener('dragstart', keepWork);
+      document.removeEventListener('touchstart', notePress, { capture: true });
+      document.removeEventListener('touchend', letGo, { capture: true });
+      document.removeEventListener('touchcancel', letGo, { capture: true });
     };
   }, []);
 

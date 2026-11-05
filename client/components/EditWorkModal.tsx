@@ -15,6 +15,7 @@ import { rememberWorkExtras, useWorkExtras } from '@/lib/work-extras';
 import PhotoEditor from '@/components/PhotoEditor';
 import UploadThumbs from '@/components/UploadThumbs';
 import { Switch } from '@/components/ui/switch';
+import Reveal from '@/components/Reveal';
 
 interface Props {
   isOpen: boolean;
@@ -64,6 +65,8 @@ export default function EditWorkModal({ isOpen, onClose, work, onSuccess }: Prop
   const isPoem = work.work_type === 'poema';
   const isSong = work.work_type === 'cancion';
   const isPhotoWork = work.work_type === 'pintura' || work.work_type === 'fotografia';
+  // Only paintings and songs (beats) can be sold online.
+  const sellable = work.work_type === 'pintura' || work.work_type === 'cancion';
 
   const publishedPhotos: EditablePhoto[] = [work.file_url, ...(extras?.extra_images ?? work.extra_images ?? [])]
     .filter((url): url is string => !!url)
@@ -178,7 +181,7 @@ export default function EditWorkModal({ isOpen, onClose, work, onSuccess }: Prop
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    if (form.isForSale && !(Number(form.price) > 0)) {
+    if (sellable && form.isForSale && !(Number(form.price) > 0)) {
       setError(es ? 'Indica un precio mayor que cero.' : 'Enter a price above zero.');
       return;
     }
@@ -198,8 +201,8 @@ export default function EditWorkModal({ isOpen, onClose, work, onSuccess }: Prop
           title: form.title,
           description: form.description,
           hashtags: normalizeHashtags(form.hashtags),
-          isForSale: form.isForSale,
-          price: form.isForSale ? Number(form.price) : null,
+          isForSale: sellable && form.isForSale,
+          price: sellable && form.isForSale ? Number(form.price) : null,
           ...(images ? { images } : {}),
           ...(isSong ? { lyrics: form.lyrics } : {}),
           ...(isPoem ? { poemFont: font } : {}),
@@ -265,7 +268,7 @@ export default function EditWorkModal({ isOpen, onClose, work, onSuccess }: Prop
           {isPhotoWork && (
             <div>
               <label className={labelClass}>
-                {es ? 'Fotos: arrastra para cambiar el orden. La primera es la portada.' : 'Photos: drag to change the order. The first one is the cover.'}
+                {es ? 'Fotos: mantén pulsada una y arrástrala para cambiar el orden. La primera es la portada.' : 'Photos: hold one and drag it to change the order. The first one is the cover.'}
               </label>
               <input
                 ref={pickInput}
@@ -397,6 +400,7 @@ export default function EditWorkModal({ isOpen, onClose, work, onSuccess }: Prop
             </div>
           )}
 
+          {sellable && (
           <div className="flex items-center justify-between gap-3">
             <span className="text-sm text-[hsl(var(--foreground))]">{es ? 'Poner a la venta' : 'Put up for sale'}</span>
             <Switch
@@ -405,7 +409,9 @@ export default function EditWorkModal({ isOpen, onClose, work, onSuccess }: Prop
               onCheckedChange={(isForSale) => setForm(p => ({ ...p, isForSale }))}
             />
           </div>
-          {form.isForSale && (
+          )}
+          <Reveal open={sellable && form.isForSale} className="!mt-0">
+            <div className="pt-4">
             <input
               type="number"
               min="0"
@@ -418,7 +424,8 @@ export default function EditWorkModal({ isOpen, onClose, work, onSuccess }: Prop
               placeholder={es ? 'Precio' : 'Price'}
               className={fieldClass}
             />
-          )}
+            </div>
+          </Reveal>
 
           {error && <p className="text-sm text-red-500">{error}</p>}
 

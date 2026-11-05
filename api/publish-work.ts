@@ -23,6 +23,8 @@ const POEM_FONTS = ['clasica', 'elegante', 'moderna', 'maquina', 'manuscrita'];
 const WORK_TYPES = ['pintura', 'fotografia', 'poema', 'cancion', 'video'];
 const REQUIRES_FILE = ['pintura', 'fotografia', 'video'];
 const PHOTO_TYPES = ['pintura', 'fotografia'];
+// Only what can be sold online: paintings and songs (beats), never photos, poems or videos.
+const SELLABLE_TYPES = ['pintura', 'cancion'];
 const MAX_EXTRA_IMAGES = 9;
 const CHECK_GIVEN_UP_MS = 3 * 60 * 1000;
 
@@ -107,7 +109,7 @@ async function createWork(req: VercelRequest, res: VercelResponse, userId: strin
   const rawExtraImages = Array.isArray(body.extraImages) ? body.extraImages : [];
   const extraImages = rawExtraImages.map((url) => ownFileUrl(url, userId)).filter((url): url is string => !!url);
   const poemFont = workType === 'poema' ? cleanPoemFont(body.poemFont) : null;
-  const isForSale = body.isForSale === true;
+  const isForSale = body.isForSale === true && SELLABLE_TYPES.includes(workType);
   const price = isForSale ? Number(body.price) : null;
 
   if (
@@ -199,7 +201,7 @@ async function editWork(req: VercelRequest, res: VercelResponse, userId: string)
   const removed = oldImages.filter((url) => !images.includes(url));
 
   const lyrics = work.work_type === 'cancion' && body.lyrics !== undefined ? cleanText(body.lyrics, 20000) : work.lyrics;
-  const isForSale = body.isForSale === true;
+  const isForSale = body.isForSale === true && SELLABLE_TYPES.includes(work.work_type);
   const price = isForSale ? Number(body.price) : null;
   if (body.isForSale !== undefined && isForSale && !(Number(price) > 0)) return res.status(400).json({ error: 'Datos no válidos' });
 

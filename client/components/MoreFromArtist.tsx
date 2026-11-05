@@ -99,7 +99,7 @@ export default function MoreFromArtist({ author, artistId, workId, isMine }: { a
   const arrow = 'absolute top-1/2 -translate-y-1/2 z-10 w-8 h-8 glass-surface !rounded-full flex items-center justify-center text-[hsl(var(--foreground))] phone:hidden opacity-0 group-hover/more:opacity-100 focus-visible:opacity-100 transition-opacity duration-200';
 
   return (
-    <section className="border-t border-[hsl(var(--border))] pt-5" aria-label={isMine ? (es ? 'Más obras tuyas' : 'More of your works') : `${es ? 'Más de' : 'More by'} ${name}`}>
+    <section className="select-none border-t border-[hsl(var(--border))] pt-5" aria-label={isMine ? (es ? 'Más obras tuyas' : 'More of your works') : `${es ? 'Más de' : 'More by'} ${name}`}>
       <div className="flex items-baseline justify-between gap-3 mb-3">
         <h2 className="text-sm font-medium text-[hsl(var(--foreground))] truncate">
           {isMine ? (es ? 'Más obras tuyas' : 'More of your works') : `${es ? 'Más de' : 'More by'} ${name}`}
@@ -120,8 +120,10 @@ export default function MoreFromArtist({ author, artistId, workId, isMine }: { a
                 to={`/work/${other.id}`}
                 state={{ work: { ...other, profiles: author } }}
                 title={other.title}
+                draggable={false}
+                onContextMenu={(event) => event.preventDefault()}
                 onClick={(event) => rememberOpening(other.id, event.currentTarget.querySelector('img') ?? event.currentTarget)}
-                className="ios-press relative shrink-0 snap-start w-24 h-24 rounded-xl overflow-hidden bg-[hsl(var(--muted))] outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))]"
+                className="thumb-press relative shrink-0 snap-start w-24 h-24 rounded-xl overflow-hidden bg-[hsl(var(--muted))] outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))]"
               >
                 {picture ? (
                   <img src={picture} alt={other.title} loading="lazy" decoding="async" draggable={false} className="w-full h-full object-cover" />

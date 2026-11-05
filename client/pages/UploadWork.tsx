@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type DragEvent, type KeyboardEvent, type ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type DragEvent, type KeyboardEvent, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Check, Feather, ImagePlus, Loader2, Mic, Music, X } from 'lucide-react';
 import { useBodyScrollLock } from '@/hooks/use-body-scroll-lock';
@@ -14,6 +14,7 @@ import Footer from '@/components/Footer';
 import PhotoEditor from '@/components/PhotoEditor';
 import UploadThumbs, { type UploadMedia } from '@/components/UploadThumbs';
 import { Switch } from '@/components/ui/switch';
+import Reveal from '@/components/Reveal';
 import { cn, normalizeHashtags } from '@/lib/utils';
 import { toast } from 'sonner';
 
@@ -21,6 +22,7 @@ const MAX_AUDIO_MB = 50;
 const MAX_VIDEO_MB = 50;
 const MAX_PHOTOS = 10;
 const PARALLEL_UPLOADS = 3;
+const SELLABLE_TYPES = ['pintura', 'cancion'];
 
 // What was picked decides the rest: photos become a carousel, one video or one
 // audio stands alone, and a poem starts from its text.
@@ -90,12 +92,6 @@ export default function UploadWork() {
     if (kind) window.scrollTo({ top: 0 });
   }, [kind]);
 
-  // Asking again is only meant for the tap that follows.
-  useEffect(() => {
-    if (!confirmDiscard) return;
-    const timer = setTimeout(() => setConfirmDiscard(false), 3000);
-    return () => clearTimeout(timer);
-  }, [confirmDiscard]);
 
   const fileProblem = (file: File): string | null => {
     const mb = file.size / 1024 / 1024;
@@ -191,6 +187,12 @@ export default function UploadWork() {
     setMedia(track(newMedia(file)));
   };
 
+  // Only what can be sold online can be put up for sale: paintings and songs (beats), not photos or poems.
+  const sellable = SELLABLE_TYPES.includes(workType);
+  useEffect(() => {
+    if (!sellable) setIsForSale(false);
+  }, [sellable]);
+
   const startPoem = () => {
     setKind('poem');
     setWorkType('poema');
@@ -259,7 +261,7 @@ export default function UploadWork() {
       return { field: 'description', message: es ? 'Cuenta algo sobre esta obra.' : 'Say something about this work.' };
     }
     if (workType === 'cancion' && !lyrics.trim()) return { field: 'lyrics', message: es ? 'Añade la letra de la canción.' : 'Add the song lyrics.' };
-    if (isForSale && !(Number(price) > 0)) return { field: 'price', message: es ? 'Indica un precio mayor que cero.' : 'Enter a price above zero.' };
+    if (sellable && isForSale && !(Number(price) > 0)) return { field: 'price', message: es ? 'Indica un precio mayor que cero.' : 'Enter a price above zero.' };
     return null;
   };
 
@@ -333,8 +335,8 @@ export default function UploadWork() {
           coverUrl,
           lyrics,
           hashtags: normalizeHashtags([...tags, tagDraft]),
-          isForSale,
-          price: isForSale && price ? Number(price) : null,
+          isForSale: sellable && isForSale,
+          price: sellable && isForSale && price ? Number(price) : null,
           poemFont: workType === 'poema' ? poemFontId : null,
           language,
         }),
@@ -422,15 +424,7 @@ export default function UploadWork() {
             <div className="relative glass-panel max-sm:!rounded-none max-sm:!border-x-0 max-sm:!border-t-0 max-sm:!shadow-none mx-auto max-w-5xl overflow-hidden" data-kind={kind}>
               {/* Top bar */}
               <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 px-3 h-14 border-b border-[hsl(var(--foreground)/0.1)]">
-                {confirmDiscard ? (
-                  <button type="button" onClick={startOver} className="glass-button glass-button--danger !min-h-9 !px-3 justify-self-start text-xs">
-                    {es ? '¿Descartar?' : 'Discard?'}
-                  </button>
-                ) : (
-                  <button type="button" onClick={() => setConfirmDiscard(true)} aria-label={es ? 'Descartar' : 'Discard'} className="header-button ios-press justify-self-start w-10 h-10 flex items-center justify-center text-[hsl(var(--foreground))]">
-                    <X className="w-5 h-5" />
-                  </button>
-                )}
+                <DiscardButton es={es} open={confirmDiscard} onOpen={setConfirmDiscard} onDiscard={startOver} />
                 <h1 className="text-sm font-medium text-[hsl(var(--foreground))]">{es ? 'Nueva obra' : 'New work'}</h1>
                 <button type="button" onClick={publish} disabled={busy} className="glass-button glass-button--primary !min-h-9 !px-4 justify-self-end max-lg:hidden">
                   {publishLabel}
@@ -463,6 +457,11 @@ export default function UploadWork() {
                         onRemove={removePhoto}
                         onAdd={() => pickInput.current?.click()}
                       />
+                      <Reveal open={photos.length > 1} className="-mt-3">
+                        <p className="text-xs text-[hsl(var(--muted-foreground))]">
+                          {es ? 'Mantén pulsada una foto y arrástrala para cambiar el orden. La primera es la portada.' : 'Hold a photo and drag it to change the order. The first one is the cover.'}
+                        </p>
+                      </Reveal>
                     </>
                   )}
 
@@ -625,8 +624,9 @@ export default function UploadWork() {
                     />
                   </div>
 
+                  <Reveal open={sellable}>
                   <SaleRow es={es} isForSale={isForSale} setIsForSale={setIsForSale}>
-                    {isForSale && (
+                    <Reveal open={isForSale}>
                       <input
                         type="number"
                         inputMode="decimal"
@@ -637,10 +637,11 @@ export default function UploadWork() {
                         aria-label={es ? 'Precio en euros' : 'Price in euros'}
                         data-field="price"
                         placeholder={es ? 'Precio (€)' : 'Price (€)'}
-                        className={cn(fieldText, 'mt-3 text-sm')}
+                        className={cn(fieldText, 'pt-3 text-sm')}
                       />
-                    )}
+                    </Reveal>
                   </SaleRow>
+                  </Reveal>
                 </div>
               </div>
             </div>
@@ -691,5 +692,45 @@ function SaleRow({ es, isForSale, setIsForSale, children }: { es: boolean; isFor
       </label>
       {children}
     </div>
+  );
+}
+
+// The X turns into the question itself, and back into an X, turning, if you look elsewhere.
+function DiscardButton({ es, open, onOpen, onDiscard }: { es: boolean; open: boolean; onOpen: (open: boolean) => void; onDiscard: () => void }) {
+  const button = useRef<HTMLButtonElement>(null);
+  const words = useRef<HTMLSpanElement>(null);
+
+  useLayoutEffect(() => {
+    if (button.current && words.current) button.current.style.setProperty('--open-w', `${words.current.offsetWidth + 32}px`);
+  }, [es]);
+
+  useEffect(() => {
+    if (!open) return;
+    const close = (event: Event) => {
+      if (!button.current?.contains(event.target as Node)) onOpen(false);
+    };
+    const escape = (event: globalThis.KeyboardEvent) => {
+      if (event.key === 'Escape') onOpen(false);
+    };
+    document.addEventListener('pointerdown', close, true);
+    document.addEventListener('keydown', escape);
+    return () => {
+      document.removeEventListener('pointerdown', close, true);
+      document.removeEventListener('keydown', escape);
+    };
+  }, [open, onOpen]);
+
+  return (
+    <button
+      ref={button}
+      type="button"
+      onClick={() => (open ? onDiscard() : onOpen(true))}
+      aria-label={open ? (es ? 'Sí, descartar la obra' : 'Yes, discard the work') : (es ? 'Descartar' : 'Discard')}
+      data-open={open || undefined}
+      className="discard-morph justify-self-start"
+    >
+      <X aria-hidden="true" className="discard-morph-x w-5 h-5" />
+      <span ref={words} aria-hidden="true" className="discard-morph-words">{es ? 'Descartar' : 'Discard'}</span>
+    </button>
   );
 }

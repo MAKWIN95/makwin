@@ -6,6 +6,8 @@ interface Opening {
   top: number;
   width: number;
   height: number;
+  /** The corners it had, so they stay the same on screen while it grows. */
+  radius: number;
   at: number;
 }
 
@@ -18,7 +20,7 @@ let last: Opening | null = null;
 export function rememberOpening(id: string, from: Element | null | undefined) {
   if (!from) return;
   const { left, top, width, height } = from.getBoundingClientRect();
-  last = { id, left, top, width, height, at: Date.now() };
+  last = { id, left, top, width, height, radius: cornersOf(from), at: Date.now() };
 }
 
 // Only right after the tap: coming back to a work later just shows it.
@@ -26,10 +28,22 @@ export function openingOf(id: string | undefined): Opening | null {
   return last?.id === id && Date.now() - last.at < STILL_FRESH_MS ? last : null;
 }
 
+// A picture is often rounded by the box around it rather than by itself.
+function cornersOf(element: Element): number {
+  const own = parseFloat(getComputedStyle(element).borderTopLeftRadius) || 0;
+  const parent = element.parentElement;
+  return own || (parent ? parseFloat(getComputedStyle(parent).borderTopLeftRadius) || 0 : 0);
+}
+
 function fly(target: HTMLElement, from: Opening) {
   const to = target.getBoundingClientRect();
   if (!to.width || !to.height) return;
-  const scale = from.width / to.width;
+  // It starts covering the small one exactly, cut to its shape and corners, so a square
+  // thumbnail grows into a tall picture without ever losing its rounded edges.
+  const scale = Math.max(from.width / to.width, from.height / to.height);
+  const cutX = Math.max(0, (to.width - from.width / scale) / 2);
+  const cutY = Math.max(0, (to.height - from.height / scale) / 2);
+  const corners = cornersOf(target);
   const dx = from.left + from.width / 2 - (to.left + to.width / 2);
   const dy = from.top + from.height / 2 - (to.top + to.height / 2);
   // Something other than a photo changes shape on the way, so it also appears as it goes.
@@ -41,8 +55,12 @@ function fly(target: HTMLElement, from: Opening) {
   target.style.visibility = '';
   const flight = target.animate(
     [
-      { transform: `translate(${dx}px, ${dy}px) scale(${scale})`, opacity: isImage ? 1 : SHOWS_THROUGH_FROM },
-      { transform: 'none', opacity: 1 },
+      {
+        transform: `translate(${dx}px, ${dy}px) scale(${scale})`,
+        clipPath: `inset(${cutY}px ${cutX}px round ${from.radius / scale}px)`,
+        opacity: isImage ? 1 : SHOWS_THROUGH_FROM,
+      },
+      { transform: 'none', clipPath: `inset(0px 0px round ${corners}px)`, opacity: 1 },
     ],
     FLIGHT,
   );

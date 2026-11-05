@@ -1,6 +1,7 @@
-import { useRef, useState, type PointerEvent } from 'react';
-import { RotateCcw } from 'lucide-react';
-import { Slider } from '@/components/ui/slider';
+import { useRef, useState, type KeyboardEvent, type PointerEvent, type ReactNode } from 'react';
+import { RotateCcw, ZoomIn, ZoomOut } from 'lucide-react';
+import Reveal from '@/components/Reveal';
+import Segmented from '@/components/Segmented';
 import { useI18n } from '@/lib/i18n';
 import { NO_EDIT, placePhoto, RATIOS, type FrameStyle, type PhotoEdit, type PhotoSize } from '@/lib/frame-photo';
 import { cn } from '@/lib/utils';
@@ -76,7 +77,6 @@ export default function PhotoEditor({ url, size, ratio, style, edit, onEdit, onS
     if (pointers.current.size === 0) setMoving(false);
   };
 
-  const chip = 'glass-button !min-h-8 !px-3 text-xs';
   const isPlain = PLAIN_BORDERS.some((border) => border.value === style.border);
   const isCustom = style.border !== 'blur' && !isPlain;
 
@@ -119,87 +119,174 @@ export default function PhotoEditor({ url, size, ratio, style, edit, onEdit, onS
         </div>
       </div>
 
-      <div className="flex items-center gap-3">
-        <Slider
-          aria-label={es ? 'Acercar' : 'Zoom'}
+      <div className="flex items-center gap-2">
+        <ZoomSlider
+          label={es ? 'Acercar' : 'Zoom'}
+          value={edit.zoom}
           min={1}
           max={MAX_ZOOM}
-          step={0.01}
-          value={[edit.zoom]}
-          onValueChange={([zoom]) => onEdit({ ...edit, zoom })}
-          className="flex-1"
+          onChange={(zoom) => onEdit({ ...edit, zoom })}
         />
         <button
           type="button"
           aria-label={es ? 'Volver a centrar la foto' : 'Centre the photo again'}
           onClick={() => onEdit(NO_EDIT)}
           disabled={edit.zoom === 1 && edit.x === 0 && edit.y === 0}
-          className="header-button ios-press w-9 h-9 flex items-center justify-center text-[hsl(var(--foreground))] disabled:opacity-30"
+          className="header-button ios-press w-11 h-11 shrink-0 !rounded-full flex items-center justify-center text-[hsl(var(--foreground))] disabled:opacity-30 transition-opacity"
         >
           <RotateCcw className="w-4 h-4" />
         </button>
       </div>
 
-      {!lockedShape && (
-        <div className="flex flex-wrap gap-1.5" role="radiogroup" aria-label={es ? 'Formato' : 'Shape'}>
-          {RATIOS.map((option) => (
-            <button
-              key={option.id}
-              type="button"
-              role="radio"
-              aria-checked={style.ratio === option.id}
-              onClick={() => onStyle({ ...style, ratio: option.id })}
-              className={cn(chip, style.ratio === option.id && 'glass-button--primary')}
-            >
-              {option.value > 0 && (
-                <i
-                  aria-hidden="true"
-                  className="inline-block rounded-[2px] border border-current"
-                  style={option.value >= 1 ? { width: 13, height: 13 / option.value } : { height: 13, width: 13 * option.value }}
-                />
-              )}
-              {option.label}
-            </button>
-          ))}
-        </div>
-      )}
-
-      <div className="flex flex-wrap gap-1.5" role="radiogroup" aria-label={es ? 'Cómo se adapta la foto' : 'How the photo fits'}>
-        <button type="button" role="radio" aria-checked={style.fit === 'contain'} onClick={() => onStyle({ ...style, fit: 'contain' })} className={cn(chip, style.fit === 'contain' && 'glass-button--primary')}>
-          {es ? 'Con bordes' : 'With borders'}
-        </button>
-        <button type="button" role="radio" aria-checked={style.fit === 'cover'} onClick={() => onStyle({ ...style, fit: 'cover' })} className={cn(chip, style.fit === 'cover' && 'glass-button--primary')}>
-          {es ? 'Recortar' : 'Crop'}
-        </button>
-      </div>
-
-      {style.fit === 'contain' && (
-        <div className="flex flex-wrap gap-1.5" role="radiogroup" aria-label={es ? 'Borde' : 'Border'}>
-          <button type="button" role="radio" aria-checked={style.border === 'blur'} onClick={() => onStyle({ ...style, border: 'blur' })} className={cn(chip, style.border === 'blur' && 'glass-button--primary')}>
-            <i aria-hidden="true" className="relative inline-block w-3.5 h-3.5 overflow-hidden rounded-full">
-              <img src={url} alt="" className="w-full h-full object-cover blur-[1px]" />
-            </i>
-            {es ? 'Difuminado' : 'Blurred'}
-          </button>
-          {PLAIN_BORDERS.map((border) => (
-            <button key={border.id} type="button" role="radio" aria-checked={style.border === border.value} onClick={() => onStyle({ ...style, border: border.value })} className={cn(chip, style.border === border.value && 'glass-button--primary')}>
-              <i aria-hidden="true" className="inline-block w-3.5 h-3.5 rounded-full border border-[hsl(var(--foreground)/0.3)]" style={{ background: border.value }} />
-              {es ? border.es : border.en}
-            </button>
-          ))}
-          <label className={cn(chip, 'relative cursor-pointer', isCustom && 'glass-button--primary')}>
-            <i aria-hidden="true" className="inline-block w-3.5 h-3.5 rounded-full border border-[hsl(var(--foreground)/0.3)]" style={{ background: isCustom ? style.border : 'conic-gradient(#e66, #ec6, #6c6, #6ce, #66e, #e6c, #e66)' }} />
-            {es ? 'Color' : 'Colour'}
-            <input
-              type="color"
-              aria-label={es ? 'Elegir color del borde' : 'Choose border colour'}
-              value={isCustom ? style.border : '#808080'}
-              onChange={(event) => onStyle({ ...style, border: event.target.value })}
-              className="absolute inset-0 opacity-0 cursor-pointer"
+      <div className="photo-options">
+        {!lockedShape && (
+          <div className="photo-option">
+            <p className="photo-option-title">{es ? 'Formato' : 'Shape'}</p>
+            <Segmented
+              label={es ? 'Formato' : 'Shape'}
+              value={style.ratio}
+              onChange={(ratio) => onStyle({ ...style, ratio })}
+              options={RATIOS.map((option) => ({
+                value: option.id,
+                name: option.id === 'original' ? (es ? 'Original' : 'Original') : option.label,
+                label: (
+                  <span className="flex flex-col items-center gap-1">
+                    <i
+                      aria-hidden="true"
+                      className="block rounded-[3px] border-[1.5px] border-current"
+                      style={option.value === 0
+                        ? { width: 12, height: 15, borderStyle: 'dashed' }
+                        : option.value >= 1 ? { width: 16, height: 16 / option.value } : { height: 16, width: 16 * option.value }}
+                    />
+                    <span className="text-[10px] leading-none">{option.id === 'original' ? (es ? 'Original' : 'Original') : option.label}</span>
+                  </span>
+                ),
+              }))}
             />
-          </label>
+          </div>
+        )}
+
+        <div className="photo-option">
+          <p className="photo-option-title">{es ? 'Si no encaja' : 'If it does not fit'}</p>
+          <Segmented
+            label={es ? 'Si la foto no encaja en el formato' : 'If the photo does not fit the shape'}
+            value={style.fit}
+            onChange={(fit) => onStyle({ ...style, fit })}
+            options={[
+              { value: 'contain', label: es ? 'Entera, con bordes' : 'Whole, with borders' },
+              { value: 'cover', label: es ? 'Recortarla' : 'Crop it' },
+            ]}
+          />
         </div>
-      )}
+
+        <Reveal open={style.fit === 'contain'}>
+          <div className="photo-option">
+            <p className="photo-option-title">{es ? 'Color de los bordes' : 'Border colour'}</p>
+            <div className="flex items-start gap-4" role="radiogroup" aria-label={es ? 'Color de los bordes' : 'Border colour'}>
+              <Swatch label={es ? 'Difuminado' : 'Blurred'} chosen={style.border === 'blur'} onPick={() => onStyle({ ...style, border: 'blur' })}>
+                <img src={url} alt="" className="w-full h-full object-cover scale-150 blur-[3px]" />
+              </Swatch>
+              {PLAIN_BORDERS.map((border) => (
+                <Swatch key={border.id} label={es ? border.es : border.en} chosen={style.border === border.value} onPick={() => onStyle({ ...style, border: border.value })}>
+                  <span className="block w-full h-full" style={{ background: border.value }} />
+                </Swatch>
+              ))}
+              <Swatch label={es ? 'Otro color' : 'Other colour'} chosen={isCustom}>
+                <span className="block w-full h-full" style={{ background: isCustom ? style.border : 'conic-gradient(#e66, #ec6, #6c6, #6ce, #66e, #e6c, #e66)' }} />
+                <input
+                  type="color"
+                  aria-label={es ? 'Elegir color de los bordes' : 'Choose border colour'}
+                  value={isCustom ? style.border : '#808080'}
+                  onChange={(event) => onStyle({ ...style, border: event.target.value })}
+                  className="absolute inset-0 opacity-0 cursor-pointer"
+                />
+              </Swatch>
+            </div>
+          </div>
+        </Reveal>
+      </div>
+    </div>
+  );
+}
+
+function Swatch({ label, chosen, onPick, children }: { label: string; chosen: boolean; onPick?: () => void; children: ReactNode }) {
+  const Tag = onPick ? 'button' : 'label';
+  return (
+    <Tag
+      {...(onPick ? { type: 'button' as const, onClick: onPick } : {})}
+      role={onPick ? 'radio' : undefined}
+      aria-checked={onPick ? chosen : undefined}
+      className="photo-swatch ios-press"
+      data-chosen={chosen || undefined}
+    >
+      <span className="photo-swatch-dot">{children}</span>
+      <span className="text-[11px] leading-tight text-[hsl(var(--muted-foreground))]">{label}</span>
+    </Tag>
+  );
+}
+
+// Like the iPhone's: a wide bar that fills as it goes, easy to catch anywhere along it.
+// A tap jumps there smoothly; a drag follows the finger exactly.
+function ZoomSlider({ label, value, min, max, onChange }: { label: string; value: number; min: number; max: number; onChange: (value: number) => void }) {
+  const track = useRef<HTMLDivElement>(null);
+  const [held, setHeld] = useState(false);
+  const [gliding, setGliding] = useState(false);
+  const share = (value - min) / (max - min);
+
+  const valueAt = (clientX: number) => {
+    const box = track.current?.getBoundingClientRect();
+    if (!box) return value;
+    return min + clamp((clientX - box.left) / box.width, 0, 1) * (max - min);
+  };
+
+  const handleDown = (event: PointerEvent<HTMLDivElement>) => {
+    event.currentTarget.setPointerCapture(event.pointerId);
+    setHeld(true);
+    setGliding(true);
+    onChange(valueAt(event.clientX));
+  };
+
+  const handleMove = (event: PointerEvent<HTMLDivElement>) => {
+    if (!held) return;
+    setGliding(false);
+    onChange(valueAt(event.clientX));
+  };
+
+  const handleKey = (event: KeyboardEvent<HTMLDivElement>) => {
+    const step = (max - min) / 20;
+    const next = { ArrowRight: value + step, ArrowUp: value + step, ArrowLeft: value - step, ArrowDown: value - step, Home: min, End: max }[event.key];
+    if (next === undefined) return;
+    event.preventDefault();
+    setGliding(true);
+    onChange(clamp(next, min, max));
+  };
+
+  return (
+    <div className="flex-1 flex items-center gap-2 min-w-0">
+      <ZoomOut aria-hidden="true" className="w-4 h-4 shrink-0 text-[hsl(var(--muted-foreground))]" />
+      <div
+        ref={track}
+        role="slider"
+        tabIndex={0}
+        aria-label={label}
+        aria-valuemin={min}
+        aria-valuemax={max}
+        aria-valuenow={Math.round(value * 100) / 100}
+        aria-valuetext={`${Math.round(value * 100)}%`}
+        data-held={held || undefined}
+        onPointerDown={handleDown}
+        onPointerMove={handleMove}
+        onPointerUp={() => setHeld(false)}
+        onPointerCancel={() => setHeld(false)}
+        onKeyDown={handleKey}
+        className="zoom-slider"
+      >
+        <span
+          className={cn('zoom-slider-fill', gliding && 'zoom-slider-fill--gliding')}
+          style={{ width: `calc(var(--zoom-h) + (100% - var(--zoom-h)) * ${share})` }}
+        />
+      </div>
+      <ZoomIn aria-hidden="true" className="w-4 h-4 shrink-0 text-[hsl(var(--muted-foreground))]" />
     </div>
   );
 }
