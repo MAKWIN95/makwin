@@ -3,7 +3,7 @@ import { RotateCcw, ZoomIn, ZoomOut } from 'lucide-react';
 import Reveal from '@/components/Reveal';
 import Segmented from '@/components/Segmented';
 import { useI18n } from '@/lib/i18n';
-import { NO_EDIT, placePhoto, RATIOS, type FrameStyle, type PhotoEdit, type PhotoSize } from '@/lib/frame-photo';
+import { fitFor, fitsShape, NO_EDIT, placePhoto, RATIOS, type FrameStyle, type PhotoEdit, type PhotoSize } from '@/lib/frame-photo';
 import { cn } from '@/lib/utils';
 
 const MAX_ZOOM = 3;
@@ -25,11 +25,13 @@ interface Props {
   onStyle: (style: FrameStyle) => void;
   /** For a photo joining a carousel that already has its shape. */
   lockedShape?: boolean;
+  /** Every photo the shape applies to; the choice for those that do not fit is only offered when one does not. */
+  shapes?: PhotoSize[];
 }
 
 // The photo as it will be published. Drag it to place it, pinch or use the slider
 // to bring it closer; the shape and the borders are the same for the whole work.
-export default function PhotoEditor({ url, size, ratio, style, edit, onEdit, onStyle, lockedShape }: Props) {
+export default function PhotoEditor({ url, size, ratio, style, edit, onEdit, onStyle, lockedShape, shapes }: Props) {
   const { language } = useI18n();
   const es = language === 'es';
   const stage = useRef<HTMLDivElement>(null);
@@ -39,7 +41,9 @@ export default function PhotoEditor({ url, size, ratio, style, edit, onEdit, onS
 
   const frameH = FRAME_UNITS;
   const frameW = FRAME_UNITS * ratio;
-  const place = placePhoto(size, frameW, frameH, style.fit, edit);
+  const place = placePhoto(size, frameW, frameH, fitFor(size, ratio, style.fit), edit);
+  const thisFits = fitsShape(size, ratio);
+  const someDoNotFit = (shapes ?? [size]).some((shape) => !fitsShape(shape, ratio));
   const percent = (value: number, of: number) => `${(value / of) * 100}%`;
 
   const spread = () => {
@@ -166,42 +170,50 @@ export default function PhotoEditor({ url, size, ratio, style, edit, onEdit, onS
           </div>
         )}
 
-        <div className="photo-option">
-          <p className="photo-option-title">{es ? 'Si no encaja' : 'If it does not fit'}</p>
-          <Segmented
-            label={es ? 'Si la foto no encaja en el formato' : 'If the photo does not fit the shape'}
-            value={style.fit}
-            onChange={(fit) => onStyle({ ...style, fit })}
-            options={[
-              { value: 'contain', label: es ? 'Entera, con bordes' : 'Whole, with borders' },
-              { value: 'cover', label: es ? 'Recortarla' : 'Crop it' },
-            ]}
-          />
-        </div>
-
-        <Reveal open={style.fit === 'contain'}>
-          <div className="photo-option">
-            <p className="photo-option-title">{es ? 'Color de los bordes' : 'Border colour'}</p>
-            <div className="flex items-start gap-4" role="radiogroup" aria-label={es ? 'Color de los bordes' : 'Border colour'}>
-              <Swatch label={es ? 'Difuminado' : 'Blurred'} chosen={style.border === 'blur'} onPick={() => onStyle({ ...style, border: 'blur' })}>
-                <img src={url} alt="" className="w-full h-full object-cover scale-150 blur-[3px]" />
-              </Swatch>
-              {PLAIN_BORDERS.map((border) => (
-                <Swatch key={border.id} label={es ? border.es : border.en} chosen={style.border === border.value} onPick={() => onStyle({ ...style, border: border.value })}>
-                  <span className="block w-full h-full" style={{ background: border.value }} />
-                </Swatch>
-              ))}
-              <Swatch label={es ? 'Otro color' : 'Other colour'} chosen={isCustom}>
-                <span className="block w-full h-full" style={{ background: isCustom ? style.border : 'conic-gradient(#e66, #ec6, #6c6, #6ce, #66e, #e6c, #e66)' }} />
-                <input
-                  type="color"
-                  aria-label={es ? 'Elegir color de los bordes' : 'Choose border colour'}
-                  value={isCustom ? style.border : '#808080'}
-                  onChange={(event) => onStyle({ ...style, border: event.target.value })}
-                  className="absolute inset-0 opacity-0 cursor-pointer"
-                />
-              </Swatch>
+        <Reveal open={someDoNotFit}>
+          <div className="photo-options-group">
+            <div className="photo-option">
+              <p className="photo-option-title">{es ? 'Si no encaja' : 'If it does not fit'}</p>
+              <Segmented
+                label={es ? 'Si la foto no encaja en el formato' : 'If the photo does not fit the shape'}
+                value={style.fit}
+                onChange={(fit) => onStyle({ ...style, fit })}
+                options={[
+                  { value: 'contain', label: es ? 'Entera, con bordes' : 'Whole, with borders' },
+                  { value: 'cover', label: es ? 'Recortarla' : 'Crop it' },
+                ]}
+              />
             </div>
+            <Reveal open={thisFits}>
+              <p className="text-xs text-[hsl(var(--muted-foreground))]">
+                {es ? 'Esta foto ya encaja. Se aplica a las que no.' : 'This photo already fits. It applies to the ones that do not.'}
+              </p>
+            </Reveal>
+            <Reveal open={style.fit === 'contain'}>
+              <div className="photo-option">
+                <p className="photo-option-title">{es ? 'Color de los bordes' : 'Border colour'}</p>
+                <div className="flex items-start gap-4" role="radiogroup" aria-label={es ? 'Color de los bordes' : 'Border colour'}>
+                  <Swatch label={es ? 'Difuminado' : 'Blurred'} chosen={style.border === 'blur'} onPick={() => onStyle({ ...style, border: 'blur' })}>
+                    <img src={url} alt="" className="w-full h-full object-cover scale-150 blur-[3px]" />
+                  </Swatch>
+                  {PLAIN_BORDERS.map((border) => (
+                    <Swatch key={border.id} label={es ? border.es : border.en} chosen={style.border === border.value} onPick={() => onStyle({ ...style, border: border.value })}>
+                      <span className="block w-full h-full" style={{ background: border.value }} />
+                    </Swatch>
+                  ))}
+                  <Swatch label={es ? 'Otro color' : 'Other colour'} chosen={isCustom}>
+                    <span className="block w-full h-full" style={{ background: isCustom ? style.border : 'conic-gradient(#e66, #ec6, #6c6, #6ce, #66e, #e6c, #e66)' }} />
+                    <input
+                      type="color"
+                      aria-label={es ? 'Elegir color de los bordes' : 'Choose border colour'}
+                      value={isCustom ? style.border : '#808080'}
+                      onChange={(event) => onStyle({ ...style, border: event.target.value })}
+                      className="absolute inset-0 opacity-0 cursor-pointer"
+                    />
+                  </Swatch>
+                </div>
+              </div>
+            </Reveal>
           </div>
         </Reveal>
       </div>

@@ -446,6 +446,7 @@ export default function UploadWork() {
                           edit={edits[photos[selected].id] ?? NO_EDIT}
                           onEdit={(edit) => setEdits((current) => ({ ...current, [photos[selected].id]: edit }))}
                           onStyle={setFrame}
+                          shapes={photos.filter((photo) => photo.width && photo.height).map((photo) => ({ width: photo.width!, height: photo.height! }))}
                         />
                       )}
                       <UploadThumbs

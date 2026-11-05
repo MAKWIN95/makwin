@@ -789,12 +789,27 @@ a.work-media-link:active {
   padding-top: 0.25rem;
 }
 
-.photo-options > .reveal {
+.photo-options-group {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* A group that folds away takes its gap with it, so nothing jumps when it goes. */
+:is(.photo-options, .photo-options-group) > .reveal {
   margin-top: -1rem;
 }
 
-.photo-options > .reveal > .reveal-inner > .photo-option {
+:is(.photo-options, .photo-options-group) > .reveal > .reveal-inner > * {
   padding-top: 1rem;
+}
+
+:is(.photo-options, .photo-options-group) > .reveal:first-child {
+  margin-top: 0;
+}
+
+:is(.photo-options, .photo-options-group) > .reveal:first-child > .reveal-inner > * {
+  padding-top: 0;
 }
 
 .photo-option-title {

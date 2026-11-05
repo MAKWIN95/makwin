@@ -56,10 +56,19 @@ export function placePhoto(photo: PhotoSize, frameW: number, frameH: number, fit
   return { x: (frameW - w) / 2 + edit.x * roomX, y: (frameH - h) / 2 + edit.y * roomY, w, h, roomX, roomY };
 }
 
+/** A photo already shaped like the frame needs neither borders nor cropping. */
+export function fitsShape(photo: PhotoSize, ratio: number): boolean {
+  return Math.abs(photo.width / photo.height - ratio) / ratio < SAME_SHAPE;
+}
+
+// What is left of a near miss is too thin to see as a border, so it is trimmed instead.
+export function fitFor(photo: PhotoSize, ratio: number, fit: PhotoFit): PhotoFit {
+  return fitsShape(photo, ratio) ? 'cover' : fit;
+}
+
 // Untouched photos that already have the right shape keep their own file.
 export function needsFraming(photo: PhotoSize, ratio: number, edit: PhotoEdit): boolean {
-  const sameShape = Math.abs(photo.width / photo.height - ratio) / ratio < SAME_SHAPE;
-  return !sameShape || edit.zoom !== 1 || edit.x !== 0 || edit.y !== 0;
+  return !fitsShape(photo, ratio) || edit.zoom !== 1 || edit.x !== 0 || edit.y !== 0;
 }
 
 function canvasOf(width: number, height: number) {
@@ -98,7 +107,8 @@ export async function framePhoto(file: File, ratio: number, style: FrameStyle, e
     context.fillStyle = style.border;
     context.fillRect(0, 0, canvas.width, canvas.height);
   }
-  const place = placePhoto({ width: image.naturalWidth, height: image.naturalHeight }, canvas.width, canvas.height, style.fit, edit);
+  const photo = { width: image.naturalWidth, height: image.naturalHeight };
+  const place = placePhoto(photo, canvas.width, canvas.height, fitFor(photo, ratio, style.fit), edit);
   context.drawImage(image, place.x, place.y, place.w, place.h);
 
   let blob: Blob | null = null;

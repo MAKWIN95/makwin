@@ -308,6 +308,7 @@ export default function EditWorkModal({ isOpen, onClose, work, onSuccess }: Prop
                     onEdit={(edit) => setEdits((all) => ({ ...all, [current.id]: edit }))}
                     onStyle={setFrame}
                     lockedShape
+                    shapes={photos.filter((photo) => photo.file && photo.width && photo.height).map((photo) => ({ width: photo.width!, height: photo.height! }))}
                   />
                 </div>
               )}
