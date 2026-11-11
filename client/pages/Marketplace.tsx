@@ -7,6 +7,7 @@ import { Filter } from 'lucide-react';
 import { supabase, Work } from '@/lib/supabase';
 import { useStarsBackground } from '@/hooks/use-stars-background';
 import { useI18n } from '@/lib/i18n';
+import { smallImage } from '@/lib/small-photo';
 
 export default function Marketplace() {
   const { language } = useI18n();
@@ -103,7 +104,7 @@ export default function Marketplace() {
                   <article key={item.id} className="rounded-lg border border-[hsl(var(--border))] overflow-hidden bg-[hsl(var(--card))]">
                     <Link to={`/work/${item.id}`} state={{ work: item }} onClick={(event) => rememberOpening(item.id, event.currentTarget.querySelector('img') ?? event.currentTarget)} className="block h-56 bg-[hsl(var(--muted))]">
                       {image ? (
-                        <img src={image} alt={item.title} className="w-full h-full object-cover" loading="lazy" />
+                        <img {...smallImage(image)} alt={item.title} className="w-full h-full object-cover" loading="lazy" />
                       ) : (
                         <div className="h-full flex items-center justify-center text-4xl">🎨</div>
                       )}

@@ -6,6 +6,7 @@ import { prepareImage, readImage } from '@/lib/compress-image';
 import { DEFAULT_FRAME, framePhoto, frameRatio, needsFraming, NO_EDIT, type FrameStyle, type PhotoEdit } from '@/lib/frame-photo';
 import { DEFAULT_POEM_FONT, loadPoemFont, poemFontStyle, POEM_FONTS } from '@/lib/poem-fonts';
 import { supabase } from '@/lib/supabase';
+import { CACHE_FOR_A_YEAR, uploadSmallCopy } from '@/lib/small-photo';
 import { useAuth } from '@/lib/AuthContext';
 import { useI18n } from '@/lib/i18n';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
@@ -246,7 +247,10 @@ export default function UploadWork() {
   const uploadOnce = async (item: UploadMedia, path: string): Promise<string> => {
     const known = uploaded.current.get(item.id);
     if (known) return known;
-    const { error: uploadError } = await supabase.storage.from('works').upload(path, item.file, { upsert: true });
+    const [{ error: uploadError }] = await Promise.all([
+      supabase.storage.from('works').upload(path, item.file, { upsert: true, cacheControl: CACHE_FOR_A_YEAR }),
+      uploadSmallCopy(item.file, path),
+    ]);
     if (uploadError) throw new Error(uploadError.message);
     const { data: { publicUrl } } = supabase.storage.from('works').getPublicUrl(path);
     uploaded.current.set(item.id, publicUrl);

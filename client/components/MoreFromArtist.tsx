@@ -4,6 +4,7 @@ import { ChevronLeft, ChevronRight, FileText, Loader2, Music, Play } from 'lucid
 import { supabase, type Profile, type Work } from '@/lib/supabase';
 import { useI18n } from '@/lib/i18n';
 import { rememberOpening } from '@/lib/work-opening';
+import { smallImage } from '@/lib/small-photo';
 
 // They come a few at a time as you slide, so an artist with hundreds costs nothing until you go looking.
 const AT_ONCE = 12;
@@ -126,7 +127,7 @@ export default function MoreFromArtist({ author, artistId, workId, isMine }: { a
                 className="thumb-press relative shrink-0 snap-start w-24 h-24 rounded-xl overflow-hidden bg-[hsl(var(--muted))] outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))]"
               >
                 {picture ? (
-                  <img src={picture} alt={other.title} loading="lazy" decoding="async" draggable={false} className="w-full h-full object-cover" />
+                  <img {...smallImage(picture)} alt={other.title} loading="lazy" decoding="async" draggable={false} className="w-full h-full object-cover" />
                 ) : (
                   <span className="w-full h-full p-2 flex items-end text-[11px] leading-tight text-[hsl(var(--foreground))]"><span className="line-clamp-3">{other.title}</span></span>
                 )}

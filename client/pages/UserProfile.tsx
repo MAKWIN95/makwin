@@ -16,6 +16,9 @@ import ProfileWorksBar, { type WorksChoice } from '@/components/ProfileWorksBar'
 import type { TranslationKey } from '@/lib/i18n/translations';
 import FollowersModal from '@/components/FollowersModal';
 import { Camera, Check, X, ExternalLink, Loader2, Pencil, Plus } from 'lucide-react';
+import { CACHE_FOR_A_YEAR, makeSmallPhoto } from '@/lib/small-photo';
+
+const AVATAR_BOX = { width: 512, height: 512 };
 
 const TAKEN_DOWN = 'retiradas';
 const KINDS: [string, TranslationKey][] = [
@@ -306,7 +309,13 @@ export default function UserProfile() {
     setAvatarUploading(true);
     const path = `${user.id}/avatar.${ext}`;
     
-    const { error: uploadError } = await supabase.storage.from('avatars').upload(path, file, { upsert: true });
+    // A face is never shown bigger than a few centimetres: 512 px is plenty and weighs a fraction.
+    const light = await makeSmallPhoto(file, AVATAR_BOX).catch(() => file);
+    const { error: uploadError } = await supabase.storage.from('avatars').upload(path, light, {
+      upsert: true,
+      cacheControl: CACHE_FOR_A_YEAR,
+      contentType: light.type || file.type,
+    });
     
     if (uploadError) {
       console.error('[Avatar] Upload failed:', uploadError);

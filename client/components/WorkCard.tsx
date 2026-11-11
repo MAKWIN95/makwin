@@ -16,6 +16,7 @@ import { useWorkExtras } from '@/lib/work-extras';
 import { loadPoemFont, poemFontStyle } from '@/lib/poem-fonts';
 import { shareWork } from '@/lib/shareWork';
 import { rememberOpening } from '@/lib/work-opening';
+import { smallImage } from '@/lib/small-photo';
 
 interface Props {
   work: Work;
@@ -195,7 +196,7 @@ export default function WorkCard({ work: givenWork, priorityImage = false, image
 
         {isCarousel && (
           <div className="work-stack-back" aria-hidden="true">
-            <img src={moreImages[0]} alt="" loading="lazy" decoding="async" />
+            <img {...smallImage(moreImages[0])} alt="" loading="lazy" decoding="async" />
           </div>
         )}
         <div className="work-stack-top relative" data-stacked={isCarousel || undefined}>
@@ -210,7 +211,7 @@ export default function WorkCard({ work: givenWork, priorityImage = false, image
         <Link ref={mediaLink} to={linkPath} state={linkState} aria-label={work.title} onClick={(event) => { setTapped(true); handleWorkTap(event); }} className="work-media-link relative block rounded-2xl touch-manipulation select-none transition-[filter] duration-300 ease-out group-hover:[filter:drop-shadow(0_10px_16px_rgba(0,0,0,0.22))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))] focus-visible:ring-offset-2 focus-visible:ring-offset-[hsl(var(--background))]">
         {hasImage ? (
           <img
-            src={work.cover_url ?? work.file_url ?? ''}
+            {...smallImage(work.cover_url ?? work.file_url)}
             alt={work.title}
             width={imageDimensions?.width}
             height={imageDimensions?.height}

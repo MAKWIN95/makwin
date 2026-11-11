@@ -4,6 +4,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import { fitArtwork } from '@/lib/fit-artwork';
+import { SharpImage } from '@/components/SharpImage';
 
 interface Props {
   images: string[];
@@ -321,7 +322,7 @@ export default function WorkCarousel({ images, alt, onImageClick, className }: P
               style={{ x: card.x, y: card.y, scale: card.scale, rotate: card.rotate, opacity: card.opacity, zIndex: card.z }}
               className={cn('deck-card', position !== 0 && 'pointer-events-none')}
             >
-              <img
+              <SharpImage
                 ref={fitArtwork}
                 src={src}
                 alt={position === 0 ? `${alt} (${slide + 1}/${count})` : ''}

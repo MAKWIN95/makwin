@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import WorkTypeIcon from './WorkTypeIcon';
+import { smallImage } from '@/lib/small-photo';
 
 interface PublishedWork {
   submissionId: string;
@@ -111,7 +112,7 @@ function WorkCard({ work, onNavigate }: WorkCardProps) {
         })()}
         {work.fileUrl && !isPoem ? (
           <img
-            src={work.fileUrl}
+            {...smallImage(work.fileUrl)}
             alt={work.title}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
           />

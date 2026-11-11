@@ -8,6 +8,7 @@ import { useStarsBackground } from '@/hooks/use-stars-background';
 import { loadNotifications, markAllRead, type AppNotification } from '@/lib/notifications';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import { smallImage } from '@/lib/small-photo';
 
 const ICONS: Record<AppNotification['kind'], ComponentType<{ className?: string }>> = {
   work_held: Clock,
@@ -166,7 +167,7 @@ export default function Notifications() {
                       {detail && <span className="block mt-0.5 text-sm text-[hsl(var(--muted-foreground))]">{detail}</span>}
                       <span className="block mt-1 text-xs text-[hsl(var(--muted-foreground))]">{whenFor(item.created_at, language)}</span>
                     </span>
-                    {picture && <img src={picture} alt="" loading="lazy" decoding="async" draggable={false} className="w-11 h-11 shrink-0 rounded-lg object-cover" />}
+                    {picture && <img {...smallImage(picture)} alt="" loading="lazy" decoding="async" draggable={false} className="w-11 h-11 shrink-0 rounded-lg object-cover" />}
                     {!item.read_at && <span aria-label={es ? 'Nueva' : 'New'} className="w-2 h-2 mt-1.5 shrink-0 rounded-full bg-red-500" />}
                   </>
                 );

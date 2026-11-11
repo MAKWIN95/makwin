@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { authHeaders } from '@/lib/adminApi';
 import { useI18n } from '@/lib/i18n';
+import { smallImage } from '@/lib/small-photo';
 
 export interface HeldWork {
   id: string;
@@ -92,7 +93,7 @@ export default function AdminHeldWorks({ works, setWorks }: { works: HeldWork[];
                   {work.work_type === 'video' && work.file_url && isRevealed ? (
                     <video src={work.file_url} controls className="w-full h-full object-contain" />
                   ) : image ? (
-                    <img src={image} alt={work.title} className={`w-full h-full object-cover ${isRevealed ? '' : 'blur-xl scale-110'}`} />
+                    <img {...smallImage(image)} alt={work.title} className={`w-full h-full object-cover ${isRevealed ? '' : 'blur-xl scale-110'}`} />
                   ) : null}
                   {!isRevealed && (
                     <button
@@ -128,7 +129,7 @@ export default function AdminHeldWorks({ works, setWorks }: { works: HeldWork[];
                   <div className="flex flex-wrap gap-2 mb-3">
                     {work.extra_images.map((url) => (
                       <div key={url} className="w-16 h-16 overflow-hidden rounded bg-[hsl(var(--muted))]">
-                        <img src={url} alt="" className={`w-full h-full object-cover ${isRevealed ? '' : 'blur-md scale-110'}`} />
+                        <img {...smallImage(url)} alt="" className={`w-full h-full object-cover ${isRevealed ? '' : 'blur-md scale-110'}`} />
                       </div>
                     ))}
                   </div>

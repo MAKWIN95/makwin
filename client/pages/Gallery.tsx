@@ -10,6 +10,7 @@ import MasonryGrid, { type MasonryColumns } from '@/components/MasonryGrid';
 import { useI18n } from '@/lib/i18n';
 import { useStarsBackground } from '@/hooks/use-stars-background';
 import { PageShown, returnToPage } from '@/lib/header-morph';
+import { smallUrl } from '@/lib/small-photo';
 
 const PAGE_SIZE = 40;
 
@@ -152,7 +153,7 @@ export default function Gallery() {
               ? work.file_url
               : null
           );
-          return src ? [work.id, await preloadImage(src)] as const : null;
+          return src ? [work.id, (await preloadImage(smallUrl(src))) ?? (await preloadImage(src))] as const : null;
         })
       );
 

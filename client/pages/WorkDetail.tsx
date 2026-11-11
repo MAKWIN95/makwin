@@ -17,6 +17,7 @@ import EditWorkModal from '@/components/EditWorkModal';
 import DeleteWorkModal from '@/components/DeleteWorkModal';
 import { flyFrom, openingOf } from '@/lib/work-opening';
 import { fitArtwork } from '@/lib/fit-artwork';
+import { SharpImage } from '@/components/SharpImage';
 import { loadPoemFont, poemFontStyle } from '@/lib/poem-fonts';
 import { useDoubleTap } from '@/hooks/use-double-tap';
 import FollowButton from '@/components/FollowButton';
@@ -360,7 +361,7 @@ export default function WorkDetail() {
             {/* Primary Image/Cover */}
             {work.cover_url && (
               <div data-work-hero className="flex items-start justify-center lg:pt-12 lg:min-h-[50vh]">
-                <img ref={fitArtwork} src={work.cover_url} alt={work.title} decoding="sync" onClick={handleImageTap} className="touch-manipulation select-none rounded-lg border border-[rgba(255,255,255,0.1)] max-h-[var(--art-room)] max-w-full w-auto h-auto object-contain" />
+                <SharpImage ref={fitArtwork} src={work.cover_url} alt={work.title} decoding="sync" onClick={handleImageTap} className="touch-manipulation select-none rounded-lg border border-[rgba(255,255,255,0.1)] max-h-[var(--art-room)] max-w-full w-auto h-auto object-contain" />
               </div>
             )}
 
@@ -385,7 +386,7 @@ export default function WorkDetail() {
 
             {(work.work_type === 'pintura' || work.work_type === 'fotografia') && work.file_url && !work.extra_images?.length && work.file_url !== work.cover_url && (
               <div data-work-hero={work.cover_url ? undefined : ''} className="flex items-center justify-center lg:min-h-[80vh]">
-                <img ref={fitArtwork} src={work.file_url} alt={work.title} decoding="sync" onClick={handleImageTap} className="touch-manipulation select-none rounded-lg border border-[rgba(255,255,255,0.1)] max-h-[var(--art-room)] max-w-full w-auto h-auto object-contain" />
+                <SharpImage ref={fitArtwork} src={work.file_url} alt={work.title} decoding="sync" onClick={handleImageTap} className="touch-manipulation select-none rounded-lg border border-[rgba(255,255,255,0.1)] max-h-[var(--art-room)] max-w-full w-auto h-auto object-contain" />
               </div>
             )}
 
