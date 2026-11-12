@@ -14,6 +14,11 @@ describe('small-photo', () => {
     expect(smallUrl(`${BASE}/works/u/1-0.JPEG?t=5`)).toBe(`${BASE}/works/u/1-0.sm.jpg?t=5`);
   });
 
+  it('does the same for photos kept in R2', () => {
+    expect(smallUrl('https://media.makwin.art/u/1-0.png')).toBe('https://media.makwin.art/u/1-0.sm.jpg');
+    expect(smallUrl('https://media.makwin.art/u/1.mp4')).toBe('https://media.makwin.art/u/1.mp4');
+  });
+
   it('leaves everything else alone', () => {
     expect(smallUrl(`${BASE}/works/u/1-0.sm.jpg`)).toBe(`${BASE}/works/u/1-0.sm.jpg`);
     expect(smallUrl(`${BASE}/works/u/1.mp4`)).toBe(`${BASE}/works/u/1.mp4`);

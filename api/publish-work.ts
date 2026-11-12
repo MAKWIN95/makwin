@@ -7,6 +7,7 @@ import { requestBaseUrl } from '../server/lib/email.js';
 import { notify } from '../server/lib/notify.js';
 import { findBlockedTerms } from '../server/lib/moderation-text.js';
 import { withSmallCopies } from '../shared/photo-paths.js';
+import { keyOf, publicUrlOf, r2Config, removeObjects, signedUpload, browserHeaders } from '../server/lib/r2.js';
 
 // Works are saved here and the artist moves on straight away. The automatic check
 // runs in the background: the work becomes public when it passes, and otherwise
@@ -37,22 +38,56 @@ function cleanHashtags(value: unknown): string[] {
   return Array.isArray(value) ? value.map((tag) => cleanText(tag, 60)).filter(Boolean).slice(0, 30) : [];
 }
 
-// Only files the same person uploaded: the check downloads these URLs.
+const supabaseWorks = () => `${supabaseUrl.replace(/\/$/, '')}/storage/v1/object/public/works/`;
+
+// Only files the same person uploaded, wherever they are kept: the check downloads these URLs.
 function ownFileUrl(value: unknown, userId: string): string | null {
   const url = String(value ?? '');
-  const prefix = `${supabaseUrl.replace(/\/$/, '')}/storage/v1/object/public/works/${userId}/`;
-  return url.startsWith(prefix) ? url : null;
+  if (url.startsWith(`${supabaseWorks()}${userId}/`)) return url;
+  const r2 = r2Config();
+  return r2 && url.startsWith(`${r2.publicUrl}/${userId}/`) && !url.includes('..') ? url : null;
 }
 
 // A file that fails to go is only wasted space, so it never fails what was asked.
 async function removeOwnFiles(urls: Array<string | null>, userId: string) {
-  const prefix = `${supabaseUrl.replace(/\/$/, '')}/storage/v1/object/public/works/`;
-  const paths = urls
-    .filter((url): url is string => !!url && !!ownFileUrl(url, userId))
-    .map((url) => decodeURIComponent(url.slice(prefix.length)));
-  if (!paths.length) return;
-  const { error } = await supabaseAdmin.storage.from('works').remove(withSmallCopies(paths));
+  const own = urls.filter((url): url is string => !!url && !!ownFileUrl(url, userId));
+  const r2 = r2Config();
+  const inR2 = own.map((url) => keyOf(r2, url)).filter((key): key is string => !!key);
+  const inSupabase = own
+    .filter((url) => url.startsWith(supabaseWorks()))
+    .map((url) => decodeURIComponent(url.slice(supabaseWorks().length)));
+  if (r2 && inR2.length) await removeObjects(r2, withSmallCopies(inR2));
+  if (!inSupabase.length) return;
+  const { error } = await supabaseAdmin.storage.from('works').remove(withSmallCopies(inSupabase));
   if (error) console.error('[PUBLISH-WORK] Could not remove files:', error.message);
+}
+
+// What one file may weigh: a photo and its light copy, a song, about a minute of 1080p video.
+const MAX_BYTES: Record<string, number> = { image: 15 * 1024 * 1024, audio: 20 * 1024 * 1024, video: 25 * 1024 * 1024 };
+const MAX_FILES_AT_ONCE = 24;
+
+// The phone asks before sending: one signed permission per file, only inside the
+// artist's own folder, and only for that type and size. Without R2 it is told to use
+// Supabase, as before.
+async function signUploads(req: VercelRequest, res: VercelResponse, userId: string) {
+  const r2 = r2Config();
+  if (!r2) return res.status(200).json({ storage: 'supabase' });
+  const files = Array.isArray(req.body?.files) ? req.body.files : [];
+  if (!files.length || files.length > MAX_FILES_AT_ONCE) return res.status(400).json({ error: 'Datos no válidos' });
+  const ownPath = new RegExp(`^${userId}/(covers/)?[A-Za-z0-9._-]{1,120}$`);
+  const uploads = [];
+  for (const file of files) {
+    const path = String(file?.path ?? '');
+    const type = String(file?.type ?? '').toLowerCase();
+    const size = Number(file?.size);
+    const kind = type.split('/')[0];
+    const valid = ownPath.test(path) && !path.includes('..')
+      && /^(image|audio|video)\/[a-z0-9.+-]+$/.test(type) && !type.includes('svg')
+      && Number.isInteger(size) && size > 0 && size <= (MAX_BYTES[kind] ?? 0);
+    if (!valid) return res.status(400).json({ error: 'Datos no válidos' });
+    uploads.push({ path, url: signedUpload(r2, path, type, size), headers: browserHeaders(type), publicUrl: publicUrlOf(r2, path) });
+  }
+  return res.status(200).json({ storage: 'r2', uploads });
 }
 
 function cleanPoemFont(value: unknown): string | null {
@@ -280,6 +315,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     const user = await getRequestUser(req.headers.authorization);
     if (!user) return res.status(401).json({ error: 'No autorizado' });
+    if (req.method === 'POST' && req.query.action === 'upload') return await signUploads(req, res, user.id);
     if (req.method === 'POST') return await createWork(req, res, user.id);
     if (req.method === 'PATCH') return await editWork(req, res, user.id);
     if (req.method === 'DELETE') return await deleteWork(req, res, user.id);

@@ -4,6 +4,8 @@ import { getRequestUser, roleOf, signedInRecently, type AdminRole } from '../ser
 import { alertIfBacklogReached } from '../server/lib/admin-backlog.js';
 import { HELP_ADDRESS, requestBaseUrl, sendEmail } from '../server/lib/email.js';
 import { notify } from '../server/lib/notify.js';
+import { keyOf, r2Config, removeObjects } from '../server/lib/r2.js';
+import { withSmallCopies } from '../shared/photo-paths.js';
 
 // policy_reports only lets reporters read their own rows, so moderators and the
 // team notification go through this endpoint.
@@ -151,9 +153,13 @@ async function decideHeldWork(req: VercelRequest, res: VercelResponse) {
   } else {
     const { error: deleteError } = await supabaseAdmin.from('works').delete().eq('id', id);
     if (deleteError) throw deleteError;
-    const paths = [work.file_url, work.cover_url, ...(work.extra_images ?? [])].map(storagePath).filter((path): path is string => !!path);
+    const urls = [work.file_url, work.cover_url, ...(work.extra_images ?? [])];
+    const r2 = r2Config();
+    const keys = urls.map((url) => keyOf(r2, url)).filter((key): key is string => !!key);
+    if (r2 && keys.length) await removeObjects(r2, withSmallCopies(keys));
+    const paths = urls.map(storagePath).filter((path): path is string => !!path);
     if (paths.length) {
-      const { error: storageError } = await supabaseAdmin.storage.from('works').remove(paths);
+      const { error: storageError } = await supabaseAdmin.storage.from('works').remove(withSmallCopies(paths));
       if (storageError) console.warn('[REPORTS] Could not remove held files:', storageError.message);
     }
   }

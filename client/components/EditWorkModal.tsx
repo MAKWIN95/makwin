@@ -10,7 +10,7 @@ import { useBodyScrollLock } from '@/hooks/use-body-scroll-lock';
 import { cn } from '@/lib/utils';
 import { prepareImage, readImage } from '@/lib/compress-image';
 import { DEFAULT_FRAME, framePhoto, needsFraming, NO_EDIT, type FrameStyle, type PhotoEdit } from '@/lib/frame-photo';
-import { CACHE_FOR_A_YEAR, uploadSmallCopy } from '@/lib/small-photo';
+import { uploadWorkFile } from '@/lib/work-storage';
 import { DEFAULT_POEM_FONT, loadPoemFont, POEM_FONTS } from '@/lib/poem-fonts';
 import { rememberWorkExtras, useWorkExtras } from '@/lib/work-extras';
 import PhotoEditor from '@/components/PhotoEditor';
@@ -172,12 +172,7 @@ export default function EditWorkModal({ isOpen, onClose, work, onSuccess }: Prop
         ? await framePhoto(photo.file, ratio, frame, edit)
         : photo.file;
       const path = `${user?.id}/${stamp}-${position}.${file.name.split('.').pop()}`;
-      const [{ error: uploadError }] = await Promise.all([
-        supabase.storage.from('works').upload(path, file, { upsert: true, cacheControl: CACHE_FOR_A_YEAR }),
-        uploadSmallCopy(file, path),
-      ]);
-      if (uploadError) throw new Error(uploadError.message);
-      urls.push(supabase.storage.from('works').getPublicUrl(path).data.publicUrl);
+      urls.push(await uploadWorkFile(file, path));
     }
     return urls;
   };

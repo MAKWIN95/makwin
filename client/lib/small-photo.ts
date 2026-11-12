@@ -1,6 +1,5 @@
 import { readImage } from './compress-image';
-import { supabase } from './supabase';
-import { isPhotoPath, smallPathOf } from '@shared/photo-paths';
+import { isPhotoPath, isWorkFileUrl, smallPathOf } from '@shared/photo-paths';
 
 // Every published photo also goes up as a light copy, for the places that show it
 // small (feed, grids, notifications). The full one is only fetched when a work is
@@ -13,8 +12,6 @@ const SMALL_QUALITY = 0.82;
 /** A year: every file has its own name, so a cached copy never goes stale. */
 export const CACHE_FOR_A_YEAR = '31536000';
 
-const WORKS_FOLDER = '/storage/v1/object/public/works/';
-
 export { isPhotoPath, smallPathOf };
 
 /** The light copy of a published photo; anything else comes back as it is. */
@@ -23,7 +20,7 @@ export function smallUrl(url: string | null | undefined): string | null | undefi
 export function smallUrl(url: string | null | undefined) {
   if (!url) return url;
   const [base, query] = url.split('?');
-  if (!base.includes(WORKS_FOLDER) || !isPhotoPath(base)) return url;
+  if (!isWorkFileUrl(base) || !isPhotoPath(base)) return url;
   return smallPathOf(base) + (query ? `?${query}` : '');
 }
 
@@ -79,21 +76,13 @@ export async function makeSmallPhoto(file: File, box = { width: SMALL_WIDTH, hei
   return blob.size < file.size ? blob : file;
 }
 
-/**
- * Puts the light copy next to a photo that is going up. It never stops a publish:
- * without it, the feed simply shows the full photo.
- */
-export async function uploadSmallCopy(file: File, path: string): Promise<void> {
-  if (!file.type.startsWith('image/') || !isPhotoPath(path)) return;
+/** The light copy to send with a photo, or nothing: without it the feed simply shows the full photo. */
+export async function smallCopyFor(file: Blob, path: string): Promise<Blob | null> {
+  if (!file.type.startsWith('image/') || !isPhotoPath(path)) return null;
   try {
-    const small = await makeSmallPhoto(file);
-    const { error } = await supabase.storage.from('works').upload(smallPathOf(path), small, {
-      upsert: true,
-      cacheControl: CACHE_FOR_A_YEAR,
-      contentType: small.type || 'image/jpeg',
-    });
-    if (error) console.warn('[small-photo] The light copy did not go up:', error.message);
+    return await makeSmallPhoto(file as File);
   } catch (err) {
     console.warn('[small-photo] Could not make the light copy:', err);
+    return null;
   }
 }

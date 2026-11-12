@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { sendEmail } from "./email.js";
+import { listObjects, r2Config, removeObjects } from "./r2.js";
 
 const supabaseAdminUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
 const supabaseAdminKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -118,6 +119,8 @@ export async function deleteAccountForUser(userId: string): Promise<void> {
 
   // Known before anything goes: not being able to tell what is theirs stops the deletion here.
   const files = await Promise.all(FILE_BUCKETS.map((bucket) => listFiles(bucket, userId)));
+  const r2 = r2Config();
+  const r2Files = r2 ? await listObjects(r2, `${userId}/`) : [];
 
   // Profile, works, likes, saves, follows, reports, help messages and notifications all cascade from the auth user.
   const { error: deleteAuthError } = await supabaseAdmin.auth.admin.deleteUser(userId);
@@ -133,6 +136,7 @@ export async function deleteAccountForUser(userId: string): Promise<void> {
 
   // Their files go last: if the account could not be deleted, its works still have their pictures.
   await Promise.all(FILE_BUCKETS.map((bucket, index) => removeFiles(bucket, files[index])));
+  if (r2 && r2Files.length) await removeObjects(r2, r2Files);
 
   if (email) await sendDeletionConfirmation(email, metadata?.language_preference);
 }

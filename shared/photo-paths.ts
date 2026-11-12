@@ -15,3 +15,12 @@ export function smallPathOf(path: string): string {
 export function withSmallCopies(paths: string[]): string[] {
   return paths.flatMap((path) => (isPhotoPath(path) ? [path, smallPathOf(path)] : [path]));
 }
+
+/** Where the works' files are seen once they live in Cloudflare R2 (R2_PUBLIC_URL must be this). */
+export const MEDIA_ORIGIN = 'https://media.makwin.art';
+const SUPABASE_WORKS = '/storage/v1/object/public/works/';
+
+/** A file of a published work, in either place it may be kept. */
+export function isWorkFileUrl(url: string): boolean {
+  return url.includes(SUPABASE_WORKS) || url.startsWith(`${MEDIA_ORIGIN}/`);
+}
