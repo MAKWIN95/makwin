@@ -21,6 +21,7 @@ const REASONS: Record<string, { es: string; en: string }> = {
   gore: { es: 'Violencia gráfica', en: 'Graphic violence' },
   spam: { es: 'Spam', en: 'Spam' },
   acoso: { es: 'Acoso o abuso', en: 'Harassment or abuse' },
+  ia: { es: 'Hecho con IA', en: 'Made with AI' },
   otro: { es: 'Otro', en: 'Other' },
 };
 
@@ -67,10 +68,12 @@ export default function AdminReports({ reports, setReports }: Props) {
 
   // A second reason travels at the start of the details as "[spam] ...".
   const readReport = (report: Report) => {
-    const match = report.details?.match(/^\[(\w+)\]\s?/);
+    const match = report.details?.match(/^\[([\w-]+)\]\s?/);
     const label = (reason: string) => REASONS[reason]?.[language] ?? reason;
+    // "[ia-only]": the person only chose "made with AI"; the stored "otro" is a placeholder.
+    const list = match?.[1] === 'ia-only' ? ['ia'] : [report.reason, ...(match ? [match[1]] : [])];
     return {
-      reasons: [report.reason, ...(match ? [match[1]] : [])].map(label).join(' + '),
+      reasons: list.map(label).join(' + '),
       details: (match ? report.details!.slice(match[0].length) : report.details) || null,
     };
   };

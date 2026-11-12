@@ -26,6 +26,7 @@ const REASONS: Record<string, string> = {
   gore: 'Violencia gráfica',
   spam: 'Spam',
   acoso: 'Acoso o abuso',
+  ia: 'Hecho con IA',
   otro: 'Otro',
 };
 
@@ -59,8 +60,12 @@ async function createReport(req: VercelRequest, res: VercelResponse) {
   if (existing) return res.status(200).json({ success: true });
 
   // The reason column holds one value: a second one travels at the start of details.
-  const [reason, secondReason] = chosen;
-  const storedDetails = [secondReason ? `[${secondReason}]` : '', cleanDetails].filter(Boolean).join(' ');
+  // The column only accepts the original reasons, so "made with AI" always travels in the
+  // details; on its own it is stored as "otro" marked [ia-only], so the panel shows just AI.
+  const others = chosen.filter((value) => value !== 'ia');
+  const reason = others[0] ?? 'otro';
+  const marker = chosen.includes('ia') ? (others.length ? 'ia' : 'ia-only') : others[1];
+  const storedDetails = [marker ? `[${marker}]` : '', cleanDetails].filter(Boolean).join(' ');
   const { error } = await supabaseAdmin.from('policy_reports').insert({
     work_id: workId,
     reporter_id: user.id,

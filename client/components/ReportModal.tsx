@@ -23,6 +23,7 @@ const REPORT_REASONS = [
   { value: 'gore', label: 'Violencia gráfica', labelEn: 'Graphic violence' },
   { value: 'spam', label: 'Spam', labelEn: 'Spam' },
   { value: 'acoso', label: 'Acoso/Abuso', labelEn: 'Harassment' },
+  { value: 'ia', label: 'Hecho con IA', labelEn: 'Made with AI' },
   { value: 'otro', label: 'Otro', labelEn: 'Other' },
 ];
 

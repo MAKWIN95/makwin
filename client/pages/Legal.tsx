@@ -47,7 +47,10 @@ function Block({ block, es }: { block: LegalBlock; es: boolean }): ReactNode {
   if ('ul' in block) {
     return (
       <ul className="mb-4 space-y-2 pl-5 list-disc marker:text-[hsl(var(--muted-foreground)/0.6)]">
-        {block.ul.map((item) => <li key={item}><Filled text={item} es={es} /></li>)}
+        {block.ul
+          // A tax id or address not given yet is left out rather than shown as missing.
+          .filter((item) => !(item.includes('{taxId}') && !LEGAL_OWNER.taxId) && !(item.includes('{address}') && !LEGAL_OWNER.address))
+          .map((item) => <li key={item}><Filled text={item} es={es} /></li>)}
       </ul>
     );
   }
