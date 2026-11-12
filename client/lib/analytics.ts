@@ -2,7 +2,7 @@
 // It only runs on the real site, so tests, previews and localhost are never counted.
 
 /** The site's id in Umami (public: it is visible in every page that loads the script). */
-export const UMAMI_WEBSITE_ID = '';
+export const UMAMI_WEBSITE_ID = '637ee074-4b15-4ec8-bef0-38aba142b482';
 
 const COUNTED_HOSTS = ['www.makwin.art', 'makwin.art', 'makwin.vercel.app'];
 
