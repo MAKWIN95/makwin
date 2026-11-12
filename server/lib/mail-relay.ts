@@ -223,6 +223,7 @@ export async function relay(message: MailMessage, priority: Priority = 'normal',
     try {
       const { id } = await p.send(message);
       await book.countSent(p.name).catch(() => undefined);
+      console.log(`[MAIL] sent via ${p.name} (${priority})`);
       if (priority === 'normal' && options.drain !== false) {
         await flushQueue({ providers, book, max: RIDE_ALONG }).catch((error) => console.error('[MAIL] Queue not drained:', error?.message ?? error));
       }
