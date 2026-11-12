@@ -1,3 +1,4 @@
+import { timingSafeEqual } from 'node:crypto';
 import { createClient } from '@supabase/supabase-js';
 import { waitUntil } from '@vercel/functions';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
@@ -311,8 +312,76 @@ async function deleteWork(req: VercelRequest, res: VercelResponse, userId: strin
   return res.status(200).json({ id });
 }
 
+// ONE-OFF (12-11-2026): moves the works that still point at Supabase over to R2, one
+// work per call. Only the service key opens it. Each file is copied and read back
+// whole before the work's addresses change, and only if they are still the ones
+// read here. Nothing in Supabase is removed. To be deleted once the move is done.
+function isServiceKey(header: string | undefined): boolean {
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+  const given = Buffer.from(String(header ?? '').replace(/^Bearer /, ''));
+  const expected = Buffer.from(key);
+  return !!key && given.length === expected.length && timingSafeEqual(given, expected);
+}
+
+async function copyToR2(r2: NonNullable<ReturnType<typeof r2Config>>, key: string, from: string): Promise<{ ok: boolean; size: number; missing?: boolean }> {
+  const source = await fetch(from);
+  if (source.status === 404 || source.status === 400) return { ok: false, size: 0, missing: true };
+  if (!source.ok) throw new Error(`read ${source.status} ${key}`);
+  const body = Buffer.from(await source.arrayBuffer());
+  const type = source.headers.get('content-type') || 'application/octet-stream';
+  const put = await fetch(signedUpload(r2, key, type, body.length), { method: 'PUT', headers: { 'content-type': type, 'cache-control': 'public, max-age=31536000, immutable' }, body });
+  if (!put.ok) throw new Error(`write ${put.status} ${key}`);
+  const back = await fetch(`${publicUrlOf(r2, key)}?check=${Date.now()}`);
+  const copy = Buffer.from(await back.arrayBuffer());
+  return { ok: back.ok && copy.equals(body), size: body.length };
+}
+
+async function moveToR2(req: VercelRequest, res: VercelResponse) {
+  if (!isServiceKey(req.headers.authorization)) return res.status(401).json({ error: 'No autorizado' });
+  const r2 = r2Config();
+  if (!r2) return res.status(503).json({ error: 'r2 off' });
+  const old = supabaseWorks();
+  const { data: works, error } = await supabaseAdmin.from('works').select('id, file_url, cover_url, extra_images');
+  if (error) throw error;
+  const isOld = (url: string | null) => !!url && url.startsWith(old);
+  const pending = (works ?? []).filter((w) => [w.file_url, w.cover_url, ...(w.extra_images ?? [])].some(isOld));
+  const work = pending[0];
+  if (!work) return res.status(200).json({ done: true, left: 0 });
+  const dryRun = req.query.dry === '1';
+
+  const moved = new Map<string, string>();
+  const copied: Array<{ key: string; size: number; small?: string }> = [];
+  for (const url of [work.file_url, work.cover_url, ...(work.extra_images ?? [])]) {
+    if (!isOld(url) || moved.has(url)) continue;
+    const key = decodeURIComponent(url.slice(old.length).split('?')[0]);
+    if (dryRun) { moved.set(url, publicUrlOf(r2, key)); copied.push({ key, size: 0 }); continue; }
+    const main = await copyToR2(r2, key, url);
+    if (!main.ok) return res.status(500).json({ id: work.id, error: `copy failed ${key}`, missing: main.missing ?? false });
+    let small: string | undefined;
+    if (/\.(jpe?g|png|webp|heic|heif)$/i.test(key)) {
+      const smallKey = key.replace(/\.[a-z0-9]+$/i, '') + '.sm.jpg';
+      const light = await copyToR2(r2, smallKey, `${old}${smallKey.split('/').map(encodeURIComponent).join('/')}`);
+      if (!light.ok && !light.missing) return res.status(500).json({ id: work.id, error: `copy failed ${smallKey}` });
+      small = light.ok ? smallKey : 'none';
+    }
+    moved.set(url, publicUrlOf(r2, key));
+    copied.push({ key, size: main.size, small });
+  }
+  const swap = (url: string | null) => (url && moved.get(url)) || url;
+  const update = { file_url: swap(work.file_url), cover_url: swap(work.cover_url), extra_images: (work.extra_images ?? []).map(swap) };
+  if (dryRun) return res.status(200).json({ dryRun: true, id: work.id, update, left: pending.length });
+
+  let query = supabaseAdmin.from('works').update(update).eq('id', work.id);
+  query = work.file_url === null ? query.is('file_url', null) : query.eq('file_url', work.file_url);
+  query = work.cover_url === null ? query.is('cover_url', null) : query.eq('cover_url', work.cover_url);
+  const { data: changed, error: updateError } = await query.select('id');
+  if (updateError) throw updateError;
+  return res.status(200).json({ id: work.id, switched: (changed ?? []).length === 1, copied, left: pending.length - 1 });
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
+    if (req.method === 'POST' && req.query.action === 'move-to-r2') return await moveToR2(req, res);
     const user = await getRequestUser(req.headers.authorization);
     if (!user) return res.status(401).json({ error: 'No autorizado' });
     if (req.method === 'POST' && req.query.action === 'upload') return await signUploads(req, res, user.id);
