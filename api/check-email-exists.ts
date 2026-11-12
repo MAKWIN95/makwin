@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { getUsernameAvailability } from '../server/lib/username-availability.js';
+import { checkUsernameHandler } from '../server/lib/check-username-handler.js';
 
 const supabaseAdmin = createClient(
   process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '',
@@ -25,6 +26,8 @@ export async function authEmailExists(email: string): Promise<boolean> {
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  // /api/check-username-availability arrives here (vercel.json): same function, its own answer.
+  if (req.query?.check === 'username') return checkUsernameHandler(req, res);
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   try {

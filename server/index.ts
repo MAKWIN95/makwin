@@ -11,6 +11,8 @@ import { checkEmailExists } from "../api/check-email-exists";
 import saveHelpMessageHandler from "../api/save-help-message";
 import reportsHandler from "../api/reports";
 import publishWorkHandler from "../api/publish-work";
+import { handleAuthHook } from "./lib/auth-email";
+import { relay } from "./lib/mail-relay";
 import { isValidUsername, normalizeUsername } from "../shared/username";
 import { getUsernameAvailability, getUsernameAvailabilityUserId } from "./lib/username-availability";
 import helpMessagesHandler from "../api/help-messages";
@@ -21,6 +23,12 @@ export function createServer() {
 
   // Middleware
   app.use(cors());
+  // Signed by Supabase: it needs the body exactly as it arrived, so it comes before the JSON parser.
+  app.post("/api/auth-email", express.raw({ type: "*/*" }), async (req, res) => {
+    const rawBody = Buffer.isBuffer(req.body) ? req.body.toString("utf8") : "";
+    const reply = await handleAuthHook(rawBody, req.headers, (message) => relay(message, "urgent"));
+    res.status(reply.status).json(reply.body);
+  });
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
 

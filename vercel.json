@@ -145,6 +145,10 @@
                          "source": "/marketplace/:slug",
                          "destination": "/index.html"
                      },
+                     {
+                         "source": "/api/check-username-availability",
+                         "destination": "/api/check-email-exists?check=username"
+                     },
                      {                         "source": "/api/(.*)",
                          "destination": "/api/$1"
                      },

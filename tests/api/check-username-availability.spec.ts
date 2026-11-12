@@ -7,7 +7,7 @@ const availability = vi.hoisted(() => ({
 
 vi.mock('../../server/lib/username-availability.js', () => availability);
 
-import handler from '../../api/check-username-availability';
+import { checkUsernameHandler as handler } from '../../server/lib/check-username-handler';
 
 function createResponse() {
   const response: any = {

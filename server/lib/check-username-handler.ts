@@ -1,8 +1,11 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { getUsernameAvailability, getUsernameAvailabilityUserId } from '../server/lib/username-availability.js';
-import { isValidUsername, normalizeUsername } from '../shared/username.js';
+import { getUsernameAvailability, getUsernameAvailabilityUserId } from './username-availability.js';
+import { isValidUsername, normalizeUsername } from '../../shared/username.js';
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+// Served at /api/check-username-availability, which vercel.json sends to the
+// check-email-exists function: the Hobby plan allows twelve functions in all.
+
+export async function checkUsernameHandler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST');
     return res.status(405).json({ error: 'Method not allowed' });
