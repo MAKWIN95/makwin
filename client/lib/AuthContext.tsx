@@ -13,6 +13,7 @@ interface AuthContextType {
   retryInitialization: () => void;
   needsUsernameSetup: boolean;
   signInWithGoogle: () => Promise<void>;
+  signInWithGoogleToken: (token: string, nonce: string) => Promise<void>;
   signInWithEmail: (email: string, password: string) => Promise<{ error: string | null }>;
   signUpWithEmail: (email: string, password: string, username: string, displayName: string, language?: 'es' | 'en') => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
@@ -317,6 +318,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch (error) {
       window.sessionStorage.removeItem(googleOAuthPendingKey);
       throw error;
+    }
+  };
+
+  // Google's own button on our page hands back a signed token; Supabase opens the
+  // same account with it, so Google's window can name makwin.art instead of Supabase.
+  const signInWithGoogleToken = async (token: string, nonce: string) => {
+    try {
+      window.sessionStorage.setItem(googleOAuthPendingKey, 'true');
+      const { error } = await supabase.auth.signInWithIdToken({ provider: 'google', token, nonce });
+      if (error) throw error;
+    } catch (error) {
+      // Never leave someone stuck: if Supabase refuses the token, take the old road.
+      console.warn('[AuthContext] Google token sign-in failed, using redirect:', error);
+      await signInWithGoogle();
     }
   };
 
@@ -660,7 +675,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   return (
     <AuthContext.Provider value={{
       user, session, profile, loading, initializationError, retryInitialization, needsUsernameSetup,
-      signInWithGoogle, signInWithEmail, signUpWithEmail,
+      signInWithGoogle, signInWithGoogleToken, signInWithEmail, signUpWithEmail,
       signOut, resetPassword, updateProfile, refreshProfile, completeGoogleSignUp,
     }}>
       {children}
