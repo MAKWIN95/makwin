@@ -1,6 +1,3 @@
-/** @import must precede all other statements */
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap");
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -739,6 +736,11 @@ a.work-media-link:active {
 
 .segmented-option:active {
   transform: scale(0.94);
+}
+
+/* Four or more choices on a phone: a little less room around each word so they all fit. */
+.segmented--snug .segmented-option {
+  padding-inline: 0.625rem;
 }
 
 .segmented-option[aria-checked="true"] {

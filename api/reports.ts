@@ -5,6 +5,7 @@ import { alertIfBacklogReached } from '../server/lib/admin-backlog.js';
 import { HELP_ADDRESS, requestBaseUrl, sendEmail } from '../server/lib/email.js';
 import { notify } from '../server/lib/notify.js';
 import { keyOf, r2Config, removeObjects } from '../server/lib/r2.js';
+import { runBackup } from '../server/lib/backup.js';
 import { withSmallCopies } from '../shared/photo-paths.js';
 
 // policy_reports only lets reporters read their own rows, so moderators and the
@@ -230,12 +231,39 @@ async function changeAdmin(req: VercelRequest, res: VercelResponse, actorId: str
   return res.status(200).json({ success: true });
 }
 
+// The nightly copy of the database. Vercel's schedule calls it with CRON_SECRET; the
+// owner can also start it from a signed-in admin session.
+async function backupNow(res: VercelResponse) {
+  const storage = r2Config();
+  if (!storage) return res.status(503).json({ error: 'storage not configured' });
+  const result = await runBackup(
+    {
+      url: process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '',
+      serviceKey: process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY || '',
+      admin: supabaseAdmin,
+    },
+    storage,
+  );
+  console.log('[backup]', JSON.stringify(result));
+  res.setHeader('Cache-Control', 'no-store');
+  return res.status(200).json(result);
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     if (req.method === 'POST') return await createReport(req, res);
 
+    const cronSecret = process.env.CRON_SECRET;
+    const fromSchedule = Boolean(cronSecret) && req.headers.authorization === `Bearer ${cronSecret}`;
+    if (req.method === 'GET' && req.query?.action === 'backup' && fromSchedule) return await backupNow(res);
+
     const user = await getRequestUser(req.headers.authorization);
     const role = roleOf(user);
+
+    if (req.method === 'GET' && req.query?.action === 'backup') {
+      if (!user || role !== 'owner' || !signedInRecently(user)) return res.status(403).json({ error: 'forbidden' });
+      return await backupNow(res);
+    }
 
     // Lets the menu know whether to show the panel; the role alone reveals nothing.
     if (req.method === 'GET' && req.query?.scope === 'access') {

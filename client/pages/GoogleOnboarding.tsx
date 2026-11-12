@@ -9,6 +9,7 @@ import { checkUsernameAvailability, type UsernameAvailability } from '@/lib/user
 import { isValidUsername, normalizeUsername, USERNAME_MAX_LENGTH } from '@shared/username';
 import { getAuthErrorMessage } from '@/lib/authErrors';
 import { useStarsBackground } from '@/hooks/use-stars-background';
+import LegalConsent from '@/components/LegalConsent';
 
 function parseSuggestedUsername(email?: string) {
   if (!email) return '';
@@ -268,6 +269,8 @@ export default function GoogleOnboardingPage() {
               {loading ? (es ? 'Guardando...' : 'Saving...') : (es ? 'Continuar' : 'Continue')}
             </button>
           </form>
+
+          <LegalConsent es={es} className="mt-5" />
 
           {/* Every route redirects here until onboarding is done, so this is
               the only way out for someone who picked the wrong Google account. */}

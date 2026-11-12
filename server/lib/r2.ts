@@ -127,6 +127,11 @@ export function browserHeaders(type: string): Record<string, string> {
   return { 'content-type': type, 'cache-control': CACHE_CONTROL };
 }
 
+/** A one-off address the server itself uses to put or look at a file (not handed to browsers). */
+export function signedFor(config: R2Config, method: 'PUT' | 'HEAD' | 'GET', key: string, headers: Record<string, string> = {}): string {
+  return sign(config, method, key, { headers, expires: 5 * 60 });
+}
+
 export function signedUpload(config: R2Config, key: string, type: string, size: number): string {
   return sign(config, 'PUT', key, { headers: uploadHeaders(type, size), expires: 15 * 60 });
 }

@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase';
 import { checkUsernameAvailability } from '@/lib/usernameAvailability';
 import { getAuthErrorMessage } from '@/lib/authErrors';
 import GoogleSignInButton from '@/components/GoogleSignInButton';
+import LegalConsent from '@/components/LegalConsent';
 import { getPasswordPolicyError } from '@/lib/passwordPolicy';
 
 export default function Register() {
@@ -368,6 +369,8 @@ export default function Register() {
               {loading ? '…' : (es ? 'Crear cuenta' : 'Create account')}
             </button>
           </form>
+
+          <LegalConsent es={es} className="mt-5" />
 
           <p className="text-center text-xs text-[hsl(var(--muted-foreground))] mt-6">
             {es ? '¿Ya tienes cuenta?' : 'Already have an account?'}{' '}

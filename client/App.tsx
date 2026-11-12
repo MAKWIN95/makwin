@@ -1,3 +1,8 @@
+// Inter is served from MAKWIN itself, so opening the site never contacts Google.
+import "@fontsource/inter/400.css";
+import "@fontsource/inter/600.css";
+import "@fontsource/inter/700.css";
+import "@fontsource/inter/800.css";
 import "./global.css";
 
 import { Toaster } from "@/components/ui/toaster";
@@ -30,6 +35,9 @@ import Following from "./pages/Following";
 import NotFound from "./pages/NotFound";
 import ComingSoon from "./pages/ComingSoon";
 import Admin from "./pages/Admin";
+import Legal from "./pages/Legal";
+import { startAnalytics } from "@/lib/analytics";
+import { LEGAL_DOCS } from "@/lib/legal-texts";
 
 // Global UI
 import { I18nProvider, useI18n } from "@/lib/i18n";
@@ -187,7 +195,7 @@ const RoutesWrapper = () => {
   }
 
   // If the user needs to complete onboarding, force the onboarding page
-  if (needsUsernameSetup && !location.pathname.startsWith('/completar-perfil')) {
+  if (needsUsernameSetup && !location.pathname.startsWith('/completar-perfil') && !LEGAL_DOCS.some((doc) => location.pathname === `/${doc}`)) {
     return <Navigate to="/completar-perfil" replace />;
   }
 
@@ -233,6 +241,7 @@ const RoutesWrapper = () => {
       <Route path="/enviar-obra" element={<Navigate to="/subir-obra" replace />} />
       <Route path="/obras-enviadas" element={<Navigate to="/" replace />} />
       <Route path="/admin" element={<Admin />} />
+      {LEGAL_DOCS.map((doc) => <Route key={doc} path={`/${doc}`} element={<Legal doc={doc} />} />)}
 
       {/* 404 */}
       <Route path="*" element={<NotFound />} />
@@ -244,6 +253,21 @@ const RoutesWrapper = () => {
 const App = () => {
   // If we're on makwin.art, show Coming Soon page without providers
   if (isComingSoonDomain()) {
+    // The legal pages must be readable on makwin.art even before it opens (Google and
+    // the law ask for them), without letting the rest of the site through.
+    const doc = LEGAL_DOCS.find((d) => window.location.pathname === `/${d}`);
+    if (doc) {
+      return (
+        <I18nProvider>
+          <BrowserRouter>
+            <Routes>
+              {LEGAL_DOCS.map((d) => <Route key={d} path={`/${d}`} element={<Legal doc={d} bare />} />)}
+              <Route path="*" element={<ComingSoon />} />
+            </Routes>
+          </BrowserRouter>
+        </I18nProvider>
+      );
+    }
     return <ComingSoon />;
   }
 
@@ -270,4 +294,5 @@ const App = () => {
   );
 };
 
+startAnalytics();
 createRoot(document.getElementById("root")!).render(<App />);
