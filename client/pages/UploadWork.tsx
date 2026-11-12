@@ -19,8 +19,10 @@ import Reveal from '@/components/Reveal';
 import { cn, normalizeHashtags } from '@/lib/utils';
 import { toast } from 'sonner';
 
-const MAX_AUDIO_MB = 50;
-const MAX_VIDEO_MB = 50;
+// Room for a full song in good MP3/AAC and about a minute of phone video in 1080p:
+// the free storage holds a thousand photos, so one file must not eat fifty of them.
+const MAX_AUDIO_MB = 20;
+const MAX_VIDEO_MB = 25;
 const MAX_PHOTOS = 10;
 const PARALLEL_UPLOADS = 3;
 const SELLABLE_TYPES = ['pintura', 'cancion'];
@@ -97,8 +99,8 @@ export default function UploadWork() {
   const fileProblem = (file: File): string | null => {
     const mb = file.size / 1024 / 1024;
     if (file.type === 'image/gif' || file.name.toLowerCase().endsWith('.gif')) return es ? 'Los GIF no están permitidos. Usa PNG, JPG o WebP.' : 'GIFs are not allowed. Use PNG, JPG or WebP.';
-    if (file.type.startsWith('video/') && mb > MAX_VIDEO_MB) return es ? `El vídeo no puede superar ${MAX_VIDEO_MB} MB.` : `The video cannot exceed ${MAX_VIDEO_MB} MB.`;
-    if (file.type.startsWith('audio/') && mb > MAX_AUDIO_MB) return es ? `El audio no puede superar ${MAX_AUDIO_MB} MB.` : `The audio cannot exceed ${MAX_AUDIO_MB} MB.`;
+    if (file.type.startsWith('video/') && mb > MAX_VIDEO_MB) return es ? `El vídeo no puede superar ${MAX_VIDEO_MB} MB. Grábalo en 1080p o recórtalo un poco.` : `The video cannot exceed ${MAX_VIDEO_MB} MB. Record it in 1080p or trim it a little.`;
+    if (file.type.startsWith('audio/') && mb > MAX_AUDIO_MB) return es ? `El audio no puede superar ${MAX_AUDIO_MB} MB. Expórtalo en MP3 o AAC en lugar de WAV.` : `The audio cannot exceed ${MAX_AUDIO_MB} MB. Export it as MP3 or AAC instead of WAV.`;
     return null;
   };
 

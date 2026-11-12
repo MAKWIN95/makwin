@@ -1,5 +1,6 @@
 import { readImage } from './compress-image';
 import { supabase } from './supabase';
+import { isPhotoPath, smallPathOf } from '@shared/photo-paths';
 
 // Every published photo also goes up as a light copy, for the places that show it
 // small (feed, grids, notifications). The full one is only fetched when a work is
@@ -9,22 +10,12 @@ import { supabase } from './supabase';
 const SMALL_WIDTH = 720;
 const SMALL_HEIGHT = 1440;
 const SMALL_QUALITY = 0.82;
-const SMALL_TAIL = '.sm.jpg';
-
 /** A year: every file has its own name, so a cached copy never goes stale. */
 export const CACHE_FOR_A_YEAR = '31536000';
 
 const WORKS_FOLDER = '/storage/v1/object/public/works/';
-const PHOTO_FILE = /\.(jpe?g|png|webp|heic|heif)$/i;
 
-/** Where the light copy of a stored photo lives, next to it. */
-export function smallPathOf(path: string): string {
-  return path.replace(/\.[a-z0-9]+$/i, '') + SMALL_TAIL;
-}
-
-export function isPhotoPath(path: string): boolean {
-  return PHOTO_FILE.test(path) && !path.endsWith(SMALL_TAIL);
-}
+export { isPhotoPath, smallPathOf };
 
 /** The light copy of a published photo; anything else comes back as it is. */
 export function smallUrl(url: string): string;

@@ -6,6 +6,7 @@ import { alertIfBacklogReached } from '../server/lib/admin-backlog.js';
 import { requestBaseUrl } from '../server/lib/email.js';
 import { notify } from '../server/lib/notify.js';
 import { findBlockedTerms } from '../server/lib/moderation-text.js';
+import { withSmallCopies } from '../shared/photo-paths.js';
 
 // Works are saved here and the artist moves on straight away. The automatic check
 // runs in the background: the work becomes public when it passes, and otherwise
@@ -50,7 +51,7 @@ async function removeOwnFiles(urls: Array<string | null>, userId: string) {
     .filter((url): url is string => !!url && !!ownFileUrl(url, userId))
     .map((url) => decodeURIComponent(url.slice(prefix.length)));
   if (!paths.length) return;
-  const { error } = await supabaseAdmin.storage.from('works').remove(paths);
+  const { error } = await supabaseAdmin.storage.from('works').remove(withSmallCopies(paths));
   if (error) console.error('[PUBLISH-WORK] Could not remove files:', error.message);
 }
 

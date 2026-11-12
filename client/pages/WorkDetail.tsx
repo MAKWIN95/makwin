@@ -82,7 +82,7 @@ function AudioPlayer({ src }: { src: string }) {
 
   return (
     <div className="w-full">
-      <audio ref={setEl as any} src={src} />
+      <audio ref={setEl as any} src={src} preload="metadata" />
       <div className="flex items-center gap-4 justify-center mb-3">
         <button onClick={toggle} aria-label={playing ? 'Pause' : 'Play'} className="p-3 rounded-full bg-[hsl(var(--popover))] hover:bg-[hsl(var(--popover))/0.95]">
           {playing ? '■' : '▶'}
@@ -373,7 +373,7 @@ export default function WorkDetail() {
             {/* Video */}
             {work.work_type === 'video' && work.file_url && (
               <div data-work-hero={work.cover_url ? undefined : ''} className="flex items-center justify-center lg:min-h-[80vh]">
-                <video src={work.file_url} controls controlsList="nodownload" disablePictureInPicture playsInline className="rounded-lg border border-[rgba(255,255,255,0.1)] max-h-[var(--art-room)] max-w-full w-auto object-contain" />
+                <video src={`${work.file_url}#t=0.001`} preload="metadata" controls controlsList="nodownload" disablePictureInPicture playsInline className="rounded-lg border border-[rgba(255,255,255,0.1)] max-h-[var(--art-room)] max-w-full w-auto object-contain" />
               </div>
             )}
 

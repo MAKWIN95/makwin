@@ -91,7 +91,7 @@ export default function AdminHeldWorks({ works, setWorks }: { works: HeldWork[];
               {(image || work.work_type === 'video') && (
                 <div className="relative w-full sm:w-48 h-48 flex-shrink-0 overflow-hidden rounded bg-[hsl(var(--muted))]">
                   {work.work_type === 'video' && work.file_url && isRevealed ? (
-                    <video src={work.file_url} controls className="w-full h-full object-contain" />
+                    <video src={work.file_url} preload="metadata" controls className="w-full h-full object-contain" />
                   ) : image ? (
                     <img {...smallImage(image)} alt={work.title} className={`w-full h-full object-cover ${isRevealed ? '' : 'blur-xl scale-110'}`} />
                   ) : null}
@@ -134,7 +134,7 @@ export default function AdminHeldWorks({ works, setWorks }: { works: HeldWork[];
                     ))}
                   </div>
                 )}
-                {work.work_type !== 'video' && work.file_url && !image && <audio src={work.file_url} controls className="w-full mb-3" />}
+                {work.work_type !== 'video' && work.file_url && !image && <audio src={work.file_url} preload="metadata" controls className="w-full mb-3" />}
                 <div className="flex flex-wrap gap-2 mt-3">
                   <Button size="sm" disabled={busy === work.id} onClick={() => decide(work, 'approve')}>
                     {busy === work.id ? <Loader className="w-4 h-4 animate-spin" /> : es ? 'Aprobar' : 'Approve'}
