@@ -32,7 +32,9 @@ export default function GoogleSignInButton({ language, disabled, onRedirect, onT
     let cancelled = false;
     const target = overlay.current;
     mountGoogleButton(target, {
-      width: wrapper.current.offsetWidth,
+      // Always Google's widest; ours clips it, so every part of our button is Google's tap,
+      // even if the page was still settling when it was measured.
+      width: 400,
       language,
       onToken: (token, nonce) => tokenHandler.current(token, nonce),
     })
