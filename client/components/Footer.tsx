@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { LEGAL_DOCS, LEGAL_TEXTS } from '@/lib/legal-texts';
-import { HelpCircle } from 'lucide-react';
+import { Heart, HelpCircle } from 'lucide-react';
 import { APP_VERSION } from '@/lib/version';
 import { useI18n } from '@/lib/i18n';
 import HelpModal from './HelpModal';
+
+const SUPPORT_URL = 'https://ko-fi.com/makwin';
 
 export default function Footer() {
   const currentYear = new Date().getFullYear();
@@ -28,13 +30,26 @@ export default function Footer() {
               </Link>
             ))}
           </nav>
-          <button
-            onClick={() => setHelpOpen(true)}
-            className="mt-2 inline-flex items-center gap-1 text-xs phone:text-sm px-3 py-1.5 phone:px-4 phone:py-2.5 rounded-full border border-[hsl(var(--muted-foreground)/0.35)] text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] transition"
-          >
-            <HelpCircle className="w-3.5 h-3.5" />
-            {language === 'es' ? 'Ayuda & Contacto' : 'Help & Contact'}
-          </button>
+          <div className="mt-2 flex flex-wrap items-center justify-center gap-2">
+            <button
+              onClick={() => setHelpOpen(true)}
+              className="inline-flex items-center gap-1 text-xs phone:text-sm px-3 py-1.5 phone:px-4 phone:py-2.5 rounded-full border border-[hsl(var(--muted-foreground)/0.35)] text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] transition"
+            >
+              <HelpCircle className="w-3.5 h-3.5" />
+              {language === 'es' ? 'Ayuda & Contacto' : 'Help & Contact'}
+            </button>
+            {/* Optional donations (Ko-fi): MAKWIN stays free; whoever likes it can help pay the servers. */}
+            <a
+              href={SUPPORT_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              title={language === 'es' ? 'MAKWIN es gratis. Si te gusta, puedes ayudar a pagar los servidores.' : 'MAKWIN is free. If you like it, you can help pay for the servers.'}
+              className="group inline-flex items-center gap-1 text-xs phone:text-sm px-3 py-1.5 phone:px-4 phone:py-2.5 rounded-full border border-[hsl(var(--muted-foreground)/0.35)] text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] hover:border-[hsl(var(--foreground)/0.5)] transition"
+            >
+              <Heart className="w-3.5 h-3.5 fill-transparent transition-[transform,fill] duration-300 ease-out group-hover:scale-110 group-hover:fill-current" />
+              {language === 'es' ? 'Apoya MAKWIN' : 'Support MAKWIN'}
+            </a>
+          </div>
         </div>
       </footer>
       <HelpModal isOpen={helpOpen} onClose={() => setHelpOpen(false)} />
