@@ -5,7 +5,6 @@ import express from "express";
 import path from "path";
 import cors from "cors";
 import { handleDemo } from "./routes/demo";
-import { handleSubmitWork } from "./routes/submit-work";
 import { handleDeleteAccount } from "./routes/delete-account";
 import { checkEmailExists } from "../api/check-email-exists";
 import saveHelpMessageHandler from "../api/save-help-message";
@@ -44,9 +43,6 @@ export function createServer() {
   });
 
   app.get("/api/demo", handleDemo);
-
-  // New submission endpoint
-  app.post("/api/submit-work", handleSubmitWork);
 
   // Check if email exists
   app.post("/api/check-email-exists", async (req, res) => {

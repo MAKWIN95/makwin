@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { LIMITS, allow, tooMany } from '../server/lib/rate-limit.js';
 import { getRequestUser, roleOf, signedInRecently, type AdminRole } from '../server/lib/admin-auth.js';
 import { alertIfBacklogReached } from '../server/lib/admin-backlog.js';
 import { HELP_ADDRESS, requestBaseUrl, sendEmail } from '../server/lib/email.js';
@@ -35,6 +36,7 @@ const MAX_REASONS = 2;
 async function createReport(req: VercelRequest, res: VercelResponse) {
   const user = await getRequestUser(req.headers.authorization);
   if (!user) return res.status(401).json({ error: 'No autorizado' });
+  if (!(await allow(LIMITS.report, user.id))) return tooMany(res, LIMITS.report);
 
   const { workId, reasons, details } = (req.body || {}) as { workId?: string; reasons?: unknown; details?: string };
   const chosen = Array.isArray(reasons) ? [...new Set(reasons.map(String))] : [];

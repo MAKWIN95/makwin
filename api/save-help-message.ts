@@ -4,6 +4,7 @@ import type { HelpMessage } from "@shared/api";
 import { getRequestUser } from "../server/lib/admin-auth.js";
 import { alertIfBacklogReached } from "../server/lib/admin-backlog.js";
 import { requestBaseUrl } from "../server/lib/email.js";
+import { LIMITS, allow, clientIp, tooMany } from "../server/lib/rate-limit.js";
 
 const supabase = createClient(
   process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || "",
@@ -75,6 +76,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (website) {
       return res.status(200).json({ success: true, message: "Mensaje guardado exitosamente" });
     }
+
+    if (!(await allow(LIMITS.helpMessage, clientIp(req.headers)))) return tooMany(res, LIMITS.helpMessage);
 
     // Validar campos
     if (!email || !name || !category || !subject || !message) {

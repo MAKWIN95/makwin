@@ -52,7 +52,8 @@ export default defineConfig(({ mode }) => ({
     port: 3002,
     fs: {
       // node_modules: the self-hosted fonts are read from there in development.
-      allow: ["./client", "./shared", "./public", "./node_modules"],
+      // index.html: the page itself, which newer Vite also checks against this list.
+      allow: ["./index.html", "./client", "./shared", "./public", "./node_modules"],
       deny: [".env", ".env.*", "*.{crt,pem}", "**/.git/**", "server/**"],
     },
   },

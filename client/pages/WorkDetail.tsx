@@ -24,6 +24,7 @@ import FollowButton from '@/components/FollowButton';
 import { Button } from '@/components/ui/button';
 import { Heart, Bookmark, Share2, Flag, Loader2, ArrowLeft, Pencil, Trash2 } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
+import { usePageTitle } from '@/lib/page-title';
 
 const CHECK_POLL_MS = 2500;
 const CHECK_GIVEN_UP_MS = 3 * 60 * 1000;
@@ -117,6 +118,7 @@ export default function WorkDetail() {
   const navigationType = useNavigationType();
   const page = useRef<HTMLDivElement>(null);
   const [opening] = useState(() => (initialWorkData ? openingOf(id) : null));
+  usePageTitle(work?.title ? (author?.username ? `${work.title} · @${author.username}` : work.title) : null);
 
   // Before the first paint: a new page starts at the top, and its work starts from where the card was.
   useLayoutEffect(() => {

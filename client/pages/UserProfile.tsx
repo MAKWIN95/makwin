@@ -4,6 +4,7 @@ import { supabase, Profile, Work } from '@/lib/supabase';
 import { useAuth } from '@/lib/AuthContext';
 import { useFollow } from '@/lib/FollowContext';
 import { useI18n } from '@/lib/i18n';
+import { usePageTitle } from '@/lib/page-title';
 import { getAuthErrorMessage } from '@/lib/authErrors';
 import { isValidUsername, normalizeUsername } from '@shared/username';
 import { toast } from 'sonner';
@@ -61,6 +62,7 @@ export default function UserProfile() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [works, setWorks] = useState<Work[]>([]);
   const [loading, setLoading] = useState(true);
+  usePageTitle(profile?.username ? (profile.display_name ? `${profile.display_name} (@${profile.username})` : `@${profile.username}`) : null);
   // In the address, so coming back from a work finds the same view.
   const [searchParams, setSearchParams] = useSearchParams();
   const wanted = searchParams.get('ver') ?? '';

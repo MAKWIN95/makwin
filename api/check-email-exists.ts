@@ -2,6 +2,7 @@ import { createClient } from '@supabase/supabase-js';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { getUsernameAvailability } from '../server/lib/username-availability.js';
 import { checkUsernameHandler } from '../server/lib/check-username-handler.js';
+import { LIMITS, allow, clientIp, tooMany } from '../server/lib/rate-limit.js';
 
 const supabaseAdmin = createClient(
   process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '',
@@ -33,6 +34,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     const requestBody = req.body as { action?: string; username?: string; email?: string };
     if (requestBody?.action === 'username-availability') {
+      if (!(await allow(LIMITS.checkUsername, clientIp(req.headers)))) return tooMany(res, LIMITS.checkUsername);
       if (!requestBody.username) return res.status(400).json({ error: 'Username required' });
       const available = await getUsernameAvailability(requestBody.username);
       return res.status(200).json({ available });
@@ -40,6 +42,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const { email } = req.body as { email: string };
     if (!email) return res.status(400).json({ error: 'Email required' });
+    if (!(await allow(LIMITS.checkEmail, clientIp(req.headers)))) return tooMany(res, LIMITS.checkEmail);
 
     try {
       return res.status(200).json({ exists: await authEmailExists(email) });

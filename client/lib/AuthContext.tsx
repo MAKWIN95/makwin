@@ -349,6 +349,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ email }),
             });
+            // A refused check (too many tries, server trouble) says nothing about the account.
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
             const { exists } = await response.json();
 
             if (!exists) {

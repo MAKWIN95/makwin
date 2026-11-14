@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { getUsernameAvailability, getUsernameAvailabilityUserId } from './username-availability.js';
 import { isValidUsername, normalizeUsername } from '../../shared/username.js';
+import { LIMITS, allow, clientIp, tooMany } from './rate-limit.js';
 
 // Served at /api/check-username-availability, which vercel.json sends to the
 // check-email-exists function: the Hobby plan allows twelve functions in all.
@@ -10,6 +11,8 @@ export async function checkUsernameHandler(req: VercelRequest, res: VercelRespon
     res.setHeader('Allow', 'POST');
     return res.status(405).json({ error: 'Method not allowed' });
   }
+
+  if (!(await allow(LIMITS.checkUsername, clientIp(req.headers)))) return tooMany(res, LIMITS.checkUsername);
 
   const username = normalizeUsername((req.body as { username?: unknown } | undefined)?.username);
   if (!isValidUsername(username)) {

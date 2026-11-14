@@ -38,6 +38,7 @@ import Admin from "./pages/Admin";
 import Legal from "./pages/Legal";
 import { startAnalytics } from "@/lib/analytics";
 import { LEGAL_DOCS } from "@/lib/legal-texts";
+import { titleForPath } from "@/lib/page-title";
 
 // Global UI
 import { I18nProvider, useI18n } from "@/lib/i18n";
@@ -132,6 +133,12 @@ const RoutesWrapper = () => {
   const { language } = useI18n();
   const location = useLocation();
   const navigationType = useNavigationType();
+
+  // Fixed pages name themselves here; a work, a profile or a legal text names itself once loaded.
+  useEffect(() => {
+    const title = titleForPath(location.pathname, language, LEGAL_DOCS.map((doc) => `/${doc}`));
+    if (title) document.title = title;
+  }, [location.pathname, language]);
 
   // Read while the old page is still on screen: the next header starts from this one.
   const lastPath = useRef(location.pathname);

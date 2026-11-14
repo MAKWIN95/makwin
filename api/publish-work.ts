@@ -7,6 +7,7 @@ import { requestBaseUrl } from '../server/lib/email.js';
 import { notify } from '../server/lib/notify.js';
 import { findBlockedTerms } from '../server/lib/moderation-text.js';
 import { withSmallCopies } from '../shared/photo-paths.js';
+import { LIMITS, allow, tooMany } from '../server/lib/rate-limit.js';
 import { keyOf, publicUrlOf, r2Config, removeObjects, signedUpload, browserHeaders } from '../server/lib/r2.js';
 
 // Works are saved here and the artist moves on straight away. The automatic check
@@ -315,8 +316,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     const user = await getRequestUser(req.headers.authorization);
     if (!user) return res.status(401).json({ error: 'No autorizado' });
-    if (req.method === 'POST' && req.query.action === 'upload') return await signUploads(req, res, user.id);
-    if (req.method === 'POST') return await createWork(req, res, user.id);
+    if (req.method === 'POST' && req.query.action === 'upload') {
+      if (!(await allow(LIMITS.signUploads, user.id))) return tooMany(res, LIMITS.signUploads);
+      return await signUploads(req, res, user.id);
+    }
+    if (req.method === 'POST') {
+      if (!(await allow(LIMITS.publishWork, user.id))) return tooMany(res, LIMITS.publishWork);
+      return await createWork(req, res, user.id);
+    }
     if (req.method === 'PATCH') return await editWork(req, res, user.id);
     if (req.method === 'DELETE') return await deleteWork(req, res, user.id);
     return res.status(405).json({ error: 'Method not allowed' });
