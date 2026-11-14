@@ -30,8 +30,49 @@ function mockTwoPages() {
   }));
 }
 
+const search = vi.fn();
+vi.stubGlobal('fetch', search);
+const found = (list: { email: string }[]) => ({ ok: true, json: async () => ({ users: list }) });
+
 describe('check email exists API', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+    // Unless a test says otherwise, the search by address is down and the full walk answers.
+    search.mockRejectedValue(new Error('search unavailable'));
+    vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+  });
+
+  it('asks Auth for the one address instead of downloading everyone', async () => {
+    search.mockResolvedValue(found([{ email: 'ana@example.com' }]));
+    const response = createResponse();
+
+    await handler({ method: 'POST', body: { email: ' Ana@Example.com ' } } as any, response);
+
+    expect(response.body).toEqual({ exists: true });
+    expect(String(search.mock.calls[0][0])).toContain('filter=ana%40example.com');
+    expect(auth.listUsers).not.toHaveBeenCalled();
+  });
+
+  it('does not take a longer address that contains this one as a match', async () => {
+    search.mockResolvedValue(found([{ email: 'xana@example.com' }, { email: 'ana@example.com.es' }]));
+    const response = createResponse();
+
+    await handler({ method: 'POST', body: { email: 'ana@example.com' } } as any, response);
+
+    expect(response.body).toEqual({ exists: false });
+    expect(auth.listUsers).not.toHaveBeenCalled();
+  });
+
+  it('walks every page when Auth answers the search with an error', async () => {
+    search.mockResolvedValue({ ok: false, status: 500, json: async () => ({}) });
+    mockTwoPages();
+    const response = createResponse();
+
+    await handler({ method: 'POST', body: { email: 'user1003@example.com' } } as any, response);
+
+    expect(response.body).toEqual({ exists: true });
+    expect(auth.listUsers).toHaveBeenCalledTimes(2);
+  });
 
   it('finds emails beyond the first Auth page, case-insensitively', async () => {
     mockTwoPages();

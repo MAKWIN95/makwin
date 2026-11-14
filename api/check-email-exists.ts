@@ -13,10 +13,28 @@ export { getUsernameAvailability } from '../server/lib/username-availability.js'
 
 const AUTH_USERS_PAGE_SIZE = 1000;
 
-// Emails live only in Supabase Auth (profiles has no email column), and
-// listUsers is paginated, so walk every page instead of only the first one.
+// Emails live only in Supabase Auth (profiles has no email column). Ask Auth for this one
+// address instead of downloading every account: the old walk grew with each new user.
+// Auth keeps emails in lower case and the search is a substring match, so compare exactly.
 export async function authEmailExists(email: string): Promise<boolean> {
   const target = email.trim().toLowerCase();
+  const base = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '';
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY || '';
+  try {
+    const response = await fetch(`${base}/auth/v1/admin/users?filter=${encodeURIComponent(target)}&per_page=${AUTH_USERS_PAGE_SIZE}`, {
+      headers: { apikey: key, Authorization: `Bearer ${key}` },
+    });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const { users = [] } = (await response.json()) as { users?: { email?: string }[] };
+    // A huge page means the search was ignored; then only the full walk can answer.
+    if (users.length < AUTH_USERS_PAGE_SIZE) return users.some((u) => (u.email || '').toLowerCase() === target);
+  } catch (e) {
+    console.warn('[CHECK-EMAIL] Search by address failed, walking every page:', e);
+  }
+  return walkEveryPage(target);
+}
+
+async function walkEveryPage(target: string): Promise<boolean> {
   for (let page = 1; ; page++) {
     const { data, error } = await supabaseAdmin.auth.admin.listUsers({ page, perPage: AUTH_USERS_PAGE_SIZE });
     if (error) throw error;
