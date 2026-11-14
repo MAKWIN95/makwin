@@ -28,8 +28,24 @@ const REASONS: Record<string, string> = {
   spam: 'Spam',
   acoso: 'Acoso o abuso',
   ia: 'Hecho con IA',
+  copia: 'Es una copia',
   otro: 'Otro',
 };
+
+// The only values the reason column accepts. Newer reasons travel in the details.
+const COLUMN_REASONS = ['porno', 'gore', 'spam', 'acoso', 'otro'];
+
+/**
+ * How a report's reasons are stored: the first one the column accepts goes in `reason`
+ * ("otro" stands in when there is none) and the rest lead the details as "[a+b] ".
+ * "-only" at the end means the stored reason is just that stand-in.
+ */
+export function storedReport(chosen: string[], details: string): { reason: string; details: string | null } {
+  const reason = chosen.find((value) => COLUMN_REASONS.includes(value));
+  const rest = chosen.filter((value) => value !== reason);
+  const marker = rest.length ? `[${rest.join('+')}${reason ? '' : '-only'}]` : '';
+  return { reason: reason ?? 'otro', details: [marker, details].filter(Boolean).join(' ') || null };
+}
 
 const MAX_REASONS = 2;
 
@@ -44,7 +60,7 @@ async function createReport(req: VercelRequest, res: VercelResponse) {
   if (
     !workId || chosen.length === 0 || chosen.length > MAX_REASONS ||
     chosen.some((reason) => !Object.keys(REASONS).includes(reason)) ||
-    (chosen.includes('otro') && !cleanDetails)
+    ((chosen.includes('otro') || chosen.includes('copia')) && !cleanDetails)
   ) {
     return res.status(400).json({ error: 'Datos no válidos' });
   }
@@ -61,18 +77,12 @@ async function createReport(req: VercelRequest, res: VercelResponse) {
     .maybeSingle();
   if (existing) return res.status(200).json({ success: true });
 
-  // The reason column holds one value: a second one travels at the start of details.
-  // The column only accepts the original reasons, so "made with AI" always travels in the
-  // details; on its own it is stored as "otro" marked [ia-only], so the panel shows just AI.
-  const others = chosen.filter((value) => value !== 'ia');
-  const reason = others[0] ?? 'otro';
-  const marker = chosen.includes('ia') ? (others.length ? 'ia' : 'ia-only') : others[1];
-  const storedDetails = [marker ? `[${marker}]` : '', cleanDetails].filter(Boolean).join(' ');
+  const stored = storedReport(chosen, cleanDetails);
   const { error } = await supabaseAdmin.from('policy_reports').insert({
     work_id: workId,
     reporter_id: user.id,
-    reason,
-    details: storedDetails || null,
+    reason: stored.reason,
+    details: stored.details,
   });
   if (error) throw error;
 

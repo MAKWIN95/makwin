@@ -25,6 +25,7 @@ const REPORT_REASONS = [
   { value: 'spam', label: 'Spam', labelEn: 'Spam' },
   { value: 'acoso', label: 'Acoso/Abuso', labelEn: 'Harassment' },
   { value: 'ia', label: 'Hecho con IA', labelEn: 'Made with AI' },
+  { value: 'copia', label: 'Es una copia', labelEn: "It's a copy" },
   { value: 'otro', label: 'Otro', labelEn: 'Other' },
 ];
 
@@ -45,7 +46,9 @@ export default function ReportModal({
 
   if (!isOpen) return null;
 
-  const wantsDetails = reasons.includes('otro');
+  // "Other" needs words; a copy needs the original, or nobody can tell whose it is.
+  const claimsCopy = reasons.includes('copia');
+  const wantsDetails = reasons.includes('otro') || claimsCopy;
   const isFormValid = reasons.length > 0 && (!wantsDetails || !!customReason.trim());
 
   const toggleReason = (value: string) =>
@@ -146,18 +149,24 @@ export default function ReportModal({
             </div>
 
             {/* Custom reason textarea */}
-            {wantsDetails && (
-              <textarea
-                value={customReason}
-                onChange={(e) => setCustomReason(e.target.value)}
-                onClick={(e) => e.stopPropagation()}
-                onKeyDown={(e) => e.stopPropagation()}
-                placeholder={currentLang === 'es' ? 'Cuéntanos más...' : 'Tell us more...'}
-                disabled={loading}
-                rows={3}
-                className="w-full px-3 py-2 border border-[hsl(var(--border))] rounded-lg bg-[hsl(var(--input))] text-sm text-[hsl(var(--foreground))] placeholder:text-[hsl(var(--muted-foreground))] focus:outline-none focus:ring-2 focus:ring-[hsl(var(--ring))] resize-none mb-4"
-              />
-            )}
+            <div className="reveal" data-open={wantsDetails ? '' : undefined} aria-hidden={!wantsDetails}>
+              {/* A little room so the focus ring is not cut by the fold. */}
+              <div className="reveal-inner p-0.5">
+                <textarea
+                  value={customReason}
+                  onChange={(e) => setCustomReason(e.target.value)}
+                  onClick={(e) => e.stopPropagation()}
+                  onKeyDown={(e) => e.stopPropagation()}
+                  placeholder={claimsCopy
+                    ? (currentLang === 'es' ? 'Pega el enlace a la obra original o dinos cómo saber que es tuya...' : 'Paste a link to the original work or tell us how we can tell it is yours...')
+                    : (currentLang === 'es' ? 'Cuéntanos más...' : 'Tell us more...')}
+                  disabled={loading || !wantsDetails}
+                  tabIndex={wantsDetails ? undefined : -1}
+                  rows={3}
+                  className="w-full px-3 py-2 border border-[hsl(var(--border))] rounded-lg bg-[hsl(var(--input))] text-sm text-[hsl(var(--foreground))] placeholder:text-[hsl(var(--muted-foreground))] focus:outline-none focus:ring-2 focus:ring-[hsl(var(--ring))] resize-none mb-4"
+                />
+              </div>
+            </div>
 
             {/* Buttons */}
             <div className="flex gap-3">

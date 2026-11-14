@@ -41,8 +41,17 @@ export function artistsEmail(): string {
   return process.env.ARTISTS_EMAIL || '';
 }
 
+const SITE_URL = 'https://www.makwin.art';
+
+/**
+ * Where links in our emails point. The request's own host is used only when it is one of
+ * ours (so a local test links to itself); anything else gets the real site, so a forged
+ * Host header can never put someone else's address in an email.
+ */
 export function requestBaseUrl(headers: Record<string, string | string[] | undefined>): string {
-  const host = headers['x-forwarded-host'] || headers.host;
-  const proto = headers['x-forwarded-proto'] || 'https';
-  return host ? `${proto}://${host}` : '';
+  const first = (value: string | string[] | undefined) => (Array.isArray(value) ? value[0] : value)?.split(',')[0]?.trim().toLowerCase() || '';
+  const host = first(headers['x-forwarded-host']) || first(headers.host);
+  if (host === 'makwin.art' || host === 'www.makwin.art') return `https://${host}`;
+  if (/^(localhost|127\.0\.0\.1)(:\d+)?$/.test(host)) return `http://${host}`;
+  return SITE_URL;
 }

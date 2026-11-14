@@ -22,6 +22,7 @@ const REASONS: Record<string, { es: string; en: string }> = {
   spam: { es: 'Spam', en: 'Spam' },
   acoso: { es: 'Acoso o abuso', en: 'Harassment or abuse' },
   ia: { es: 'Hecho con IA', en: 'Made with AI' },
+  copia: { es: 'Es una copia (derechos de autor)', en: 'A copy (copyright)' },
   otro: { es: 'Otro', en: 'Other' },
 };
 
@@ -66,12 +67,14 @@ export default function AdminReports({ reports, setReports }: Props) {
       item.work?.id === report.work!.id ? { ...item, work: { ...item.work!, status } } : item,
     );
 
-  // A second reason travels at the start of the details as "[spam] ...".
+  // Further reasons travel at the start of the details as "[spam] " or "[ia+copia] ".
   const readReport = (report: Report) => {
-    const match = report.details?.match(/^\[([\w-]+)\]\s?/);
+    const match = report.details?.match(/^\[([\w+-]+)\]\s?/);
     const label = (reason: string) => REASONS[reason]?.[language] ?? reason;
-    // "[ia-only]": the person only chose "made with AI"; the stored "otro" is a placeholder.
-    const list = match?.[1] === 'ia-only' ? ['ia'] : [report.reason, ...(match ? [match[1]] : [])];
+    // "-only": the stored "otro" is a stand-in, the real reasons are all in the marker.
+    const standIn = !!match?.[1].endsWith('-only');
+    const extra = match ? match[1].replace(/-only$/, '').split('+') : [];
+    const list = standIn ? extra : [report.reason, ...extra];
     return {
       reasons: list.map(label).join(' + '),
       details: (match ? report.details!.slice(match[0].length) : report.details) || null,
