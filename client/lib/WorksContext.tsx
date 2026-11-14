@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useCallback, ReactNode, useRef, useMemo } from 'react';
 import { supabase } from '@/lib/supabase';
+import { track } from '@/lib/analytics';
 
 interface LikeSaveState {
   likedWorks: Set<string>;
@@ -152,6 +153,8 @@ export const WorksProvider = ({ children }: { children: ReactNode }) => {
             console.error('[WorksContext:toggleLike] Insert error:', error);
             throw error;
           }
+        } else {
+          track('me-gusta');
         }
       }
 
@@ -245,6 +248,8 @@ export const WorksProvider = ({ children }: { children: ReactNode }) => {
             console.error('[WorksContext:toggleSave] Insert error:', error);
             throw error;
           }
+        } else {
+          track('guardar-obra');
         }
       }
 

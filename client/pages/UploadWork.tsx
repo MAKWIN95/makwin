@@ -18,6 +18,7 @@ import { Switch } from '@/components/ui/switch';
 import Reveal from '@/components/Reveal';
 import { cn, normalizeHashtags } from '@/lib/utils';
 import { toast } from 'sonner';
+import { track as countEvent } from '@/lib/analytics';
 
 // Room for a full song in good MP3/AAC and about a minute of phone video in 1080p:
 // the free storage holds a thousand photos, so one file must not eat fifty of them.
@@ -343,6 +344,7 @@ export default function UploadWork() {
         }),
       });
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      countEvent('obra-publicada', { tipo: workType, venta: sellable && isForSale ? 'sí' : 'no' });
       const { id } = await response.json();
       navigate(`/work/${id}`);
     } catch (err: any) {

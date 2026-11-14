@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useCallback, ReactNode, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/AuthContext';
+import { track } from '@/lib/analytics';
 
 interface FollowContextType {
   followingSet: Set<string>;
@@ -74,6 +75,7 @@ export const FollowProvider = ({ children }: { children: ReactNode }) => {
           .from('follows')
           .insert({ follower_id: user.id, following_id: userId });
         if (error) throw error;
+        track('seguir');
       } else {
         const { error } = await supabase
           .from('follows')

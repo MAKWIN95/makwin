@@ -7,6 +7,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { authHeaders } from '@/lib/adminApi';
 import { toast } from 'sonner';
 import { useBodyScrollLock } from '@/hooks/use-body-scroll-lock';
+import { track } from '@/lib/analytics';
 
 interface ReportModalProps {
   isOpen: boolean;
@@ -70,6 +71,7 @@ export default function ReportModal({
       });
 
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      track('denuncia');
 
       setSubmitted(true);
       setTimeout(() => {

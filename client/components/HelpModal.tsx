@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/lib/AuthContext';
 import { authHeaders } from '@/lib/adminApi';
 import { useBodyScrollLock } from '@/hooks/use-body-scroll-lock';
+import { track } from '@/lib/analytics';
 
 interface HelpModalProps {
   isOpen: boolean;
@@ -102,6 +103,7 @@ export default function HelpModal({ isOpen, onClose }: HelpModalProps) {
         }),
       });
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      track('mensaje-ayuda');
       setSubmitted(true);
     } catch (err) {
       console.error('[HelpModal] Could not send the message:', err);

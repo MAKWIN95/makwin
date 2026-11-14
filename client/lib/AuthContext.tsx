@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
+import { track } from '@/lib/analytics';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase, Profile, DEFAULT_USER_AVATAR } from './supabase';
 import { getPasswordPolicyError } from './passwordPolicy';
@@ -329,6 +330,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       window.sessionStorage.setItem(googleOAuthPendingKey, 'true');
       const { error } = await supabase.auth.signInWithIdToken({ provider: 'google', token, nonce });
       if (error) throw error;
+      track('inicio-sesion', { metodo: 'google' });
     } catch (error) {
       // Never leave someone stuck: if Supabase refuses the token, take the old road.
       console.warn('[AuthContext] Google token sign-in failed, using redirect:', error);
@@ -373,6 +375,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         return { error: error.message };
       }
+      track('inicio-sesion', { metodo: 'email' });
       return { error: null };
     } catch (err: any) {
       return { error: err.message || 'Error durante el login' };
@@ -421,6 +424,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }, { onConflict: 'id' });
     }
 
+    track('registro', { metodo: 'email' });
     return { error: null };
   };
 
@@ -660,6 +664,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setNeedsUsernameSetup(false);
       setOnboardingUser(null);
       clearOnboardingState();
+      track('registro', { metodo: 'google' });
 
       if (typeof window !== 'undefined') {
         try {

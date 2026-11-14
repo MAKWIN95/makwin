@@ -5,6 +5,7 @@ import { Heart, HelpCircle } from 'lucide-react';
 import { APP_VERSION } from '@/lib/version';
 import { useI18n } from '@/lib/i18n';
 import HelpModal from './HelpModal';
+import { track } from '@/lib/analytics';
 
 const SUPPORT_URL = 'https://ko-fi.com/makwin';
 
@@ -41,6 +42,7 @@ export default function Footer() {
             {/* Optional donations (Ko-fi): MAKWIN stays free; whoever likes it can help pay the servers. */}
             <a
               href={SUPPORT_URL}
+              onClick={() => track('apoyo-kofi')}
               target="_blank"
               rel="noopener noreferrer"
               title={language === 'es' ? 'MAKWIN es gratis. Si te gusta, puedes ayudar a pagar los servidores.' : 'MAKWIN is free. If you like it, you can help pay for the servers.'}

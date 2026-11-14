@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { track } from '@/lib/analytics';
 
 export default function ComingSoon() {
   const [isVisible, setIsVisible] = useState(false);
@@ -114,6 +115,7 @@ export default function ComingSoon() {
             <div className="flex flex-row justify-center gap-8 md:gap-12">
               <a
                 href="https://www.tiktok.com/@makwin.art"
+                onClick={() => track('red-social', { red: 'tiktok' })}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-sm md:text-base font-light hover:opacity-100 opacity-60 transition-opacity duration-300 hover:underline"
@@ -122,6 +124,7 @@ export default function ComingSoon() {
               </a>
               <a
                 href="https://www.instagram.com/1makwin"
+                onClick={() => track('red-social', { red: 'instagram-1makwin' })}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-sm md:text-base font-light hover:opacity-100 opacity-60 transition-opacity duration-300 hover:underline"
@@ -130,6 +133,7 @@ export default function ComingSoon() {
               </a>
               <a
                 href="https://www.instagram.com/makwin.art"
+                onClick={() => track('red-social', { red: 'instagram-makwin.art' })}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-sm md:text-base font-light hover:opacity-100 opacity-60 transition-opacity duration-300 hover:underline"
