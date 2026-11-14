@@ -113,7 +113,7 @@ export default function ComingSoon() {
             {/* Social links */}
             <div className="flex flex-row justify-center gap-8 md:gap-12">
               <a
-                href="https://www.tiktok.com/@.makwin"
+                href="https://www.tiktok.com/@makwin.art"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-sm md:text-base font-light hover:opacity-100 opacity-60 transition-opacity duration-300 hover:underline"
