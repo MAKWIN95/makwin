@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/lib/AuthContext';
 import { useI18n } from '@/lib/i18n';
+import { captchaToken } from '@/lib/captcha';
 import { supabase } from '@/lib/supabase';
 import { getAuthErrorMessage } from '@/lib/authErrors';
 import GoogleSignInButton from '@/components/GoogleSignInButton';
@@ -105,7 +106,7 @@ export default function Login() {
     const { error } = await supabase.auth.resend({
       type: 'signup',
       email,
-      options: { emailRedirectTo: `${window.location.origin}/login` },
+      options: { emailRedirectTo: `${window.location.origin}/login`, captchaToken: await captchaToken(language) },
     });
     setLoading(false);
     if (error) {

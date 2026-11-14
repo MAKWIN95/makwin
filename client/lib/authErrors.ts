@@ -16,6 +16,11 @@ export function getAuthErrorMessage(error: unknown, language: 'es' | 'en'): stri
   if (message.includes('already registered') || message.includes('already exists')) {
     return es ? 'Este correo ya tiene una cuenta. Inicia sesión.' : 'This email already has an account. Please sign in.';
   }
+  if (message.includes('captcha')) {
+    return es
+      ? 'No hemos podido comprobar que eres una persona. Recarga la página e inténtalo de nuevo.'
+      : 'We could not check that you are a person. Reload the page and try again.';
+  }
   if (message.includes('rate limit') || message.includes('too many') || message.includes('security purposes')) {
     return es ? 'Demasiados intentos. Espera unos minutos y vuelve a intentarlo.' : 'Too many attempts. Please wait a few minutes and try again.';
   }

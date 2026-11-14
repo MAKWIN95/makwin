@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState, useCallback, use
 import { User, Session } from '@supabase/supabase-js';
 import { supabase, Profile, DEFAULT_USER_AVATAR } from './supabase';
 import { getPasswordPolicyError } from './passwordPolicy';
+import { captchaToken } from './captcha';
 import { isPlaceholderUsername, isValidUsername, isUsernameUniqueViolation, normalizeUsername } from '@shared/username';
 
 interface AuthContextType {
@@ -338,7 +339,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signInWithEmail = async (email: string, password: string) => {
     try {
       window.sessionStorage.removeItem(googleOAuthPendingKey);
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      const { error } = await supabase.auth.signInWithPassword({ email, password, options: { captchaToken: await captchaToken() } });
 
       if (error) {
         // Si falla el login, verificamos si el email existe
@@ -401,6 +402,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       password,
       options: {
         emailRedirectTo: redirectTo,
+        captchaToken: await captchaToken(language),
         data: { username: username.toLowerCase(), display_name: displayName, language_preference: language },
       },
     });
@@ -445,6 +447,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo,
+      captchaToken: await captchaToken(),
     });
     return { error: error?.message ?? null };
   };
