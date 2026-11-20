@@ -42,11 +42,13 @@ function cleanHashtags(value: unknown): string[] {
 const supabaseWorks = () => `${supabaseUrl.replace(/\/$/, '')}/storage/v1/object/public/works/`;
 
 // Only files the same person uploaded, wherever they are kept: the check downloads these URLs.
+// A "../" (plain or encoded) could climb out of the artist's folder, so it is never theirs.
 function ownFileUrl(value: unknown, userId: string): string | null {
   const url = String(value ?? '');
+  if (/\.\.|%2e%2e|%2f|%5c|\\/i.test(url)) return null;
   if (url.startsWith(`${supabaseWorks()}${userId}/`)) return url;
   const r2 = r2Config();
-  return r2 && url.startsWith(`${r2.publicUrl}/${userId}/`) && !url.includes('..') ? url : null;
+  return r2 && url.startsWith(`${r2.publicUrl}/${userId}/`) ? url : null;
 }
 
 // A file that fails to go is only wasted space, so it never fails what was asked.
@@ -324,7 +326,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (!(await allow(LIMITS.publishWork, user.id))) return tooMany(res, LIMITS.publishWork);
       return await createWork(req, res, user.id);
     }
-    if (req.method === 'PATCH') return await editWork(req, res, user.id);
+    if (req.method === 'PATCH') {
+      if (!(await allow(LIMITS.editWork, user.id))) return tooMany(res, LIMITS.editWork);
+      return await editWork(req, res, user.id);
+    }
     if (req.method === 'DELETE') return await deleteWork(req, res, user.id);
     return res.status(405).json({ error: 'Method not allowed' });
   } catch (error) {

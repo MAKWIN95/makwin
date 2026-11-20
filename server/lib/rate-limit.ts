@@ -18,6 +18,7 @@ export const LIMITS = {
   checkUsername: { name: 'check-username', max: 120, seconds: 10 * 60 },
   helpMessage: { name: 'help-message', max: 5, seconds: 60 * 60 },
   publishWork: { name: 'publish-work', max: 20, seconds: 60 * 60 },
+  editWork: { name: 'edit-work', max: 60, seconds: 60 * 60 },
   signUploads: { name: 'sign-uploads', max: 60, seconds: 60 * 60 },
   report: { name: 'report', max: 30, seconds: 60 * 60 },
 } satisfies Record<string, Limit>;
