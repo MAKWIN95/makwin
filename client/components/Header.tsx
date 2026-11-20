@@ -104,25 +104,44 @@ export default function Header({ showSearch = true, showSearchCentered = false, 
   useEffect(() => { setShowNews(false); }, [location.pathname]);
   const closeNews = React.useCallback(() => setShowNews(false), []);
 
-  // The bell's window is exactly as wide as the row from the language button to the
-  // avatar, and starts just under the bar's glass.
+  // The bell's window is exactly as wide as the row of buttons, from the first to the
+  // avatar, and starts just under the bar's glass. It is measured, never fixed, so it
+  // follows the row when buttons grow, shrink, appear or go.
   const [newsPlace, setNewsPlace] = useState<{ top: number; width: number } | null>(null);
   useLayoutEffect(() => {
     if (!showNews) return;
+    const tools = toolsRef.current;
+    if (!tools) return;
     const place = () => {
-      const tools = toolsRef.current;
-      const first = tools?.querySelector('#lang-selector-wrap');
       const glass = barRef.current?.querySelector('[data-header-glass]') ?? barRef.current;
-      if (!tools || !first || !glass) return;
+      const buttons = Array.from(tools.children).filter(
+        (child) => !child.classList.contains('notif-panel') && child.getBoundingClientRect().width > 0,
+      );
+      if (!glass || !buttons.length) return;
       const row = tools.getBoundingClientRect();
-      setNewsPlace({
+      const left = Math.min(...buttons.map((child) => child.getBoundingClientRect().left));
+      const right = Math.max(...buttons.map((child) => child.getBoundingClientRect().right));
+      const next = {
         top: Math.round(glass.getBoundingClientRect().bottom - row.bottom + 8),
-        width: Math.round(row.right - first.getBoundingClientRect().left),
-      });
+        width: Math.round(right - left),
+      };
+      setNewsPlace((current) => (current && current.top === next.top && current.width === next.width ? current : next));
     };
     place();
+    const watcher = new ResizeObserver(place);
+    watcher.observe(tools);
+    for (const child of Array.from(tools.children)) watcher.observe(child);
+    const added = new MutationObserver(() => {
+      for (const child of Array.from(tools.children)) watcher.observe(child);
+      place();
+    });
+    added.observe(tools, { childList: true });
     window.addEventListener('resize', place);
-    return () => window.removeEventListener('resize', place);
+    return () => {
+      watcher.disconnect();
+      added.disconnect();
+      window.removeEventListener('resize', place);
+    };
   }, [showNews]);
 
   // Follow the address (hashtag links, "clear search", back button) without
@@ -214,11 +233,11 @@ export default function Header({ showSearch = true, showSearchCentered = false, 
 
           {/* Left: navigation + logo */}
           <div className={`${isHomePage ? 'hidden' : 'col-span-1'} flex items-center gap-1 sm:gap-2 min-w-0 relative`}>
-            <button data-morph="back" onClick={handleGoBack} className={`${isGallery ? 'header-back-peek' : ''} max-[359px]:hidden header-button ios-press p-0 w-10 h-10 phone:w-11 phone:h-11 max-[429px]:!w-9 max-[374px]:!w-8 flex items-center justify-center shrink-0`} aria-label={es ? 'Atrás' : 'Back'}>
-              <ArrowLeft className="w-5 h-5 text-[hsl(var(--foreground))] transition-colors duration-300" />
+            <button data-morph="back" onClick={handleGoBack} className={`${isGallery ? 'header-back-peek' : ''} max-[359px]:hidden header-button ios-press p-0 w-10 h-10 lg:w-12 lg:h-12 phone:w-11 phone:h-11 max-[429px]:!w-9 max-[374px]:!w-8 flex items-center justify-center shrink-0`} aria-label={es ? 'Atrás' : 'Back'}>
+              <ArrowLeft className="w-5 h-5 lg:w-6 lg:h-6 phone:w-5 phone:h-5 text-[hsl(var(--foreground))] transition-colors duration-300" />
             </button>
             <div data-morph="logo" onClick={handleMakwinClick} className={`cursor-pointer flex items-center gap-2 ml-1 min-w-0 overflow-hidden phone:min-h-11 ${isGallery ? 'max-sm:ml-2 max-[359px]:ml-1' : ''}`}>
-              <span className={`logo-makwin tracking-widest hover:opacity-80 transition-opacity duration-200 whitespace-nowrap leading-tight max-[374px]:!text-sm ${hideSearch ? 'text-lg sm:text-xl' : 'text-lg sm:text-xl md:text-2xl'}`}>
+              <span className={`logo-makwin tracking-widest hover:opacity-80 transition-opacity duration-200 whitespace-nowrap leading-tight max-[374px]:!text-sm ${hideSearch ? 'text-lg sm:text-xl lg:text-2xl' : 'text-lg sm:text-xl md:text-2xl lg:text-[1.75rem]'}`}>
                 <span className="phone:hidden">MAKWIN</span>
                 <span className="hidden phone:inline">MKWN</span>
               </span>
@@ -241,7 +260,7 @@ export default function Header({ showSearch = true, showSearchCentered = false, 
                   onChange={(e) => handleSearchChange(e.target.value)}
                   onFocus={() => setIsSearching(true)}
                   aria-label={t('search.placeholder')}
-                  className={`flex-1 min-w-0 h-11 px-3 sm:px-4 py-2 text-[15px] bg-transparent border border-[rgba(120,120,120,0.3)] rounded-xl focus:outline-none focus:ring-1 focus:ring-[hsl(var(--ring))] transition-all placeholder:text-[hsl(var(--muted-foreground))] ${filterExpanded ? 'max-xl:invisible' : ''}`}
+                  className={`flex-1 min-w-0 h-11 lg:h-12 phone:h-11 px-3 sm:px-4 py-2 text-[15px] lg:text-base phone:text-[15px] bg-transparent border border-[rgba(120,120,120,0.3)] rounded-xl focus:outline-none focus:ring-1 focus:ring-[hsl(var(--ring))] transition-all placeholder:text-[hsl(var(--muted-foreground))] ${filterExpanded ? 'max-xl:invisible' : ''}`}
                 />
                 {isGallery && <GalleryFilter onExpand={setFilterExpanded} />}
               </form>
@@ -249,7 +268,7 @@ export default function Header({ showSearch = true, showSearchCentered = false, 
           </div>
 
           {/* Right: lang + music + user */}
-          <div data-morph="tools" ref={toolsRef} className={`${isHomePage ? 'col-span-3 flex justify-center' : 'col-span-1 flex justify-end'} relative flex items-center gap-1`}>
+          <div data-morph="tools" ref={toolsRef} className={`${isHomePage ? 'col-span-3 flex justify-center' : 'col-span-1 flex justify-end'} relative flex items-center gap-1 lg:gap-1.5 phone:gap-1`}>
             <div id="lang-selector-wrap" className="whitespace-nowrap">
               <LanguageSelector />
             </div>
@@ -274,15 +293,15 @@ export default function Header({ showSearch = true, showSearchCentered = false, 
             )}
 
             {/* Light / dark */}
-            <button type="button" onClick={() => { setThemeTapped(true); toggleTheme(); }} className="ios-press header-button inline-flex items-center justify-center shrink-0 w-10 h-10 phone:w-11 phone:h-11 max-[429px]:!w-9 max-[374px]:!w-8" aria-label={isDark ? (es ? 'Modo claro' : 'Light mode') : (es ? 'Modo oscuro' : 'Dark mode')}>
+            <button type="button" onClick={() => { setThemeTapped(true); toggleTheme(); }} className="ios-press header-button inline-flex items-center justify-center shrink-0 w-10 h-10 lg:w-12 lg:h-12 phone:w-11 phone:h-11 max-[429px]:!w-9 max-[374px]:!w-8" aria-label={isDark ? (es ? 'Modo claro' : 'Light mode') : (es ? 'Modo oscuro' : 'Dark mode')}>
               <span key={String(isDark)} className={themeTapped ? 'theme-icon' : 'block'} onAnimationEnd={() => setThemeTapped(false)}>
-                {isDark ? <Sun className="w-5 h-5 text-[hsl(var(--foreground))]" /> : <Moon className="w-5 h-5 text-[hsl(var(--foreground))]" />}
+                {isDark ? <Sun className="w-5 h-5 lg:w-6 lg:h-6 phone:w-5 phone:h-5 text-[hsl(var(--foreground))]" /> : <Moon className="w-5 h-5 lg:w-6 lg:h-6 phone:w-5 phone:h-5 text-[hsl(var(--foreground))]" />}
               </span>
             </button>
 
             {/* Upload shortcut */}
-            <Link to={user || authLoading ? '/subir-obra' : '/login'} className="ios-press header-button inline-flex items-center justify-center shrink-0 w-10 h-10 phone:w-11 phone:h-11 max-[429px]:!w-9 max-[374px]:!w-8" aria-label={es ? 'Subir obra' : 'Upload work'}>
-              <Upload className="w-5 h-5 text-[hsl(var(--foreground))]" />
+            <Link to={user || authLoading ? '/subir-obra' : '/login'} className="ios-press header-button inline-flex items-center justify-center shrink-0 w-10 h-10 lg:w-12 lg:h-12 phone:w-11 phone:h-11 max-[429px]:!w-9 max-[374px]:!w-8" aria-label={es ? 'Subir obra' : 'Upload work'}>
+              <Upload className="w-5 h-5 lg:w-6 lg:h-6 phone:w-5 phone:h-5 text-[hsl(var(--foreground))]" />
             </Link>
 
             {/* News: on a phone the bar is full, so it lives in the avatar's menu and shows as a dot on it */}
@@ -293,10 +312,10 @@ export default function Header({ showSearch = true, showSearchCentered = false, 
                 aria-expanded={showNews}
                 aria-haspopup="dialog"
                 aria-label={es ? `Notificaciones${unread ? `: ${unread} nuevas` : ''}` : `Notifications${unread ? `: ${unread} new` : ''}`}
-                className={`phone:hidden ios-press header-button relative inline-flex items-center justify-center shrink-0 w-10 h-10 transition-colors ${showNews ? 'bg-[hsl(var(--foreground)/0.08)]' : ''}`}
+                className={`phone:hidden ios-press header-button relative inline-flex items-center justify-center shrink-0 w-10 h-10 lg:w-12 lg:h-12 transition-colors ${showNews ? 'bg-[hsl(var(--foreground)/0.08)]' : ''}`}
               >
-                <Bell className="w-5 h-5 text-[hsl(var(--foreground))]" />
-                {unread > 0 && <span aria-hidden="true" className="absolute top-1.5 right-1.5 w-2.5 h-2.5 rounded-full bg-red-500 ring-2 ring-[hsl(var(--background))] transition-transform" />}
+                <Bell className="w-5 h-5 lg:w-6 lg:h-6 phone:w-5 phone:h-5 text-[hsl(var(--foreground))]" />
+                {unread > 0 && <span aria-hidden="true" className="absolute top-1.5 right-1.5 lg:top-2 lg:right-2 w-2.5 h-2.5 rounded-full bg-red-500 ring-2 ring-[hsl(var(--background))] transition-transform" />}
               </button>
             )}
 
@@ -306,9 +325,9 @@ export default function Header({ showSearch = true, showSearchCentered = false, 
                 <button
                   onClick={() => { setShowNews(false); setShowUserMenu(p => !p); }}
                   aria-label={es ? 'Menú de usuario' : 'User menu'}
-                  className="relative h-10 w-10 phone:h-11 phone:w-11 flex items-center justify-center shrink-0 rounded-xl p-0 transition-opacity hover:bg-transparent hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))] focus-visible:ring-offset-2 focus-visible:ring-offset-[hsl(var(--background))]"
+                  className="relative h-10 w-10 lg:h-12 lg:w-12 phone:h-11 phone:w-11 flex items-center justify-center shrink-0 rounded-xl p-0 transition-opacity hover:bg-transparent hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))] focus-visible:ring-offset-2 focus-visible:ring-offset-[hsl(var(--background))]"
                 >
-                  <div className="w-9 h-9 phone:w-8 phone:h-8 rounded-xl overflow-hidden bg-[hsl(var(--muted))] border border-[rgba(120,120,120,0.25)] flex items-center justify-center text-sm font-medium">
+                  <div className="w-9 h-9 lg:w-10 lg:h-10 phone:w-8 phone:h-8 rounded-xl overflow-hidden bg-[hsl(var(--muted))] border border-[rgba(120,120,120,0.25)] flex items-center justify-center text-sm font-medium">
                     {profile?.avatar_url
                       ? <img src={profile.avatar_url} referrerPolicy="no-referrer" alt={profile.display_name ?? ''} className="w-full h-full object-cover" />
                       : <span>{(profile?.display_name ?? profile?.username ?? 'U').charAt(0).toUpperCase()}</span>
