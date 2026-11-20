@@ -533,11 +533,18 @@
 }
 
 /* A list: exhibitions, credits, awards */
-.pf-entries { list-style: none; }
+.pf-entries {
+  list-style: none;
+  /* One year column for the whole list, as wide as its longest year (2018–2022 stays on one line). */
+  display: grid;
+  grid-template-columns: minmax(4.5rem, max-content) minmax(0, 1fr);
+  column-gap: 18px;
+}
 
 .pf-entry {
   display: grid;
-  grid-template-columns: 4.5rem minmax(0, 1fr);
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
   gap: 18px;
   padding: 14px 0;
   border-bottom: 1px solid var(--pf-line);
@@ -546,6 +553,7 @@
 .pf-entry:first-child { border-top: 1px solid var(--pf-line); }
 
 .pf-year {
+  max-width: 9rem;
   font-size: 14px;
   font-variant-numeric: tabular-nums;
   color: var(--pf-accent);
@@ -1520,7 +1528,9 @@
 @media print {
   @page { margin: 14mm 14mm 16mm; }
 
-  html, body { background: #fff !important; }
+  /* Stronger than the dark-mode page colour, whose edge otherwise prints as a thin grey frame. */
+  html:has(.pf-shell),
+  html.dark:has(.pf-shell) body { background: #fff !important; }
 
   .global-stars-background,
   .stars-background,
@@ -1551,6 +1561,7 @@
     min-height: 0;
     background: #fff !important;
     color: #111 !important;
+    transition: none !important;
   }
 
   .pf-shell[data-tone][data-accent='tinta'] { --pf-accent: #111; --pf-on-accent: #fff; }
@@ -1561,7 +1572,7 @@
   .pf-shell[data-tone][data-accent='oro'] { --pf-accent: #94701f; --pf-on-accent: #fff; }
 
   .pf-page { max-width: none; padding: 0; }
-  .pf-mode { animation: none; }
+  .pf-mode { animation: none !important; opacity: 1 !important; transform: none !important; }
   .pf-hero { margin-bottom: 36px; }
   .pf-hero-img { max-height: 120mm; box-shadow: none !important; opacity: 1 !important; transform: none !important; }
   .pf-section { margin-top: 32px; break-inside: auto; }

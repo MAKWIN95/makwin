@@ -519,7 +519,8 @@ export default function Portfolio() {
   const heroWork = view?.info.heroWork ? works.get(view.info.heroWork) : undefined;
   const heroPicture = view?.info.heroImage ?? (heroWork ? workPicture(heroWork) : null);
   const heroStatus = view?.info.heroImage ? mediaStatus(view.info.heroImage) : 'ok';
-  const link = owner ? portfolioLink(owner.username, visibility, shareKey) : '';
+  // A visitor who came with the private link keeps it, so a printed copy still opens.
+  const link = owner ? portfolioLink(owner.username, mine ? visibility : key ? 'link' : 'public', mine ? shareKey : key) : '';
 
   const shownSections = (view?.sections ?? []).filter((section) => editing || (!section.hidden && !isEmptySection(section) && !(section.type === 'works' && !section.items.some((item) => works.has(item.id)))));
 
