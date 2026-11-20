@@ -10,6 +10,7 @@ import { useTheme } from "@/hooks/use-theme";
 import { authHeaders } from "@/lib/adminApi";
 import { morphHeader, PageShown } from "@/lib/header-morph";
 import { useUnreadNotifications } from "@/lib/notifications";
+import NotificationsPanel from "./NotificationsPanel";
 
 const readSearch = (search: string) => (new URLSearchParams(search).get('search') ?? '').replace(/^#/, '').trim();
 
@@ -48,6 +49,8 @@ export default function Header({ showSearch = true, showSearchCentered = false, 
   const [filterExpanded, setFilterExpanded] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [showNews, setShowNews] = useState(false);
+  const toolsRef = useRef<HTMLDivElement | null>(null);
   const [themeTapped, setThemeTapped] = useState(false);
   const searchRef = useRef<HTMLDivElement | null>(null);
   const userMenuRef = useRef<HTMLDivElement | null>(null);
@@ -82,12 +85,45 @@ export default function Header({ showSearch = true, showSearchCentered = false, 
     const onDown = (e: PointerEvent) => {
       if (searchRef.current && !searchRef.current.contains(e.target as Node)) setIsSearching(false);
       if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) setShowUserMenu(false);
+      if (toolsRef.current && !toolsRef.current.contains(e.target as Node)) setShowNews(false);
     };
     document.addEventListener('pointerdown', onDown);
     return () => document.removeEventListener('pointerdown', onDown);
   }, []);
 
   const isGallery = location.pathname === '/' || location.pathname.startsWith('/galeria');
+
+  // Another account (or none) means a fresh bar: no half-finished "signing out", no open menus.
+  useEffect(() => {
+    setIsLoggingOut(false);
+    setShowUserMenu(false);
+    setShowNews(false);
+  }, [user?.id]);
+
+  // A new page closes the bell's window.
+  useEffect(() => { setShowNews(false); }, [location.pathname]);
+  const closeNews = React.useCallback(() => setShowNews(false), []);
+
+  // The bell's window is exactly as wide as the row from the language button to the
+  // avatar, and starts just under the bar's glass.
+  const [newsPlace, setNewsPlace] = useState<{ top: number; width: number } | null>(null);
+  useLayoutEffect(() => {
+    if (!showNews) return;
+    const place = () => {
+      const tools = toolsRef.current;
+      const first = tools?.querySelector('#lang-selector-wrap');
+      const glass = barRef.current?.querySelector('[data-header-glass]') ?? barRef.current;
+      if (!tools || !first || !glass) return;
+      const row = tools.getBoundingClientRect();
+      setNewsPlace({
+        top: Math.round(glass.getBoundingClientRect().bottom - row.bottom + 8),
+        width: Math.round(row.right - first.getBoundingClientRect().left),
+      });
+    };
+    place();
+    window.addEventListener('resize', place);
+    return () => window.removeEventListener('resize', place);
+  }, [showNews]);
 
   // Follow the address (hashtag links, "clear search", back button) without
   // fighting the spaces someone is still typing.
@@ -178,12 +214,13 @@ export default function Header({ showSearch = true, showSearchCentered = false, 
 
           {/* Left: navigation + logo */}
           <div className={`${isHomePage ? 'hidden' : 'col-span-1'} flex items-center gap-1 sm:gap-2 min-w-0 relative`}>
-            <button data-morph="back" onClick={handleGoBack} className={`${isGallery ? 'max-sm:hidden' : ''} max-[359px]:hidden header-button ios-press p-0 w-10 h-10 phone:w-11 phone:h-11 max-[429px]:!w-9 max-[374px]:!w-8 flex items-center justify-center shrink-0`} aria-label={es ? 'Atrás' : 'Back'}>
+            <button data-morph="back" onClick={handleGoBack} className={`${isGallery ? 'header-back-peek' : ''} max-[359px]:hidden header-button ios-press p-0 w-10 h-10 phone:w-11 phone:h-11 max-[429px]:!w-9 max-[374px]:!w-8 flex items-center justify-center shrink-0`} aria-label={es ? 'Atrás' : 'Back'}>
               <ArrowLeft className="w-5 h-5 text-[hsl(var(--muted-foreground))] phone:text-[hsl(var(--foreground))] transition-colors duration-300" />
             </button>
             <div data-morph="logo" onClick={handleMakwinClick} className={`cursor-pointer flex items-center gap-2 ml-1 min-w-0 overflow-hidden phone:min-h-11 ${isGallery ? 'max-sm:ml-2 max-[359px]:ml-1' : ''}`}>
               <span className={`logo-makwin tracking-widest hover:opacity-80 transition-opacity duration-200 whitespace-nowrap leading-tight max-[374px]:!text-sm ${hideSearch ? 'text-base sm:text-lg' : 'text-lg sm:text-xl md:text-2xl'}`}>
-                MKWN
+                <span className="phone:hidden">MAKWIN</span>
+                <span className="hidden phone:inline">MKWN</span>
               </span>
               {breadcrumb && <>
                 <span data-morph-fade className="max-sm:hidden text-[hsl(var(--muted-foreground))] font-light">/</span>
@@ -212,7 +249,7 @@ export default function Header({ showSearch = true, showSearchCentered = false, 
           </div>
 
           {/* Right: lang + music + user */}
-          <div data-morph="tools" className={`${isHomePage ? 'col-span-3 flex justify-center' : 'col-span-1 flex justify-end'} flex items-center gap-1`}>
+          <div data-morph="tools" ref={toolsRef} className={`${isHomePage ? 'col-span-3 flex justify-center' : 'col-span-1 flex justify-end'} relative flex items-center gap-1`}>
             <div id="lang-selector-wrap" className="whitespace-nowrap">
               <LanguageSelector />
             </div>
@@ -250,17 +287,24 @@ export default function Header({ showSearch = true, showSearchCentered = false, 
 
             {/* News: on a phone the bar is full, so it lives in the avatar's menu and shows as a dot on it */}
             {user && (
-              <Link to="/notificaciones" aria-label={es ? `Notificaciones${unread ? `: ${unread} nuevas` : ''}` : `Notifications${unread ? `: ${unread} new` : ''}`} className="phone:hidden ios-press header-button relative inline-flex items-center justify-center shrink-0 p-2">
+              <button
+                type="button"
+                onClick={() => { setShowUserMenu(false); setShowNews((open) => !open); }}
+                aria-expanded={showNews}
+                aria-haspopup="dialog"
+                aria-label={es ? `Notificaciones${unread ? `: ${unread} nuevas` : ''}` : `Notifications${unread ? `: ${unread} new` : ''}`}
+                className={`phone:hidden ios-press header-button relative inline-flex items-center justify-center shrink-0 p-2 transition-colors ${showNews ? 'bg-[hsl(var(--foreground)/0.08)]' : ''}`}
+              >
                 <Bell className="w-4 h-4 text-[hsl(var(--foreground))]" />
-                {unread > 0 && <span aria-hidden="true" className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-red-500" />}
-              </Link>
+                {unread > 0 && <span aria-hidden="true" className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-red-500 transition-transform" />}
+              </button>
             )}
 
             {/* User avatar / login */}
             {user ? (
               <div className="relative" ref={userMenuRef}>
                 <button
-                  onClick={() => setShowUserMenu(p => !p)}
+                  onClick={() => { setShowNews(false); setShowUserMenu(p => !p); }}
                   aria-label={es ? 'Menú de usuario' : 'User menu'}
                   className="relative h-8 w-8 phone:h-11 phone:w-11 flex items-center justify-center shrink-0 rounded-xl p-0 transition-opacity hover:bg-transparent hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))] focus-visible:ring-offset-2 focus-visible:ring-offset-[hsl(var(--background))]"
                 >
@@ -312,19 +356,26 @@ export default function Header({ showSearch = true, showSearchCentered = false, 
                         </Link>
                       )}
                       <div className="border-t border-[rgba(120,120,120,0.25)] mt-1 pt-1">
-                        <button onClick={async () => { 
+                        <button onClick={async () => {
                           setIsLoggingOut(true);
-                          // Fade out effect
-                          document.documentElement.style.opacity = '0';
-                          document.documentElement.style.transition = 'opacity 0.3s ease-out';
-                          await new Promise(r => setTimeout(r, 300));
-                          await signOut();
-                          // Reset opacity for next page
-                          document.documentElement.style.opacity = '1';
-                          document.documentElement.style.transition = 'none';
-                          const shouldStayOnRoute = location.pathname === '/'
-                            || ['/galeria', '/marketplace', '/merch', '/work/', '/u/'].some(r => location.pathname.startsWith(r));
-                          navigate(shouldStayOnRoute ? location.pathname : '/galeria', { replace: true });
+                          // The page fades out, signs out, and fades back in signed out.
+                          const page = document.documentElement.style;
+                          page.transition = 'opacity 0.3s ease-out';
+                          page.opacity = '0';
+                          try {
+                            await new Promise(r => setTimeout(r, 300));
+                            await signOut();
+                            const shouldStayOnRoute = location.pathname === '/'
+                              || ['/galeria', '/marketplace', '/merch', '/work/', '/u/'].some(r => location.pathname.startsWith(r));
+                            navigate(shouldStayOnRoute ? location.pathname : '/galeria', { replace: true });
+                          } finally {
+                            // Whatever happened, the button and the menu are back to normal.
+                            setIsLoggingOut(false);
+                            setShowUserMenu(false);
+                            page.transition = 'opacity 0.3s ease-in';
+                            page.opacity = '1';
+                            window.setTimeout(() => { page.transition = ''; page.opacity = ''; }, 320);
+                          }
                         }}
                           disabled={isLoggingOut}
                           className="flex items-center gap-3 px-4 py-2.5 phone:py-3 text-sm text-[hsl(var(--foreground))] hover:bg-[hsl(var(--muted))] transition-colors w-full text-left disabled:opacity-50">
@@ -347,6 +398,8 @@ export default function Header({ showSearch = true, showSearchCentered = false, 
                 {es ? 'Iniciar sesión' : 'Sign in'}
               </Link>
             )}
+
+            {user && <NotificationsPanel userId={user.id} open={showNews} place={newsPlace} es={es} language={language} onClose={closeNews} />}
           </div>
 
         </div>

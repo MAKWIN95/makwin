@@ -219,6 +219,78 @@ video {
   animation: glass-menu-in 0.28s cubic-bezier(0.32, 0.72, 0, 1) both;
 }
 
+/* The bell's window: a column of the bar's own glass, under its buttons, that unfolds
+   downward. It holds text, so what is behind blurs as hard as behind any window. */
+.notif-panel {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  width: 13rem;
+  min-width: 12rem;
+  max-height: min(34rem, calc(100dvh - 6rem));
+  display: flex;
+  flex-direction: column;
+  border-radius: 22px !important;
+  -webkit-backdrop-filter: blur(56px) saturate(180%);
+  backdrop-filter: blur(56px) saturate(180%);
+  transform-origin: top right;
+  z-index: 60;
+  animation: notif-unfold 0.42s cubic-bezier(0.32, 0.72, 0, 1) both;
+}
+
+.notif-panel[data-state='closed'] {
+  animation: notif-fold 0.2s ease-in both;
+  pointer-events: none;
+}
+
+.notif-panel-list {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.notif-panel-row { animation: notif-row-in 0.36s cubic-bezier(0.32, 0.72, 0, 1) both; }
+
+.notif-panel-title {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+@keyframes notif-unfold {
+  from { opacity: 0; clip-path: inset(0 0 100% 0 round 22px); transform: translateY(-6px); }
+  to { opacity: 1; clip-path: inset(0 0 0 0 round 22px); transform: none; }
+}
+
+@keyframes notif-fold {
+  from { opacity: 1; clip-path: inset(0 0 0 0 round 22px); transform: none; }
+  to { opacity: 0; clip-path: inset(0 0 100% 0 round 22px); transform: translateY(-4px); }
+}
+
+@keyframes notif-row-in {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .notif-panel, .notif-panel[data-state='closed'], .notif-panel-row { animation-duration: 0.01s; }
+}
+
+/* On the gallery a computer keeps the back arrow out of sight until the pointer comes to it. */
+@media (hover: hover) and (pointer: fine) {
+  .header-back-peek {
+    opacity: 0;
+    transform: translateX(-4px);
+    transition: opacity 0.25s ease, transform 0.35s cubic-bezier(0.32, 0.72, 0, 1);
+  }
+  .header-back-peek:hover,
+  .header-back-peek:focus-visible {
+    opacity: 1;
+    transform: none;
+  }
+}
+
 /* No blur here: the window above has to see the page itself through its glass. */
 .glass-overlay {
   background: rgba(0, 0, 0, 0.3);
