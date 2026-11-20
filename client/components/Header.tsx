@@ -3,7 +3,7 @@ import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/custom-dialog";
 import LanguageSelector from "./LanguageSelector";
 import GalleryFilter from "./GalleryFilter";
-import { ArrowLeft, Bell, Upload, Bookmark, User, LogOut, Settings, Heart, Moon, Sun, Shield } from 'lucide-react';
+import { ArrowLeft, Bell, Upload, Bookmark, Briefcase, User, LogOut, Settings, Heart, Moon, Sun, Shield } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
 import { useAuth } from '@/lib/AuthContext';
 import { useTheme } from "@/hooks/use-theme";
@@ -346,6 +346,10 @@ export default function Header({ showSearch = true, showSearchCentered = false, 
                       <Link to={`/u/${profile?.username}`} onClick={() => setShowUserMenu(false)}
                         className="flex items-center gap-3 px-4 py-2.5 phone:py-3 text-sm text-[hsl(var(--foreground))] hover:bg-[hsl(var(--muted))] transition-colors">
                         <User className="w-4 h-4" /> {es ? 'Mi perfil' : 'My profile'}
+                      </Link>
+                      <Link to={`/p/${profile?.username}`} onClick={() => setShowUserMenu(false)}
+                        className="flex items-center gap-3 px-4 py-2.5 phone:py-3 text-sm text-[hsl(var(--foreground))] hover:bg-[hsl(var(--muted))] transition-colors">
+                        <Briefcase className="w-4 h-4" /> {es ? 'Mi portfolio' : 'My portfolio'}
                       </Link>
                       <Link to="/notificaciones" onClick={() => setShowUserMenu(false)}
                         className="flex items-center gap-3 px-4 py-2.5 phone:py-3 text-sm text-[hsl(var(--foreground))] hover:bg-[hsl(var(--muted))] transition-colors">
