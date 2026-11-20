@@ -292,7 +292,8 @@ interface Song {
 - **Datos**: tabla `portfolios` (una fila por artista). Nadie lee la tabla directamente salvo el dueño; los demás pasan por `get_portfolio(username, key)`, que solo devuelve `public_content`.
 - **Guardar**: todo pasa por `api/publish-work.ts` (`?action=portfolio` PUT/DELETE, `?action=portfolio-key` POST), sin función nueva (Vercel Hobby tiene 12 como máximo). El servidor limpia todo (`cleanPortfolio` en `shared/portfolio.ts`): solo obras propias, solo archivos de su carpeta, solo enlaces web, palabras prohibidas fuera.
 - **Revisión**: fotos y vídeos nuevos se revisan solos en segundo plano; hasta que pasan, solo los ve el dueño («Revisando…»). `public_content` se recalcula al terminar.
-- **Autoguardado**: 0,9 s después de cada cambio; si falla, reintenta a los 3, 6, 12… s (máx. 30 s) y al volver la conexión, con un solo aviso.
+- **Autoguardado**: 0,5 s después del último cambio y, como mínimo, cada 2,5 s mientras se escribe sin parar; no reenvía si no cambió nada. Al cambiar de app, bloquear el móvil o cerrar, envía al momento (`keepalive`). Cada cambio se guarda también en el dispositivo (`localStorage`, `makwin:portfolio-draft:<id>`): si no llegó al servidor, se recupera y se envía al abrir de nuevo. Si falla, reintenta a los 3, 6, 12… s (máx. 30 s) y al volver la conexión, con un solo aviso.
+- **Espacio**: se guarda sin partes vacías (`compactPortfolio` / `expandPortfolio`), y cuando lo que ven los demás es igual que el portfolio entero, `public_content` es solo `{"same": true}` y `get_portfolio` devuelve `content` (migración `20261121120000_portfolio_compact.sql`). Más o menos la mitad de espacio.
 - **Archivos**: van a `<id>/portfolio/` en la carpeta del artista. Borrar el portfolio no borra los archivos.
 
 ## 📊 Sistema de Favoritos/Guardados

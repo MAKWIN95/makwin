@@ -22,7 +22,8 @@ export const LIMITS = {
   signUploads: { name: 'sign-uploads', max: 60, seconds: 60 * 60 },
   report: { name: 'report', max: 30, seconds: 60 * 60 },
   // Saved as the artist types, a little after each pause.
-  portfolio: { name: 'portfolio', max: 900, seconds: 60 * 60 },
+  // Autosave sends at most one every 2.5 s while typing nonstop (1440 an hour); this leaves room.
+  portfolio: { name: 'portfolio', max: 2400, seconds: 60 * 60 },
 } satisfies Record<string, Limit>;
 
 type Counter = Pick<Redis, 'incr' | 'expire'>;

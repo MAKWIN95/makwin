@@ -4,6 +4,8 @@ import { uploadWorkFile } from './work-storage';
 import {
   DEFAULT_DESIGN,
   LIMITS,
+  compactPortfolio,
+  expandPortfolio,
   emptyInfo,
   fileKindOf,
   type Discipline,
@@ -27,7 +29,9 @@ const t = (lang: Lang, es: string, en: string) => (lang === 'es' ? es : en);
 export async function loadPortfolio(username: string, key?: string | null): Promise<PortfolioRecord | null> {
   const { data, error } = await supabase.rpc('get_portfolio', { p_username: username.toLowerCase(), p_key: key || null });
   if (error) throw new Error(error.message);
-  return (data as PortfolioRecord | null) ?? null;
+  const record = (data as PortfolioRecord | null) ?? null;
+  // Saved without its empty parts to take less space; the page gets it whole again.
+  return record ? { ...record, content: expandPortfolio(record.content) } : null;
 }
 
 export interface SavedPortfolio {
@@ -45,20 +49,24 @@ export class PortfolioError extends Error {
   }
 }
 
-async function call(method: 'PUT' | 'POST' | 'DELETE', action: string, body?: unknown) {
+async function call(method: 'PUT' | 'POST' | 'DELETE', action: string, body?: unknown, { leaving = false } = {}) {
   const { data: { session } } = await supabase.auth.getSession();
+  const sent = body === undefined ? undefined : JSON.stringify(body);
   const response = await fetch(`/api/publish-work?action=${action}`, {
     method,
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token ?? ''}` },
-    body: body === undefined ? undefined : JSON.stringify(body),
+    body: sent,
+    // When the page is being closed the browser still finishes sending it (it allows up to 64 kB).
+    keepalive: leaving && (sent?.length ?? 0) < 60_000,
   });
   const reply = await response.json().catch(() => ({}));
   if (!response.ok) throw new PortfolioError(reply?.error || `http_${response.status}`, reply?.words ?? []);
   return reply;
 }
 
-export const savePortfolio = (content: PortfolioContent, visibility: PortfolioVisibility): Promise<SavedPortfolio> =>
-  call('PUT', 'portfolio', { content, visibility });
+/** Sends it without its empty parts (less to send, same portfolio); `leaving` when the page is closing. */
+export const savePortfolio = (content: PortfolioContent, visibility: PortfolioVisibility, options?: { leaving?: boolean }): Promise<SavedPortfolio> =>
+  call('PUT', 'portfolio', { content: compactPortfolio(content), visibility }, options);
 
 export const renewShareKey = (): Promise<SavedPortfolio> => call('POST', 'portfolio-key');
 

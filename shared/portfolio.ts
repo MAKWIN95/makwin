@@ -314,3 +314,38 @@ export function textsOf(content: PortfolioContent): string[] {
   }
   return texts.filter(Boolean);
 }
+
+// ---- Keeping it small ---------------------------------------------------------------
+
+/**
+ * The same portfolio with nothing that is empty: blank texts, switches that are off,
+ * missing pictures and empty lists are left out. `expandPortfolio` puts them back exactly,
+ * so nothing is lost; only the space it takes in the database and on the way there.
+ */
+export function compactPortfolio(content: PortfolioContent): Record<string, unknown> {
+  const prune = (value: unknown): unknown => {
+    if (Array.isArray(value)) return value.map(prune);
+    if (value && typeof value === 'object') {
+      const out: Record<string, unknown> = {};
+      for (const [key, inner] of Object.entries(value)) {
+        if (inner === '' || inner === null || inner === false || inner === undefined) continue;
+        if (Array.isArray(inner) && inner.length === 0) continue;
+        out[key] = prune(inner);
+      }
+      return out;
+    }
+    return value;
+  };
+  return prune(content) as Record<string, unknown>;
+}
+
+/** A saved portfolio, small or not, back to its full shape for the page. */
+export function expandPortfolio(raw: unknown): PortfolioContent {
+  return cleanPortfolio(raw, { ownFile: () => true });
+}
+
+/**
+ * Stored instead of what others see when it is exactly the same as the whole portfolio
+ * (nothing hidden, every picture checked): the portfolio is then not kept twice.
+ */
+export const SAME_AS_CONTENT = { same: true } as const;

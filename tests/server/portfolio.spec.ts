@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { cleanPortfolio, mediaToCheck, publicView, safeWebUrl, textsOf } from '../../shared/portfolio';
+import { cleanPortfolio, compactPortfolio, expandPortfolio, mediaToCheck, publicView, safeWebUrl, textsOf } from '../../shared/portfolio';
 
 const USER = '11111111-1111-4111-8111-111111111111';
 const WORK = '22222222-2222-4222-8222-222222222222';
@@ -97,5 +97,34 @@ describe('what others see', () => {
 
   it('gives every text to the word check, hidden ones too', () => {
     expect(textsOf(content)).toContain('secreto');
+  });
+});
+
+describe('stored small', () => {
+  const full = cleanPortfolio({
+    discipline: 'musica',
+    design: { style: 'moderno', tone: 'oscuro', accent: 'oro' },
+    info: { headline: 'Productora', email: 'a@example.com', available: true, heroImage: OWN },
+    sections: [
+      { type: 'about', title: 'Sobre mí', text: '' },
+      { type: 'works', title: 'Obras', items: [{ id: WORK, note: '' }] },
+      { type: 'entries', title: 'Créditos', items: [{ year: '2025', title: 'Disco', detail: '', link: '' }] },
+      { type: 'files', title: 'Temas', items: [{ url: OWN_PDF, kind: 'pdf', name: '', note: '' }] },
+      { type: 'quotes', title: '', items: [], hidden: true },
+    ],
+  }, { ownFile });
+
+  it('leaves out every empty part and gets it back exactly', () => {
+    const small = compactPortfolio(full);
+    const text = JSON.stringify(small);
+    expect(text).not.toContain('""');
+    expect(text).not.toContain('false');
+    expect(text).not.toContain('null');
+    expect(text.length).toBeLessThan(JSON.stringify(full).length);
+    expect(expandPortfolio(small)).toEqual(full);
+  });
+
+  it('reads portfolios saved before, in their full shape, the same way', () => {
+    expect(expandPortfolio(JSON.parse(JSON.stringify(full)))).toEqual(full);
   });
 });

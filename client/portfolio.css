@@ -188,6 +188,9 @@
   justify-content: center;
 }
 
+/* While the cover arrives its place is already kept, so the name below does not jump down. */
+.pf-hero-art:has(.pf-hero-img:not([data-ready])) { min-height: min(56vh, 520px); }
+
 .pf-hero-img {
   display: block;
   width: auto;

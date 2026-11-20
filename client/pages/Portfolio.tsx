@@ -15,6 +15,8 @@ import {
   DISCIPLINES,
   DISCIPLINE_INFO,
   PortfolioError,
+  compactPortfolio,
+  expandPortfolio,
   deletePortfolio,
   isEmptySection,
   loadOwnWorks,
@@ -45,7 +47,32 @@ type Sheet = null | 'design' | 'share' | 'add' | 'cover' | { pick: string };
 type SaveState = 'saved' | 'waiting' | 'saving' | 'error';
 type PublicProfile = Pick<Profile, 'id' | 'username' | 'display_name' | 'avatar_url' | 'bio' | 'website' | 'instagram_url' | 'tiktok_url' | 'is_banned'>;
 
-const SAVE_AFTER_MS = 900;
+// Saved half a second after the last change, and at least every 2.5 s while someone keeps typing.
+const SAVE_AFTER_MS = 500;
+const SAVE_AT_LEAST_EVERY_MS = 2_500;
+const draftKey = (userId: string) => `makwin:portfolio-draft:${userId}`;
+
+/** `base` is a short fingerprint of what the server had when the change was made. */
+interface Draft { at: number; content: unknown; visibility: PortfolioVisibility; base?: string }
+
+function fingerprint(value: string): string {
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < value.length; i += 1) hash = Math.imul(hash ^ value.charCodeAt(i), 0x01000193);
+  return `${value.length}:${(hash >>> 0).toString(36)}`;
+}
+
+function readDraft(userId: string): Draft | null {
+  try {
+    const raw = localStorage.getItem(draftKey(userId));
+    return raw ? (JSON.parse(raw) as Draft) : null;
+  } catch {
+    return null;
+  }
+}
+
+function forgetDraft(userId: string) {
+  try { localStorage.removeItem(draftKey(userId)); } catch { /* private mode: nothing kept anyway */ }
+}
 const CHECK_EVERY_MS = 4000;
 const CHECK_FOR_MS = 3 * 60 * 1000;
 
@@ -120,6 +147,24 @@ export default function Portfolio() {
         }
         setContent(record.content);
         takeSaved({ visibility: record.visibility, share_key: record.share_key ?? '', checked_media: record.checked_media ?? [], held_media: record.held_media ?? [] });
+        lastSaved.current = snapshot(record.content, record.visibility);
+        // Changes kept on this device that never reached the server come back and are sent now.
+        const draft = isMine && user ? readDraft(user.id) : null;
+        if (draft && user) {
+          const recovered = expandPortfolio(draft.content);
+          // Newer when the server still has what it had when the change was made, or saved before it.
+          const newer = draft.base === fingerprint(lastSaved.current) || draft.at > Date.parse(record.updated_at ?? '');
+          if (newer && snapshot(recovered, draft.visibility) !== lastSaved.current) {
+            setContent(recovered);
+            setVisibility(draft.visibility);
+            latest.current = { content: recovered, visibility: draft.visibility };
+            dirty.current = false;
+            scheduleSave();
+            toast.success(es ? 'Hemos recuperado cambios que no llegaron a guardarse.' : 'We recovered changes that had not been saved.');
+          } else {
+            forgetDraft(user.id);
+          }
+        }
         const ids = new Set<string>(record.content.info.heroWork ? [record.content.info.heroWork] : []);
         record.content.sections.forEach((section) => section.type === 'works' && section.items.forEach((item) => ids.add(item.id)));
         setWorks(await loadWorks([...ids]));
@@ -158,29 +203,45 @@ export default function Portfolio() {
   const latest = useRef<{ content: PortfolioContent | null; visibility: PortfolioVisibility }>({ content: null, visibility: 'private' });
   latest.current = { content, visibility };
   const dirty = useRef(false);
+  const dirtySince = useRef(0);
   const inFlight = useRef<Promise<void> | null>(null);
   const timer = useRef<number | undefined>(undefined);
+  /** What the server has now, to skip sending the same thing twice. */
+  const lastSaved = useRef('');
+  const snapshot = (toSave: PortfolioContent, seenBy: PortfolioVisibility) => JSON.stringify([compactPortfolio(toSave), seenBy]);
 
   // A failed save is tried again calmly (3 s, 6 s, 12 s… up to 30 s) and said once, not on every try.
   const failures = useRef(0);
-  const saveNow = useCallback(async (): Promise<void> => {
+  const saveNow = useCallback(async ({ leaving = false }: { leaving?: boolean } = {}): Promise<void> => {
     window.clearTimeout(timer.current);
     if (inFlight.current) {
+      // Closing while a save is on its way: a second one could arrive first and be overwritten
+      // by the older one, so it waits; what is newer is safe on this device until next time.
+      if (leaving) return;
       await inFlight.current;
       if (!dirty.current) return;
     }
     const { content: toSave, visibility: seenBy } = latest.current;
     if (!toSave || !dirty.current) return;
     dirty.current = false;
+    const sending = snapshot(toSave, seenBy);
+    if (sending === lastSaved.current) {
+      // Changed and changed back: nothing new to send.
+      setSaveState('saved');
+      if (user) forgetDraft(user.id);
+      return;
+    }
     setSaveState('saving');
     let retry = false;
     let saved = false;
-    const run = savePortfolio(toSave, seenBy)
+    const run = savePortfolio(toSave, seenBy, { leaving })
       .then((result) => {
         saved = true;
         failures.current = 0;
+        lastSaved.current = sending;
         takeSaved(result);
         setSaveState(dirty.current ? 'waiting' : 'saved');
+        if (!dirty.current && user) forgetDraft(user.id);
       })
       .catch((error) => {
         dirty.current = true;
@@ -210,7 +271,7 @@ export default function Portfolio() {
       timer.current = window.setTimeout(() => void saveNow(), SAVE_AFTER_MS);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [es]);
+  }, [es, user?.id]);
 
   // Back online: what is waiting goes at once.
   useEffect(() => {
@@ -220,22 +281,43 @@ export default function Portfolio() {
   }, [saveNow]);
 
   const scheduleSave = useCallback(() => {
+    const now = Date.now();
+    if (!dirty.current) dirtySince.current = now;
     dirty.current = true;
     setSaveState('waiting');
     window.clearTimeout(timer.current);
-    timer.current = window.setTimeout(() => void saveNow(), SAVE_AFTER_MS);
+    // Someone typing without a pause still gets saved every few seconds.
+    const wait = Math.max(0, Math.min(SAVE_AFTER_MS, dirtySince.current + SAVE_AT_LEAST_EVERY_MS - now));
+    timer.current = window.setTimeout(() => void saveNow(), wait);
   }, [saveNow]);
 
-  // Leaving the page with something unsaved: it is sent first, or the browser asks.
+  // Every change is also kept on this device at once: if the page closes or the connection
+  // drops before it reaches the server, it is recovered the next time the portfolio opens.
   useEffect(() => {
+    if (!user || !content || !dirty.current) return;
+    try {
+      const draft: Draft = { at: Date.now(), content: compactPortfolio(content), visibility, base: fingerprint(lastSaved.current) };
+      localStorage.setItem(draftKey(user.id), JSON.stringify(draft));
+    } catch { /* full or private storage: the server save still runs */ }
+  }, [content, visibility, user]);
+
+  // Leaving: switching app, locking the phone or closing the tab sends what is pending
+  // straight away, and the browser asks before closing while something is still on its way.
+  useEffect(() => {
+    const flush = () => { if (dirty.current) void saveNow({ leaving: true }); };
+    const hidden = () => { if (document.visibilityState === 'hidden') flush(); };
     const warn = (event: BeforeUnloadEvent) => {
       if (!dirty.current && !inFlight.current) return;
-      void saveNow();
+      flush();
       event.preventDefault();
       event.returnValue = '';
     };
+    document.addEventListener('visibilitychange', hidden);
+    window.addEventListener('pagehide', flush);
     window.addEventListener('beforeunload', warn);
     return () => {
+      document.removeEventListener('visibilitychange', hidden);
+      window.removeEventListener('pagehide', flush);
       window.removeEventListener('beforeunload', warn);
       if (dirty.current) void saveNow();
     };
@@ -360,6 +442,7 @@ export default function Portfolio() {
       const saved = await savePortfolio(draft, 'private');
       takeSaved(saved);
       setContent(saved.content);
+      lastSaved.current = snapshot(saved.content, saved.visibility);
       setOwnWorks(list);
       setEditing(true);
       setStatus('ready');
@@ -656,6 +739,8 @@ export default function Portfolio() {
             window.clearTimeout(timer.current);
             dirty.current = false;
             await deletePortfolio();
+            if (user) forgetDraft(user.id);
+            lastSaved.current = '';
             setSheet(null);
             setEditing(false);
             setContent(null);

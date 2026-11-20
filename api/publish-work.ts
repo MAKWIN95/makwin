@@ -10,7 +10,9 @@ import { withSmallCopies } from '../shared/photo-paths.js';
 import { LIMITS, allow, tooMany } from '../server/lib/rate-limit.js';
 import { keyOf, publicUrlOf, r2Config, removeObjects, signedUpload, browserHeaders } from '../server/lib/r2.js';
 import { randomBytes } from 'node:crypto';
-import { LIMITS as PORTFOLIO, VISIBILITIES, cleanPortfolio, mediaToCheck, publicView, textsOf, type PortfolioContent } from '../shared/portfolio.js';
+import {
+  LIMITS as PORTFOLIO, SAME_AS_CONTENT, VISIBILITIES, cleanPortfolio, compactPortfolio, expandPortfolio, mediaToCheck, publicView, textsOf, type PortfolioContent,
+} from '../shared/portfolio.js';
 
 // Works are saved here and the artist moves on straight away. The automatic check
 // runs in the background: the work becomes public when it passes, and otherwise
@@ -336,11 +338,22 @@ interface PortfolioRow {
   updated_at: string;
 }
 
+/**
+ * What goes in the database: the portfolio without its empty parts, and what others see
+ * only when it differs from it (otherwise a small mark says "the same").
+ */
+function stored(content: PortfolioContent, checked: string[]) {
+  const compact = compactPortfolio(content);
+  const shown = compactPortfolio(publicView(content, checked));
+  const same = JSON.stringify(shown) === JSON.stringify(compact);
+  return { content: compact, public_content: same ? SAME_AS_CONTENT : shown };
+}
+
 function ownerView(row: PortfolioRow) {
   return {
     visibility: row.visibility,
     share_key: row.share_key,
-    content: row.content,
+    content: expandPortfolio(row.content),
     checked_media: row.checked_media ?? [],
     held_media: row.held_media ?? [],
     updated_at: row.updated_at,
@@ -362,20 +375,27 @@ async function checkPortfolioMedia(userId: string, media: Array<{ url: string; k
       stopped.push(url);
     }
   }
-  // Read again: the artist may have saved more while this ran.
-  const { data: row, error } = await supabaseAdmin
-    .from('portfolios')
-    .select('content, checked_media, held_media')
-    .eq('user_id', userId)
-    .maybeSingle();
-  if (error || !row) return;
-  const checked = Array.from(new Set([...(row.checked_media ?? []), ...passed]));
-  const held = Array.from(new Set([...(row.held_media ?? []), ...stopped]));
-  const { error: saveError } = await supabaseAdmin
-    .from('portfolios')
-    .update({ checked_media: checked, held_media: held, public_content: publicView(row.content as PortfolioContent, checked) })
-    .eq('user_id', userId);
-  if (saveError) console.error('[PORTFOLIO] Could not save the check:', saveError.message);
+  // Read again: the artist may have saved more while this ran. If they save in the very
+  // moment this writes, it reads again, so what others see always matches the last save.
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const { data: row, error } = await supabaseAdmin
+      .from('portfolios')
+      .select('content, checked_media, held_media, updated_at')
+      .eq('user_id', userId)
+      .maybeSingle();
+    if (error || !row) return;
+    const checked = Array.from(new Set([...(row.checked_media ?? []), ...passed]));
+    const held = Array.from(new Set([...(row.held_media ?? []), ...stopped]));
+    // Only what others see changes here; the portfolio itself stays as the artist last saved it.
+    const { data: written, error: saveError } = await supabaseAdmin
+      .from('portfolios')
+      .update({ checked_media: checked, held_media: held, public_content: stored(expandPortfolio(row.content), checked).public_content })
+      .eq('user_id', userId)
+      .eq('updated_at', row.updated_at)
+      .select('user_id');
+    if (saveError) { console.error('[PORTFOLIO] Could not save the check:', saveError.message); return; }
+    if (written?.length) return;
+  }
 }
 
 // A portfolio shows the artist's own works only, never someone else's.
@@ -419,8 +439,7 @@ async function savePortfolio(req: VercelRequest, res: VercelResponse, userId: st
       user_id: userId,
       visibility,
       share_key: current?.share_key ?? newShareKey(),
-      content,
-      public_content: publicView(content, checked),
+      ...stored(content, checked),
       checked_media: checked,
       held_media: held,
       updated_at: new Date().toISOString(),
