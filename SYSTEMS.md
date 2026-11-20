@@ -283,6 +283,18 @@ interface Song {
 
 ---
 
+## 💼 Portfolio (`/p/:username`)
+
+- **Qué es**: cada artista puede montar un portfolio desde su perfil («Crear mi portfolio»). Al elegir disciplina sale un borrador ya hecho con sus obras, su bio y sus enlaces. Objetivo de fondo: que enviar «tu portfolio MAKWIN» sea lo normal en el mundo del arte, así que tiene que ser cómodo y útil de verdad.
+- **Partes**: Sobre mí, Obras (de su perfil, con nota «año · técnica · medidas»), Trayectoria (exposiciones, créditos, premios…), Archivos (audio con reproductor propio, vídeo, fotos y PDF), Enlaces (Spotify y YouTube se ven dentro), Prensa y Texto libre. Se mueven, se ocultan y se borran con «Deshacer».
+- **Diseño**: Clásico / Galería / Moderno, fondo claro u oscuro y 6 colores. El PDF («Descargar PDF») siempre sale en blanco.
+- **Quién lo ve**: Solo yo / Con enlace (`?k=`; se puede crear un enlace nuevo y el viejo deja de ir) / Público (sale en el perfil). «Vista previa» (`?vista=visitante`) enseña al dueño exactamente lo que ven los demás.
+- **Datos**: tabla `portfolios` (una fila por artista). Nadie lee la tabla directamente salvo el dueño; los demás pasan por `get_portfolio(username, key)`, que solo devuelve `public_content`.
+- **Guardar**: todo pasa por `api/publish-work.ts` (`?action=portfolio` PUT/DELETE, `?action=portfolio-key` POST), sin función nueva (Vercel Hobby tiene 12 como máximo). El servidor limpia todo (`cleanPortfolio` en `shared/portfolio.ts`): solo obras propias, solo archivos de su carpeta, solo enlaces web, palabras prohibidas fuera.
+- **Revisión**: fotos y vídeos nuevos se revisan solos en segundo plano; hasta que pasan, solo los ve el dueño («Revisando…»). `public_content` se recalcula al terminar.
+- **Autoguardado**: 0,9 s después de cada cambio; si falla, reintenta a los 3, 6, 12… s (máx. 30 s) y al volver la conexión, con un solo aviso.
+- **Archivos**: van a `<id>/portfolio/` en la carpeta del artista. Borrar el portfolio no borra los archivos.
+
 ## 📊 Sistema de Favoritos/Guardados
 
 ### Página `/favoritos`

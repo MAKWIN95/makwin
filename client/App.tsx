@@ -11,7 +11,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigationType, useParams, type Location } from "react-router-dom";
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { Suspense, lazy, useEffect, useLayoutEffect, useRef, useState } from "react";
 
 // Global components
 import GlobalStars from "./components/GlobalStars";
@@ -35,6 +35,8 @@ import Following from "./pages/Following";
 import NotFound from "./pages/NotFound";
 import Admin from "./pages/Admin";
 import Legal from "./pages/Legal";
+// Only whoever opens a portfolio downloads it.
+const Portfolio = lazy(() => import("./pages/Portfolio"));
 import { startAnalytics } from "@/lib/analytics";
 import { LEGAL_DOCS } from "@/lib/legal-texts";
 import { titleForPath } from "@/lib/page-title";
@@ -116,6 +118,13 @@ const AppLayout = () => {
 const WorkPage = () => {
   const { id } = useParams();
   return <WorkDetail key={id} />;
+};
+
+// makwin.art/portfolio takes you to your own; without an account, to sign in.
+const MyPortfolio = () => {
+  const { user, profile, loading } = useAuth();
+  if (loading || (user && !profile)) return null;
+  return <Navigate to={profile ? `/p/${profile.username}` : "/login"} replace />;
 };
 
 const RoutesWrapper = () => {
@@ -244,6 +253,8 @@ const RoutesWrapper = () => {
       <Route path="/siguiendo" element={<Following />} />
       <Route path="/configuracion" element={<Settings />} />
       <Route path="/u/:username" element={<UserProfile />} />
+      <Route path="/p/:username" element={<Suspense fallback={null}><Portfolio /></Suspense>} />
+      <Route path="/portfolio" element={<MyPortfolio />} />
       <Route path="/beats/*" element={<BeatsPage />} />
 
       {/* Legacy redirects */}

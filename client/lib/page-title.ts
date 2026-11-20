@@ -29,7 +29,7 @@ const FIXED: Record<string, { es: string; en: string } | null> = {
 };
 
 /** Pages that name themselves once their content arrives (a work, a profile, a legal text, the beats). */
-const NAMED_BY_PAGE = [/^\/work\//, /^\/u\//, /^\/beats/];
+const NAMED_BY_PAGE = [/^\/work\//, /^\/u\//, /^\/beats/, /^\/p\//, /^\/portfolio$/];
 
 /** The tab title for a fixed page, or undefined when the page sets its own. */
 export function titleForPath(pathname: string, language: Language, legalPaths: string[] = []): string | undefined {

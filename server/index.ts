@@ -28,7 +28,8 @@ export function createServer() {
     const reply = await handleAuthHook(rawBody, req.headers, (message) => relay(message, "urgent"));
     res.status(reply.status).json(reply.body);
   });
-  app.use(express.json());
+  // A portfolio is saved whole, so it may be bigger than the default 100 kB.
+  app.use(express.json({ limit: '300kb' }));
   app.use(express.urlencoded({ extended: true }));
 
   // Beats page route: serve the standalone HTML file directly from project root

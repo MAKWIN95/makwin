@@ -16,7 +16,8 @@ import MasonryGrid, { type MasonryColumns } from '@/components/MasonryGrid';
 import ProfileWorksBar, { type WorksChoice } from '@/components/ProfileWorksBar';
 import type { TranslationKey } from '@/lib/i18n/translations';
 import FollowersModal from '@/components/FollowersModal';
-import { Camera, Check, X, ExternalLink, Loader2, Pencil, Plus } from 'lucide-react';
+import { Briefcase, Camera, Check, X, ExternalLink, Loader2, Pencil, Plus } from 'lucide-react';
+import { loadPortfolio } from '@/lib/portfolio';
 import { CACHE_FOR_A_YEAR } from '@/lib/small-photo';
 import AvatarCropModal from '@/components/AvatarCropModal';
 
@@ -75,6 +76,8 @@ export default function UserProfile() {
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [showFollowersModal, setShowFollowersModal] = useState<'followers' | 'following' | null>(null);
+  // Whether there is a portfolio to open from here: public ones for everyone, your own always.
+  const [hasPortfolio, setHasPortfolio] = useState<boolean | null>(null);
 
   const isOwnProfile = !!profile && myProfile?.id === profile.id;
   const isFollowing = !!profile && isFollowingUser(profile.id);
@@ -119,6 +122,16 @@ export default function UserProfile() {
   useEffect(() => {
     if (!username) return;
     loadProfile();
+  }, [username, user?.id]);
+
+  useEffect(() => {
+    if (!username) return;
+    let cancelled = false;
+    setHasPortfolio(null);
+    loadPortfolio(username)
+      .then((record) => { if (!cancelled) setHasPortfolio(!!record && (record.mine || record.visibility === 'public')); })
+      .catch(() => { if (!cancelled) setHasPortfolio(false); });
+    return () => { cancelled = true; };
   }, [username, user?.id]);
 
   // Refreshing after an edit keeps the page on screen instead of flashing a spinner.
@@ -536,6 +549,19 @@ export default function UserProfile() {
                     </a>
                   )}
                 </div>
+                )}
+                {(hasPortfolio || (isOwnProfile && hasPortfolio === false)) && (
+                  <div className="page-enter flex max-sm:justify-center mt-1 mb-3 phone:mb-1">
+                    <Link
+                      to={`/p/${profile.username}`}
+                      className="ios-press inline-flex items-center gap-2 min-h-9 px-3.5 rounded-full border border-[hsl(var(--foreground)/0.16)] text-xs font-medium text-[hsl(var(--foreground))] hover:bg-[hsl(var(--foreground)/0.06)] transition-colors"
+                    >
+                      <Briefcase className="w-3.5 h-3.5" />
+                      {hasPortfolio
+                        ? (isOwnProfile ? (es ? 'Mi portfolio' : 'My portfolio') : 'Portfolio')
+                        : (es ? 'Crear mi portfolio' : 'Create my portfolio')}
+                    </Link>
+                  </div>
                 )}
                 </div>
 

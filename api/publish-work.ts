@@ -9,6 +9,8 @@ import { findBlockedTerms } from '../server/lib/moderation-text.js';
 import { withSmallCopies } from '../shared/photo-paths.js';
 import { LIMITS, allow, tooMany } from '../server/lib/rate-limit.js';
 import { keyOf, publicUrlOf, r2Config, removeObjects, signedUpload, browserHeaders } from '../server/lib/r2.js';
+import { randomBytes } from 'node:crypto';
+import { LIMITS as PORTFOLIO, VISIBILITIES, cleanPortfolio, mediaToCheck, publicView, textsOf, type PortfolioContent } from '../shared/portfolio.js';
 
 // Works are saved here and the artist moves on straight away. The automatic check
 // runs in the background: the work becomes public when it passes, and otherwise
@@ -67,6 +69,8 @@ async function removeOwnFiles(urls: Array<string | null>, userId: string) {
 
 // What one file may weigh: a photo and its light copy, a song, about a minute of 1080p video.
 const MAX_BYTES: Record<string, number> = { image: 15 * 1024 * 1024, audio: 20 * 1024 * 1024, video: 25 * 1024 * 1024 };
+// A portfolio may also hold a PDF: a dossier, a CV, a technical rider.
+const PDF_TYPE = 'application/pdf';
 const MAX_FILES_AT_ONCE = 24;
 
 // The phone asks before sending: one signed permission per file, only inside the
@@ -77,16 +81,18 @@ async function signUploads(req: VercelRequest, res: VercelResponse, userId: stri
   if (!r2) return res.status(200).json({ storage: 'supabase' });
   const files = Array.isArray(req.body?.files) ? req.body.files : [];
   if (!files.length || files.length > MAX_FILES_AT_ONCE) return res.status(400).json({ error: 'Datos no válidos' });
-  const ownPath = new RegExp(`^${userId}/(covers/)?[A-Za-z0-9._-]{1,120}$`);
+  const ownPath = new RegExp(`^${userId}/((covers|portfolio)/)?[A-Za-z0-9._-]{1,120}$`);
   const uploads = [];
   for (const file of files) {
     const path = String(file?.path ?? '');
     const type = String(file?.type ?? '').toLowerCase();
     const size = Number(file?.size);
+    const isPdf = type === PDF_TYPE && path.startsWith(`${userId}/portfolio/`);
     const kind = type.split('/')[0];
+    const limit = isPdf ? PORTFOLIO.bytes.pdf : (MAX_BYTES[kind] ?? 0);
     const valid = ownPath.test(path) && !path.includes('..')
-      && /^(image|audio|video)\/[a-z0-9.+-]+$/.test(type) && !type.includes('svg')
-      && Number.isInteger(size) && size > 0 && size <= (MAX_BYTES[kind] ?? 0);
+      && (isPdf || (/^(image|audio|video)\/[a-z0-9.+-]+$/.test(type) && !type.includes('svg')))
+      && Number.isInteger(size) && size > 0 && size <= limit;
     if (!valid) return res.status(400).json({ error: 'Datos no válidos' });
     uploads.push({ path, url: signedUpload(r2, path, type, size), headers: browserHeaders(type), publicUrl: publicUrlOf(r2, path) });
   }
@@ -314,10 +320,151 @@ async function deleteWork(req: VercelRequest, res: VercelResponse, userId: strin
   return res.status(200).json({ id });
 }
 
+// ---- Portfolios ---------------------------------------------------------------
+// Saved here rather than from the page so every save is checked first: only known
+// parts, the artist's own files, no blocked words. Uploaded pictures and videos are
+// checked in the background and others only see them once they pass.
+
+const newShareKey = () => randomBytes(9).toString('base64url');
+
+interface PortfolioRow {
+  visibility: string;
+  share_key: string;
+  content: PortfolioContent;
+  checked_media: string[] | null;
+  held_media: string[] | null;
+  updated_at: string;
+}
+
+function ownerView(row: PortfolioRow) {
+  return {
+    visibility: row.visibility,
+    share_key: row.share_key,
+    content: row.content,
+    checked_media: row.checked_media ?? [],
+    held_media: row.held_media ?? [],
+    updated_at: row.updated_at,
+  };
+}
+
+async function checkPortfolioMedia(userId: string, media: Array<{ url: string; kind: 'image' | 'video' }>) {
+  const { checkImage, checkVideo } = await import('../server/lib/moderation.js');
+  const passed: string[] = [];
+  const stopped: string[] = [];
+  for (const { url, kind } of media) {
+    try {
+      const flags = kind === 'image' ? await checkImage(url) : await checkVideo(url);
+      (flags.length ? stopped : passed).push(url);
+      if (flags.length) console.warn('[PORTFOLIO] Held a file:', flags.join(', '));
+    } catch (error: any) {
+      // What cannot be checked is not shown to others, same as a work.
+      console.error('[PORTFOLIO] Could not check a file:', error?.message || error);
+      stopped.push(url);
+    }
+  }
+  // Read again: the artist may have saved more while this ran.
+  const { data: row, error } = await supabaseAdmin
+    .from('portfolios')
+    .select('content, checked_media, held_media')
+    .eq('user_id', userId)
+    .maybeSingle();
+  if (error || !row) return;
+  const checked = Array.from(new Set([...(row.checked_media ?? []), ...passed]));
+  const held = Array.from(new Set([...(row.held_media ?? []), ...stopped]));
+  const { error: saveError } = await supabaseAdmin
+    .from('portfolios')
+    .update({ checked_media: checked, held_media: held, public_content: publicView(row.content as PortfolioContent, checked) })
+    .eq('user_id', userId);
+  if (saveError) console.error('[PORTFOLIO] Could not save the check:', saveError.message);
+}
+
+// A portfolio shows the artist's own works only, never someone else's.
+async function onlyOwnWorks(content: PortfolioContent, userId: string): Promise<PortfolioContent> {
+  const wanted = new Set<string>(content.info.heroWork ? [content.info.heroWork] : []);
+  content.sections.forEach((section) => section.type === 'works' && section.items.forEach((item) => wanted.add(item.id)));
+  if (!wanted.size) return content;
+  const { data, error } = await supabaseAdmin.from('works').select('id').eq('user_id', userId).in('id', [...wanted]);
+  if (error) throw error;
+  const own = new Set((data ?? []).map((row: { id: string }) => row.id));
+  return {
+    ...content,
+    info: { ...content.info, heroWork: content.info.heroWork && own.has(content.info.heroWork) ? content.info.heroWork : null },
+    sections: content.sections.map((section) => (section.type === 'works' ? { ...section, items: section.items.filter((item) => own.has(item.id)) } : section)),
+  };
+}
+
+async function savePortfolio(req: VercelRequest, res: VercelResponse, userId: string) {
+  const body = req.body ?? {};
+  if (JSON.stringify(body).length > PORTFOLIO.saved) return res.status(413).json({ error: 'too_big' });
+  const content = await onlyOwnWorks(cleanPortfolio(body.content, { ownFile: (url) => !!ownFileUrl(url, userId) }), userId);
+  const blocked = findBlockedTerms(textsOf(content).join('\n'));
+  if (blocked.length) return res.status(422).json({ error: 'blocked_words', words: blocked.slice(0, 3) });
+
+  const { data: current, error: readError } = await supabaseAdmin
+    .from('portfolios')
+    .select('visibility, share_key, checked_media, held_media')
+    .eq('user_id', userId)
+    .maybeSingle();
+  if (readError) throw readError;
+
+  const visibility = VISIBILITIES.includes(body.visibility) ? body.visibility : current?.visibility ?? 'private';
+  const media = mediaToCheck(content);
+  const inUse = new Set(media.map((item) => item.url));
+  // Only what is still in it is remembered; something removed and added back is checked again.
+  const checked = (current?.checked_media ?? []).filter((url: string) => inUse.has(url));
+  const held = (current?.held_media ?? []).filter((url: string) => inUse.has(url));
+  const { data: saved, error } = await supabaseAdmin
+    .from('portfolios')
+    .upsert({
+      user_id: userId,
+      visibility,
+      share_key: current?.share_key ?? newShareKey(),
+      content,
+      public_content: publicView(content, checked),
+      checked_media: checked,
+      held_media: held,
+      updated_at: new Date().toISOString(),
+    })
+    .select('visibility, share_key, content, checked_media, held_media, updated_at')
+    .single();
+  if (error) throw error;
+
+  const unchecked = media.filter((item) => !checked.includes(item.url) && !held.includes(item.url));
+  if (unchecked.length) waitUntil(checkPortfolioMedia(userId, unchecked).catch((err) => console.error('[PORTFOLIO] Check failed:', err)));
+  return res.status(200).json(ownerView(saved as PortfolioRow));
+}
+
+// A new secret link: whoever had the old one can no longer open it.
+async function renewPortfolioKey(res: VercelResponse, userId: string) {
+  const { data, error } = await supabaseAdmin
+    .from('portfolios')
+    .update({ share_key: newShareKey() })
+    .eq('user_id', userId)
+    .select('visibility, share_key, content, checked_media, held_media, updated_at')
+    .maybeSingle();
+  if (error) throw error;
+  if (!data) return res.status(404).json({ error: 'not_found' });
+  return res.status(200).json(ownerView(data as PortfolioRow));
+}
+
+// The portfolio goes; the files stay in the artist's folder, as the rest of their things.
+async function deletePortfolio(res: VercelResponse, userId: string) {
+  const { error } = await supabaseAdmin.from('portfolios').delete().eq('user_id', userId);
+  if (error) throw error;
+  return res.status(200).json({ deleted: true });
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     const user = await getRequestUser(req.headers.authorization);
     if (!user) return res.status(401).json({ error: 'No autorizado' });
+    if (req.query.action === 'portfolio' || req.query.action === 'portfolio-key') {
+      if (!(await allow(LIMITS.portfolio, user.id))) return tooMany(res, LIMITS.portfolio);
+      if (req.query.action === 'portfolio-key' && req.method === 'POST') return await renewPortfolioKey(res, user.id);
+      if (req.query.action === 'portfolio' && req.method === 'PUT') return await savePortfolio(req, res, user.id);
+      if (req.query.action === 'portfolio' && req.method === 'DELETE') return await deletePortfolio(res, user.id);
+      return res.status(405).json({ error: 'Method not allowed' });
+    }
     if (req.method === 'POST' && req.query.action === 'upload') {
       if (!(await allow(LIMITS.signUploads, user.id))) return tooMany(res, LIMITS.signUploads);
       return await signUploads(req, res, user.id);
