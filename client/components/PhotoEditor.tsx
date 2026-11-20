@@ -239,7 +239,7 @@ function Swatch({ label, chosen, onPick, children }: { label: string; chosen: bo
 
 // Like the iPhone's: a wide bar that fills as it goes, easy to catch anywhere along it.
 // A tap jumps there smoothly; a drag follows the finger exactly.
-function ZoomSlider({ label, value, min, max, onChange }: { label: string; value: number; min: number; max: number; onChange: (value: number) => void }) {
+export function ZoomSlider({ label, value, min, max, onChange, onHold }: { label: string; value: number; min: number; max: number; onChange: (value: number) => void; /** Told when a finger or the mouse starts and stops holding the bar. */ onHold?: (held: boolean) => void }) {
   const track = useRef<HTMLDivElement>(null);
   const [held, setHeld] = useState(false);
   const [gliding, setGliding] = useState(false);
@@ -254,6 +254,7 @@ function ZoomSlider({ label, value, min, max, onChange }: { label: string; value
   const handleDown = (event: PointerEvent<HTMLDivElement>) => {
     event.currentTarget.setPointerCapture(event.pointerId);
     setHeld(true);
+    onHold?.(true);
     setGliding(true);
     onChange(valueAt(event.clientX));
   };
@@ -288,8 +289,8 @@ function ZoomSlider({ label, value, min, max, onChange }: { label: string; value
         data-held={held || undefined}
         onPointerDown={handleDown}
         onPointerMove={handleMove}
-        onPointerUp={() => setHeld(false)}
-        onPointerCancel={() => setHeld(false)}
+        onPointerUp={() => { setHeld(false); onHold?.(false); }}
+        onPointerCancel={() => { setHeld(false); onHold?.(false); }}
         onKeyDown={handleKey}
         className="zoom-slider"
       >

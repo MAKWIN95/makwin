@@ -212,6 +212,59 @@ video {
   background: rgba(0, 0, 0, 0.3);
 }
 
+/* Choosing a profile photo: the page behind goes dark and soft so only the photo matters. */
+.avatar-crop-overlay {
+  background: rgba(0, 0, 0, 0.5);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+  animation: avatar-crop-in 0.28s ease both;
+}
+
+.avatar-crop-overlay[data-closing] {
+  animation: avatar-crop-out 0.2s ease-in both;
+}
+
+/* A little taller than wide on a phone, and short enough that both windows always fit. */
+.avatar-crop-stack {
+  width: min(26rem, calc(100vw - 2rem), calc(100dvh - 21rem));
+  min-width: min(17rem, calc(100vw - 2rem));
+}
+
+.avatar-crop-card--second {
+  animation-delay: 0.06s;
+}
+
+.avatar-crop-overlay[data-closing] .avatar-crop-card {
+  animation: glass-menu-out 0.18s ease-in both;
+}
+
+/* The frame has the shape of the profile photo. Outside it is black while the photo
+   rests, so you see exactly what stays; while it moves, a little of the rest shows. */
+.avatar-crop-frame {
+  position: absolute;
+  pointer-events: none;
+  border: 1.5px solid rgba(255, 255, 255, 0.9);
+  border-radius: 25%;
+  box-shadow: 0 0 0 100vmax rgb(0, 0, 0);
+  transition: box-shadow 0.25s ease;
+}
+
+.avatar-crop-frame[data-moving] {
+  box-shadow: 0 0 0 100vmax rgba(0, 0, 0, 0.8);
+}
+
+@media (min-width: 640px) {
+  .avatar-crop-frame { border-radius: 16.67%; }
+}
+
+@keyframes avatar-crop-in {
+  from { background-color: rgba(0, 0, 0, 0); -webkit-backdrop-filter: blur(0); backdrop-filter: blur(0); }
+}
+
+@keyframes avatar-crop-out {
+  to { background-color: rgba(0, 0, 0, 0); -webkit-backdrop-filter: blur(0); backdrop-filter: blur(0); }
+}
+
 /* Buttons: same shape, border and response. Only the tint says which one leads. */
 .glass-button {
   display: inline-flex;

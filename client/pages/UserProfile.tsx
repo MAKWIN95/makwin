@@ -17,9 +17,8 @@ import ProfileWorksBar, { type WorksChoice } from '@/components/ProfileWorksBar'
 import type { TranslationKey } from '@/lib/i18n/translations';
 import FollowersModal from '@/components/FollowersModal';
 import { Camera, Check, X, ExternalLink, Loader2, Pencil, Plus } from 'lucide-react';
-import { CACHE_FOR_A_YEAR, makeSmallPhoto } from '@/lib/small-photo';
-
-const AVATAR_BOX = { width: 512, height: 512 };
+import { CACHE_FOR_A_YEAR } from '@/lib/small-photo';
+import AvatarCropModal from '@/components/AvatarCropModal';
 
 const TAKEN_DOWN = 'retiradas';
 const KINDS: [string, TranslationKey][] = [
@@ -31,7 +30,8 @@ const KINDS: [string, TranslationKey][] = [
 ];
 
 const GRID_COLUMNS: MasonryColumns = { base: 2, sm: 3, lg: 4 };
-const MAX_AVATAR_MB = 5;
+// Only the 512 px square cut from it is uploaded, so a big phone photo is fine.
+const MAX_AVATAR_MB = 20;
 
 // Links typed by people must only ever open as web pages.
 const safeExternalUrl = (value?: string | null): string | null => {
@@ -50,7 +50,7 @@ const CHECK_GIVEN_UP_MS = 3 * 60 * 1000;
 
 export default function UserProfile() {
   const { username } = useParams<{ username: string }>();
-  const { user, profile: myProfile, updateProfile, refreshProfile } = useAuth();
+  const { user, profile: myProfile, updateProfile, refreshProfile, patchProfile } = useAuth();
   const { isFollowing: isFollowingUser, setFollowing } = useFollow();
   const { language, t } = useI18n();
   
@@ -73,6 +73,7 @@ export default function UserProfile() {
   const [editError, setEditError] = useState('');
   const [saving, setSaving] = useState(false);
   const [avatarUploading, setAvatarUploading] = useState(false);
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [showFollowersModal, setShowFollowersModal] = useState<'followers' | 'following' | null>(null);
 
   const isOwnProfile = !!profile && myProfile?.id === profile.id;
@@ -292,49 +293,76 @@ export default function UserProfile() {
     loadProfile(true);
   };
 
-  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !user) return;
-    
-    
-    // Block GIFs
+  const acceptAvatar = (file: File) => {
     const ext = file.name.split('.').pop()?.toLowerCase();
-    if (ext === 'gif') {
+    if (ext === 'gif' || file.type === 'image/gif') {
       toast.error(es ? 'Los GIFs no están permitidos en el avatar. Solo PNG, JPG o WebP.' : 'GIFs are not allowed. Only PNG, JPG, or WebP.');
-      return;
+      return false;
     }
     if (file.size > MAX_AVATAR_MB * 1024 * 1024) {
       toast.error(es ? `La imagen no puede superar ${MAX_AVATAR_MB} MB.` : `The image cannot exceed ${MAX_AVATAR_MB} MB.`);
-      return;
+      return false;
     }
-    
+    return true;
+  };
+
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (file && user && acceptAvatar(file)) setAvatarFile(file);
+  };
+
+  // The new face shows at once, here and in the bar, while it goes up behind.
+  // Only the photo changes, so nothing else of the profile is fetched again.
+  const saveAvatar = async (photo: Blob) => {
+    if (!user) return;
+    const previous = profile?.avatar_url ?? null;
+    const local = URL.createObjectURL(photo);
+    const show = (avatar_url: string | null) => {
+      setProfile((current) => (current ? { ...current, avatar_url } : current));
+      patchProfile({ avatar_url });
+    };
+    show(local);
     setAvatarUploading(true);
-    const path = `${user.id}/avatar.${ext}`;
-    
-    // A face is never shown bigger than a few centimetres: 512 px is plenty and weighs a fraction.
-    const light = await makeSmallPhoto(file, AVATAR_BOX).catch(() => file);
-    const { error: uploadError } = await supabase.storage.from('avatars').upload(path, light, {
+
+    const path = `${user.id}/avatar.jpg`;
+    const { error: uploadError } = await supabase.storage.from('avatars').upload(path, photo, {
       upsert: true,
       cacheControl: CACHE_FOR_A_YEAR,
-      contentType: light.type || file.type,
+      contentType: 'image/jpeg',
     });
-    
     if (uploadError) {
       console.error('[Avatar] Upload failed:', uploadError);
+      show(previous);
+      URL.revokeObjectURL(local);
+      setAvatarUploading(false);
       toast.error(es ? 'No se pudo subir la imagen. Inténtalo de nuevo.' : 'The image could not be uploaded. Please try again.');
-    } else {
-      const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(path);
-      const { error: profileError } = await updateProfile({ avatar_url: `${publicUrl}?t=${Date.now()}` });
-      if (profileError) {
-        toast.error(getAuthErrorMessage(profileError, language));
-      } else {
-        await refreshProfile();
-        await loadProfile(true);
-        toast.success(es ? 'Foto actualizada' : 'Photo updated');
-      }
+      return;
     }
+
+    const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(path);
+    const saved = `${publicUrl}?t=${Date.now()}`;
+    const { error: profileError } = await supabase
+      .from('profiles')
+      .update({ avatar_url: saved, updated_at: new Date().toISOString() })
+      .eq('id', user.id);
+    if (profileError) {
+      show(previous);
+      URL.revokeObjectURL(local);
+      setAvatarUploading(false);
+      toast.error(getAuthErrorMessage(profileError.message, language));
+      return;
+    }
+
+    // The saved copy takes over only once it is in the browser, so the picture never blinks.
+    const ready = new Image();
+    ready.onload = ready.onerror = () => {
+      show(saved);
+      setTimeout(() => URL.revokeObjectURL(local), 1000);
+    };
+    ready.src = saved;
     setAvatarUploading(false);
-    e.target.value = '';
+    toast.success(es ? 'Foto actualizada' : 'Photo updated');
   };
 
   // The bar and the sky stay where they are while the profile arrives: only what is below it waits.
@@ -607,6 +635,17 @@ export default function UserProfile() {
           </>
         )}
       </main>
+
+      {avatarFile && profile && (
+        <AvatarCropModal
+          file={avatarFile}
+          name={profile.display_name ?? profile.username}
+          username={profile.username}
+          accept={acceptAvatar}
+          onSave={saveAvatar}
+          onClose={() => setAvatarFile(null)}
+        />
+      )}
 
       {profile && showFollowersModal && (
         <FollowersModal

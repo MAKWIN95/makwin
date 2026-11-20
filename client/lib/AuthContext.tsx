@@ -22,6 +22,8 @@ interface AuthContextType {
   resetPassword: (email: string) => Promise<{ error: string | null }>;
   updateProfile: (updates: Partial<Pick<Profile, 'username' | 'display_name' | 'bio' | 'website' | 'avatar_url' | 'instagram_url' | 'tiktok_url'>>) => Promise<{ error: string | null }>;
   refreshProfile: () => Promise<void>;
+  /** Shows a change everywhere at once, before the database has answered. */
+  patchProfile: (updates: Partial<Profile>) => void;
   completeGoogleSignUp: (username: string, password: string, displayName: string) => Promise<{ error: string | null }>;
 }
 
@@ -456,6 +458,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { error: error?.message ?? null };
   };
 
+  const patchProfile = useCallback((updates: Partial<Profile>) => {
+    setProfile((current) => (current ? { ...current, ...updates } : current));
+  }, []);
+
   const updateProfile = async (updates: Partial<Pick<Profile, 'username' | 'display_name' | 'bio' | 'website' | 'avatar_url' | 'instagram_url' | 'tiktok_url'>>) => {
     if (!user) return { error: 'NO_SESSION' };
 
@@ -686,7 +692,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     <AuthContext.Provider value={{
       user, session, profile, loading, initializationError, retryInitialization, needsUsernameSetup,
       signInWithGoogle, signInWithGoogleToken, signInWithEmail, signUpWithEmail,
-      signOut, resetPassword, updateProfile, refreshProfile, completeGoogleSignUp,
+      signOut, resetPassword, updateProfile, refreshProfile, patchProfile, completeGoogleSignUp,
     }}>
       {children}
     </AuthContext.Provider>
