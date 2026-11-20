@@ -17,6 +17,7 @@ import UploadThumbs, { type UploadMedia } from '@/components/UploadThumbs';
 import { Switch } from '@/components/ui/switch';
 import Reveal from '@/components/Reveal';
 import WhatToUploadSheet from '@/components/WhatToUploadSheet';
+import { RULES_LINK } from '@/lib/what-to-upload';
 import { cn, normalizeHashtags } from '@/lib/utils';
 import { toast } from 'sonner';
 import { track as countEvent } from '@/lib/analytics';
@@ -487,7 +488,13 @@ export default function UploadWork() {
                       <Reveal open={photos.length > 1} className="-mt-3">
                         <p className="flex items-start gap-2 text-xs text-[hsl(var(--foreground))]">
                           <Images aria-hidden="true" className="w-3.5 h-3.5 shrink-0 mt-px" strokeWidth={1.75} />
-                          {es ? 'Todas las fotos del carrusel son de la misma obra: la serie, sus detalles o su proceso.' : 'Every photo in the carousel belongs to the same work: the series, its details or its process.'}
+                          <span>
+                            {es ? 'Todas las fotos del carrusel deben ser de la misma obra: la serie, sus detalles o su proceso.' : 'Every photo in the carousel must belong to the same work: the series, its details or its process.'}{' '}
+                            {/* In a new tab, so the work being prepared stays exactly as it is. */}
+                            <a href={RULES_LINK} target="_blank" rel="noopener" className="ios-press inline-flex items-center min-h-11 -my-3.5 underline underline-offset-4 decoration-[hsl(var(--foreground)/0.3)]">
+                              {es ? 'Más información' : 'More information'}
+                            </a>
+                          </span>
                         </p>
                         <p className="mt-1.5 text-xs text-[hsl(var(--muted-foreground))]">
                           {es ? 'Mantén pulsada una foto y arrástrala para cambiar el orden. La primera es la portada.' : 'Hold a photo and drag it to change the order. The first one is the cover.'}

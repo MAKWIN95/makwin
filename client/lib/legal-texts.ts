@@ -4,7 +4,7 @@
 export type LegalDoc = 'aviso-legal' | 'privacidad' | 'cookies' | 'condiciones';
 
 export type LegalBlock =
-  | { h: string }
+  | { h: string; id?: string }
   | { p: string }
   | { ul: string[] }
   | { table: { head: string[]; rows: string[][] } };
@@ -152,12 +152,12 @@ export const LEGAL_TEXTS: Record<'es' | 'en', Record<LegalDoc, LegalText>> = {
         { p: 'No vendemos tus obras, no las usamos para entrenar inteligencia artificial y no las usaremos en publicidad ni en las redes de MAKWIN sin pedirte permiso antes.' },
         { h: '4. Publica solo lo que es tuyo' },
         { p: 'Solo puedes publicar obras que hayas creado tú o que tengas derecho a publicar. Si en tu obra aparecen otras personas, necesitas su permiso.' },
-        { h: '5. Solo obras' },
+        { h: '5. Solo obras', id: 'solo-obras' },
         { p: 'MAKWIN es para obras, no para el día a día. Publica lo que colgarías en una exposición o pondrías en tu portfolio: algo que has creado con intención artística, en cualquier disciplina.' },
         { ul: [
           'Sí: una obra, una serie, el proceso de una obra o los detalles de una pieza.',
           'No: selfis y fotos del día a día, viajes, fiestas, bodas, memes o capturas de pantalla.',
-          'En un carrusel, todas las fotos tienen que ser de la misma obra o serie.',
+          'En un carrusel, todas las fotos tienen que ser de la misma obra o de la misma serie. Una serie son obras distintas unidas por una misma idea, tema o técnica: por ejemplo, cinco retratos con la misma luz o varias acuarelas pintadas en un mismo viaje. Cada foto tiene que ser una obra por sí misma.',
         ] },
         { p: 'Un autorretrato o una foto de un viaje sí pueden ser una obra, si los has hecho con intención artística. Lo que no sea una obra se retirará y, si se repite, se podrá limitar la cuenta.' },
         { h: '6. Arte hecho por personas' },
@@ -320,12 +320,12 @@ export const LEGAL_TEXTS: Record<'es' | 'en', Record<LegalDoc, LegalText>> = {
         { p: 'We do not sell your works, we do not use them to train artificial intelligence, and we will not use them in advertising or on MAKWIN’s social media without asking you first.' },
         { h: '4. Only publish what is yours' },
         { p: 'You may only publish works you created or have the right to publish. If other people appear in your work, you need their permission.' },
-        { h: '5. Artworks only' },
+        { h: '5. Artworks only', id: 'solo-obras' },
         { p: 'MAKWIN is for artworks, not everyday life. Publish what you would hang in an exhibition or put in your portfolio: something you made with artistic intent, in any discipline.' },
         { ul: [
           'Yes: an artwork, a series, the process behind a work or close-ups of a piece.',
           'No: selfies and everyday photos, trips, parties, weddings, memes or screenshots.',
-          'In a carousel, every photo must belong to the same work or series.',
+          'In a carousel, every photo must belong to the same work or the same series. A series is a set of different works joined by one idea, theme or technique: for example, five portraits in the same light, or several watercolours painted on one trip. Each photo must be an artwork in its own right.',
         ] },
         { p: 'A self-portrait or a photo from a trip can be an artwork, if you made it with artistic intent. Anything that is not an artwork will be removed and, if it happens again, the account may be limited.' },
         { h: '6. Art made by people' },

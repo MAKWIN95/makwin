@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { Check, Images, X } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
 import { useBodyScrollLock } from '@/hooks/use-body-scroll-lock';
-import { WHAT_TO_UPLOAD } from '@/lib/what-to-upload';
+import { RULES_LINK, WHAT_TO_UPLOAD } from '@/lib/what-to-upload';
 
 const CLOSE_MS = 200;
 
@@ -77,7 +77,13 @@ export default function WhatToUploadSheet({ onClose }: { onClose: () => void }) 
           <Images aria-hidden="true" className="w-4 h-4 shrink-0 mt-px" strokeWidth={1.75} />
           {text.carousel}
         </p>
-        <p className="mt-3 text-xs leading-relaxed text-[hsl(var(--muted-foreground))]">{text.nuance}</p>
+        <p className="mt-3 text-xs leading-relaxed text-[hsl(var(--muted-foreground))]">
+          {text.nuance}{' '}
+          {/* In a new tab, so whatever is being uploaded stays exactly as it is. */}
+          <a href={RULES_LINK} target="_blank" rel="noopener" className="ios-press inline-flex items-center min-h-11 -my-3.5 text-[hsl(var(--foreground))] underline underline-offset-4 decoration-[hsl(var(--foreground)/0.3)]">
+            {text.more}
+          </a>
+        </p>
 
         <button ref={okButton} type="button" onClick={close} className="mt-6 w-full glass-button glass-button--primary">
           {text.ok}

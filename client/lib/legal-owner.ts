@@ -13,5 +13,5 @@ export const LEGAL_OWNER = {
   /** Address people write to for privacy, legal and content matters. */
   email: 'help@makwin.art',
   /** Day the texts were last changed, shown at the top of each page. */
-  updated: '2026-11-12',
+  updated: '2026-11-20',
 };

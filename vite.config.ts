@@ -7,6 +7,20 @@ import { createServer } from "./server";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
+// Names this build. The open pages compare it with /version.json to notice that a
+// newer version is out (client/lib/app-update.ts). Same commit, same name.
+const BUILD_ID = (process.env.VERCEL_GIT_COMMIT_SHA || "").slice(0, 12) || `local-${Date.now()}`;
+
+function versionFilePlugin(): Plugin {
+  return {
+    name: "version-file",
+    apply: "build",
+    generateBundle() {
+      this.emitFile({ type: "asset", fileName: "version.json", source: JSON.stringify({ build: BUILD_ID }) });
+    },
+  };
+}
+
 const BEATS_FONTS: [string, string][] = [
   ["bebas-neue", "bebas-neue-latin-400-normal.woff2"],
   ["space-mono", "space-mono-latin-400-normal.woff2"],
@@ -46,7 +60,10 @@ function beatsStaticPlugin(): Plugin {
 }
 
 // https://vitejs.dev/config/
-export default defineConfig(({ mode }) => ({
+export default defineConfig(({ command }) => ({
+  define: {
+    __BUILD_ID__: JSON.stringify(command === "serve" ? "dev" : BUILD_ID),
+  },
   server: {
     host: "::",
     port: 3002,
@@ -60,7 +77,7 @@ export default defineConfig(({ mode }) => ({
   build: {
     outDir: "dist/spa",
   },
-  plugins: [react(), expressPlugin(), beatsStaticPlugin()],
+  plugins: [react(), expressPlugin(), beatsStaticPlugin(), versionFilePlugin()],
   resolve: {
     alias: {
       "@": path.join(__dirname, "./client"),

@@ -221,6 +221,15 @@ MAKWIN es para obras, no para el día a día (no es Instagram). La regla vive en
 - el punto 5 de las Condiciones, «Solo obras»
 - el motivo de denuncia «No es una obra» (`no_obra`, viaja en los detalles como los demás motivos nuevos)
 
+### Actualizar con gente dentro
+Cada versión sale entera de golpe (Vercel) y quien tiene la web abierta sigue con la suya: nada de lo que está haciendo se corta. Para que nadie se quede atrás ni pierda nada:
+- Cada build deja `/version.json` con su nombre (commit). La página abierta lo mira al volver a ella y cada 10 minutos (`client/lib/app-update.ts`).
+- Si hay una versión nueva, se carga **al cambiar de página**, nunca a mitad de algo (subir obra, una ventana abierta, colocar una foto). Volver atrás a la galería no recarga, para no perder por dónde ibas.
+- Reglas para cada cambio:
+  - Base de datos: solo **añadir** (columnas nuevas con valor por defecto, tablas nuevas). Nada que la versión anterior aún abierta necesite se borra o renombra en la misma versión; se quita en una posterior, cuando ya nadie la usa.
+  - API: aceptar lo que mandaba la versión anterior (campos nuevos siempre opcionales). Los motivos de denuncia nuevos ya van en los detalles por esto.
+  - Archivos de los usuarios: nunca se borran ni se mueven en una actualización.
+
 ### Manejo de Errores de Carga
 - Si work no existe inmediatamente:
   - Mostrador "Cargando obra…"

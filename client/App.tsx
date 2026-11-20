@@ -47,6 +47,7 @@ import { AuthProvider, useAuth } from "@/lib/AuthContext";
 import { WorksProvider } from "@/lib/WorksContext";
 import { FollowProvider } from "@/lib/FollowContext";
 import { PageShown, rememberHeader } from "@/lib/header-morph";
+import { swapToNewerVersionIfReady, watchForUpdates } from "@/lib/app-update";
 
 const queryClient = new QueryClient();
 
@@ -122,6 +123,18 @@ const RoutesWrapper = () => {
   const { language } = useI18n();
   const location = useLocation();
   const navigationType = useNavigationType();
+
+  // Moving to another page is the moment to open a newer version, if one went live
+  // meanwhile: nothing on the page being left can be lost.
+  // Going back to the gallery is the exception: it keeps exactly where you were, so the
+  // swap waits for the next page.
+  const pathSeen = useRef(location.pathname);
+  useLayoutEffect(() => {
+    if (pathSeen.current === location.pathname) return;
+    pathSeen.current = location.pathname;
+    const backToGallery = navigationType === 'POP' && (location.pathname === '/' || location.pathname === '/galeria');
+    if (!backToGallery) swapToNewerVersionIfReady();
+  }, [location.pathname, navigationType]);
 
   // Fixed pages name themselves here; a work, a profile or a legal text names itself once loaded.
   useEffect(() => {
@@ -247,6 +260,8 @@ const RoutesWrapper = () => {
 };
 
 const App = () => {
+  useEffect(() => { watchForUpdates(); }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>

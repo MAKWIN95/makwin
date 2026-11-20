@@ -1,5 +1,5 @@
 import { Fragment, useEffect, type ReactNode } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import Segmented from '@/components/Segmented';
@@ -39,7 +39,7 @@ function Filled({ text, es }: { text: string; es: boolean }) {
 
 function Block({ block, es }: { block: LegalBlock; es: boolean }): ReactNode {
   if ('h' in block) {
-    return <h2 className="text-lg font-semibold text-[hsl(var(--foreground))] mt-10 mb-3">{block.h}</h2>;
+    return <h2 id={block.id} className="text-lg font-semibold text-[hsl(var(--foreground))] mt-10 mb-3 scroll-mt-24">{block.h}</h2>;
   }
   if ('p' in block) {
     return <p className="mb-4"><Filled text={block.p} es={es} /></p>;
@@ -76,6 +76,7 @@ export default function Legal({ doc, bare = false }: { doc: LegalDoc; bare?: boo
   const { language } = useI18n();
   const es = language === 'es';
   const navigate = useNavigate();
+  const { hash } = useLocation();
   const texts = LEGAL_TEXTS[es ? 'es' : 'en'];
   const text = texts[doc];
   const updated = new Date(`${LEGAL_OWNER.updated}T12:00:00`).toLocaleDateString(es ? 'es-ES' : 'en-GB', {
@@ -86,6 +87,15 @@ export default function Legal({ doc, bare = false }: { doc: LegalDoc; bare?: boo
     document.title = `${text.title} · MAKWIN`;
     return () => { document.title = 'MAKWIN'; };
   }, [text.title]);
+
+  // A link to one point (/condiciones#solo-obras) opens the page right at that point.
+  useEffect(() => {
+    if (!hash) return;
+    // A timer, not an animation frame: a page opened in a background tab (the
+    // "Más información" link) gets no frames until it is looked at.
+    const timer = window.setTimeout(() => document.getElementById(decodeURIComponent(hash.slice(1)))?.scrollIntoView({ block: 'start' }), 0);
+    return () => window.clearTimeout(timer);
+  }, [hash, doc]);
 
   return (
     <div className="min-h-screen bg-[hsl(var(--background))]">

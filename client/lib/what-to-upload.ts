@@ -1,6 +1,9 @@
 // What belongs on MAKWIN and what does not. The window before uploading and the
 // rules page say the same thing in the same words, so nobody reads two versions.
 
+/** The point of the rules that explains it all, with examples of what a series is. */
+export const RULES_LINK = '/condiciones#solo-obras';
+
 export interface WhatToUpload {
   title: string;
   test: string;
@@ -10,6 +13,7 @@ export interface WhatToUpload {
   no: string[];
   carousel: string;
   nuance: string;
+  more: string;
   ok: string;
 }
 
@@ -21,8 +25,9 @@ export const WHAT_TO_UPLOAD: Record<'es' | 'en', WhatToUpload> = {
     yes: ['Una obra o una serie', 'El proceso de una obra', 'Los detalles de una pieza'],
     noTitle: 'Mejor en otra red',
     no: ['Selfis y fotos del día a día', 'Viajes, fiestas y bodas', 'Memes y capturas de pantalla'],
-    carousel: 'En un carrusel, todas las fotos son de la misma obra o serie.',
+    carousel: 'En un carrusel, todas las fotos deben ser de la misma obra o de la misma serie.',
     nuance: 'Un autorretrato o una foto de un viaje sí pueden ser una obra, si los has hecho con intención artística.',
+    more: 'Más información',
     ok: 'Entendido',
   },
   en: {
@@ -32,8 +37,9 @@ export const WHAT_TO_UPLOAD: Record<'es' | 'en', WhatToUpload> = {
     yes: ['An artwork or a series', 'The process behind a work', 'Close-ups of a piece'],
     noTitle: 'Better on another network',
     no: ['Selfies and everyday photos', 'Trips, parties and weddings', 'Memes and screenshots'],
-    carousel: 'In a carousel, every photo belongs to the same work or series.',
+    carousel: 'In a carousel, every photo must belong to the same work or the same series.',
     nuance: 'A self-portrait or a photo from a trip can be an artwork, if you made it with artistic intent.',
+    more: 'More information',
     ok: 'Got it',
   },
 };
