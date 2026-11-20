@@ -29,6 +29,13 @@ describe('cleanPortfolio', () => {
     expect('extra' in clean).toBe(false);
   });
 
+  it('accepts only the closed set of backgrounds', () => {
+    for (const tone of ['claro', 'papel', 'piedra', 'oscuro', 'pizarra']) {
+      expect(cleanPortfolio({ design: { tone } }, { ownFile }).design.tone).toBe(tone);
+    }
+    expect(cleanPortfolio({ design: { tone: '#ff00aa' } }, { ownFile }).design.tone).toBe('claro');
+  });
+
   it('only lets files from the artist’s own folder in', () => {
     const clean = cleanPortfolio({
       sections: [{

@@ -261,7 +261,14 @@ export { isEmptySection };
 
 function TextBody({ es, editing, section, update }: SectionProps) {
   if (section.type !== 'about' && section.type !== 'text') return null;
-  if (!editing) return <div className="pf-prose">{section.text}</div>;
+  // Shown as paragraphs, so on paper a paragraph moves whole to the next page instead of splitting.
+  if (!editing) {
+    return (
+      <div className="pf-prose">
+        {section.text.split(/\n\s*\n/).map((paragraph, index) => <p key={index} className="pf-para">{paragraph}</p>)}
+      </div>
+    );
+  }
   return (
     <Field
       multiline

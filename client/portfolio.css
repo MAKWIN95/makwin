@@ -2,6 +2,12 @@
    portfolio (chosen by the artist), not to whoever opens it, so it looks the same
    for a gallery on a laptop and for a friend on a phone. */
 
+/* Paper grain for the textured backgrounds: drawn, so it weighs nothing and prints sharp. */
+:root {
+  --pf-grain-light: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.36 0 0 0 0 0.3 0 0 0 0 0.22 0 0 0 0.16 0'/%3E%3C/filter%3E%3Cfilter id='m'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.018' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.36 0 0 0 0 0.3 0 0 0 0 0.22 0 0 0 0.1 0'/%3E%3C/filter%3E%3Crect width='100%' height='100%' filter='url(%23m)'/%3E%3Crect width='100%' height='100%' filter='url(%23f)'/%3E%3C/svg%3E");
+  --pf-grain-dark: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 0.97 0 0 0 0 0.92 0 0 0 0.07 0'/%3E%3C/filter%3E%3Cfilter id='m'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.018' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 0.97 0 0 0 0 0.92 0 0 0 0.05 0'/%3E%3C/filter%3E%3Crect width='100%' height='100%' filter='url(%23m)'/%3E%3Crect width='100%' height='100%' filter='url(%23f)'/%3E%3C/svg%3E");
+}
+
 .pf-shell {
   overflow-anchor: none; /* the page keeps the reading place itself when switching modes */
   --pf-ease: cubic-bezier(0.32, 0.72, 0, 1);
@@ -17,6 +23,9 @@
   --pf-prose-font: Inter, ui-sans-serif, system-ui, -apple-system, sans-serif;
   min-height: 100vh;
   min-height: 100dvh;
+  --pf-grain-family: var(--pf-grain-light);
+  position: relative;
+  isolation: isolate;
   background: var(--pf-bg);
   color: var(--pf-fg);
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, sans-serif;
@@ -24,7 +33,44 @@
   -webkit-font-smoothing: antialiased;
 }
 
-.pf-shell[data-tone='oscuro'] {
+/* The paper grain sits behind everything and fades in and out when the background changes. */
+.pf-shell::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image: var(--pf-grain-family);
+  background-size: 240px 240px;
+  opacity: var(--pf-grain-show, 0);
+  transition: opacity 0.5s ease;
+}
+
+:is(.pf-shell, .pf-tone-sample)[data-tone='papel'] {
+  --pf-bg: #f1ebdf;
+  --pf-fg: #1e1b17;
+  --pf-muted: #6e665a;
+  --pf-line: rgba(30, 27, 23, 0.13);
+  --pf-soft: rgba(30, 27, 23, 0.05);
+  --pf-field: rgba(30, 27, 23, 0.05);
+  --pf-on-accent: #f1ebdf;
+  --pf-grain: var(--pf-grain-light);
+  --pf-grain-show: 1;
+}
+
+:is(.pf-shell, .pf-tone-sample)[data-tone='piedra'] {
+  --pf-bg: #e5e3de;
+  --pf-fg: #1a1a19;
+  --pf-muted: #66635d;
+  --pf-line: rgba(26, 26, 25, 0.13);
+  --pf-soft: rgba(26, 26, 25, 0.05);
+  --pf-field: rgba(26, 26, 25, 0.05);
+  --pf-on-accent: #e5e3de;
+  --pf-grain: var(--pf-grain-light);
+  --pf-grain-show: 1;
+}
+
+:is(.pf-shell, .pf-tone-sample):is([data-tone='oscuro'], [data-tone='pizarra']) {
   --pf-bg: #0f0f10;
   --pf-fg: #f1efeb;
   --pf-muted: #9b968f;
@@ -33,18 +79,28 @@
   --pf-field: rgba(241, 239, 235, 0.07);
   --pf-accent: #f1efeb;
   --pf-on-accent: #0f0f10;
+  --pf-grain-family: var(--pf-grain-dark);
 }
 
-.pf-shell[data-accent='arcilla'] { --pf-accent: #ad522b; --pf-on-accent: #fff; }
-.pf-shell[data-accent='oliva'] { --pf-accent: #5c682c; --pf-on-accent: #fff; }
-.pf-shell[data-accent='oceano'] { --pf-accent: #1c5b88; --pf-on-accent: #fff; }
-.pf-shell[data-accent='vino'] { --pf-accent: #7b1f3f; --pf-on-accent: #fff; }
-.pf-shell[data-accent='oro'] { --pf-accent: #94701f; --pf-on-accent: #fff; }
-.pf-shell[data-tone='oscuro'][data-accent='arcilla'] { --pf-accent: #e38c63; --pf-on-accent: #0f0f10; }
-.pf-shell[data-tone='oscuro'][data-accent='oliva'] { --pf-accent: #aebd6d; --pf-on-accent: #0f0f10; }
-.pf-shell[data-tone='oscuro'][data-accent='oceano'] { --pf-accent: #74b3e2; --pf-on-accent: #0f0f10; }
-.pf-shell[data-tone='oscuro'][data-accent='vino'] { --pf-accent: #e08aa6; --pf-on-accent: #0f0f10; }
-.pf-shell[data-tone='oscuro'][data-accent='oro'] { --pf-accent: #dcb662; --pf-on-accent: #0f0f10; }
+:is(.pf-shell, .pf-tone-sample)[data-tone='pizarra'] {
+  --pf-bg: #1d1e20;
+  --pf-fg: #ece9e3;
+  --pf-muted: #a19c94;
+  --pf-on-accent: #1d1e20;
+  --pf-grain: var(--pf-grain-dark);
+  --pf-grain-show: 1;
+}
+
+:is(.pf-shell, .pf-tone-sample)[data-accent='arcilla'] { --pf-accent: #ad522b; --pf-on-accent: #fff; }
+:is(.pf-shell, .pf-tone-sample)[data-accent='oliva'] { --pf-accent: #5c682c; --pf-on-accent: #fff; }
+:is(.pf-shell, .pf-tone-sample)[data-accent='oceano'] { --pf-accent: #1c5b88; --pf-on-accent: #fff; }
+:is(.pf-shell, .pf-tone-sample)[data-accent='vino'] { --pf-accent: #7b1f3f; --pf-on-accent: #fff; }
+:is(.pf-shell, .pf-tone-sample)[data-accent='oro'] { --pf-accent: #94701f; --pf-on-accent: #fff; }
+:is(.pf-shell, .pf-tone-sample):is([data-tone='oscuro'], [data-tone='pizarra'])[data-accent='arcilla'] { --pf-accent: #e38c63; --pf-on-accent: #0f0f10; }
+:is(.pf-shell, .pf-tone-sample):is([data-tone='oscuro'], [data-tone='pizarra'])[data-accent='oliva'] { --pf-accent: #aebd6d; --pf-on-accent: #0f0f10; }
+:is(.pf-shell, .pf-tone-sample):is([data-tone='oscuro'], [data-tone='pizarra'])[data-accent='oceano'] { --pf-accent: #74b3e2; --pf-on-accent: #0f0f10; }
+:is(.pf-shell, .pf-tone-sample):is([data-tone='oscuro'], [data-tone='pizarra'])[data-accent='vino'] { --pf-accent: #e08aa6; --pf-on-accent: #0f0f10; }
+:is(.pf-shell, .pf-tone-sample):is([data-tone='oscuro'], [data-tone='pizarra'])[data-accent='oro'] { --pf-accent: #dcb662; --pf-on-accent: #0f0f10; }
 
 .pf-shell[data-style='clasico'] {
   --pf-title-font: 'Cormorant Garamond', ui-serif, Georgia, 'Times New Roman', serif;
@@ -138,17 +194,45 @@
   .pf-top-back:hover { color: var(--pf-fg); }
 }
 
-.pf-made {
-  margin-top: 10px;
-  font-size: 11px;
-  color: var(--pf-muted);
+/* «MAKWIN portfolio»: the word mark, a hairline, and the product name in italic serif. */
+.pf-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 11px;
+  margin-top: 18px;
+  color: var(--pf-fg);
+  text-decoration: none;
+  opacity: 0.86;
+  transition: opacity 0.25s ease;
 }
 
-.pf-made-mark {
+.pf-brand-word {
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+  font-size: 10.5px;
   font-weight: 600;
-  letter-spacing: 0.28em;
-  margin-left: 4px;
-  color: var(--pf-fg);
+  letter-spacing: 0.34em;
+  margin-right: -0.34em;
+}
+
+.pf-brand-rule {
+  width: 1px;
+  height: 13px;
+  background: currentColor;
+  opacity: 0.32;
+}
+
+.pf-brand-sub {
+  font-family: 'Cormorant Garamond', ui-serif, Georgia, serif;
+  font-size: 16px;
+  font-style: italic;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  line-height: 1;
+  transform: translateY(-0.5px);
+}
+
+@media (hover: hover) {
+  .pf-brand:hover { opacity: 1; }
 }
 
 .pf-print-only { display: none; }
@@ -417,6 +501,7 @@
 }
 
 .pf-shell[data-style='clasico'] .pf-prose { margin-left: auto; margin-right: auto; font-size: 1.15rem; }
+.pf-para + .pf-para { margin-top: 1.75em; }
 
 /* Works */
 .pf-works {
@@ -1310,6 +1395,79 @@
   color: hsl(var(--muted-foreground));
 }
 
+.pf-sheet-hint {
+  margin-top: 8px;
+  font-size: 12px;
+  color: hsl(var(--muted-foreground));
+}
+
+/* Background samples: a small page of each, in the chosen colour. */
+.pf-tones {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.pf-tone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  font-size: 12px;
+  color: hsl(var(--muted-foreground));
+  transition: color 0.2s ease;
+}
+
+.pf-tone[aria-checked='true'] { color: hsl(var(--foreground)); }
+
+.pf-tone-sample {
+  --pf-bg: #f7f5f1;
+  --pf-fg: #161514;
+  --pf-accent: #161514;
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  padding: 7px 8px;
+  border-radius: 9px;
+  background: var(--pf-bg);
+  background-image: var(--pf-grain, none);
+  background-size: 160px 160px;
+  color: var(--pf-fg);
+  box-shadow: inset 0 0 0 1px rgba(127, 127, 127, 0.28);
+  transition: box-shadow 0.25s ease, transform 0.3s var(--pf-ease, ease);
+}
+
+.pf-tone[aria-checked='true'] .pf-tone-sample {
+  box-shadow: inset 0 0 0 1px rgba(127, 127, 127, 0.28), 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--foreground));
+  transform: translateY(-2px);
+}
+
+.pf-tone-aa {
+  font-family: 'Cormorant Garamond', ui-serif, Georgia, serif;
+  font-size: 19px;
+  line-height: 1;
+}
+
+.pf-tone-dot {
+  width: 9px;
+  height: 9px;
+  margin-bottom: 3px;
+  border-radius: 9999px;
+  background: var(--pf-accent);
+  transition: background-color 0.3s ease;
+}
+
+.pf-tone-name {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .pf-style-card {
   display: flex;
   flex-direction: column;
@@ -1527,10 +1685,36 @@
 
 @media print {
   @page { margin: 14mm 14mm 16mm; }
+  /* Each background names its own sheet, so the colour reaches the edge of the paper. */
+  @page pf-claro { background: #fff; }
+  @page pf-papel { background: #f1ebdf var(--pf-grain-light); background-size: 240px 240px; }
+  @page pf-piedra { background: #e5e3de var(--pf-grain-light); background-size: 240px 240px; }
+  @page pf-oscuro { background: #0f0f10; }
+  @page pf-pizarra { background: #1d1e20 var(--pf-grain-dark); background-size: 240px 240px; }
+  html:has(.pf-shell[data-tone='claro']) body { page: pf-claro; }
+  html:has(.pf-shell[data-tone='papel']) body { page: pf-papel; }
+  html:has(.pf-shell[data-tone='piedra']) body { page: pf-piedra; }
+  html:has(.pf-shell[data-tone='oscuro']) body { page: pf-oscuro; }
+  html:has(.pf-shell[data-tone='pizarra']) body { page: pf-pizarra; }
 
-  /* Stronger than the dark-mode page colour, whose edge otherwise prints as a thin grey frame. */
-  html:has(.pf-shell),
-  html.dark:has(.pf-shell) body { background: #fff !important; }
+  /* The paper is the chosen background, edge to edge: the page itself carries the colour
+     (and the grain), so margins and page breaks never show a white or grey seam. */
+  html:has(.pf-shell) {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  html:has(.pf-shell[data-tone='claro']) { background: #fff !important; }
+  html:has(.pf-shell[data-tone='papel']) { background: #f1ebdf var(--pf-grain-light) !important; background-size: 240px 240px !important; }
+  html:has(.pf-shell[data-tone='piedra']) { background: #e5e3de var(--pf-grain-light) !important; background-size: 240px 240px !important; }
+  html:has(.pf-shell[data-tone='oscuro']) { background: #0f0f10 !important; }
+  html:has(.pf-shell[data-tone='pizarra']) { background: #1d1e20 var(--pf-grain-dark) !important; background-size: 240px 240px !important; }
+  html:has(.pf-shell) body,
+  html.dark:has(.pf-shell) body { background: transparent !important; }
+
+  .pf-shell, .pf-shell * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
 
   .global-stars-background,
   .stars-background,
@@ -1549,42 +1733,53 @@
   .pf-tool,
   .pf-remove { display: none !important; }
 
-  /* Paper is always white with dark letters, whichever background was chosen on screen. */
-  .pf-shell,
-  .pf-shell[data-tone] {
-    --pf-bg: #fff;
-    --pf-fg: #111;
-    --pf-muted: #555;
-    --pf-line: rgba(0, 0, 0, 0.14);
-    --pf-soft: rgba(0, 0, 0, 0.04);
-    --pf-field: rgba(0, 0, 0, 0.04);
+  .pf-shell::before { display: none; }
+  .pf-shell {
     min-height: 0;
-    background: #fff !important;
-    color: #111 !important;
+    background: transparent !important;
     transition: none !important;
   }
-
-  .pf-shell[data-tone][data-accent='tinta'] { --pf-accent: #111; --pf-on-accent: #fff; }
-  .pf-shell[data-tone][data-accent='arcilla'] { --pf-accent: #ad522b; --pf-on-accent: #fff; }
-  .pf-shell[data-tone][data-accent='oliva'] { --pf-accent: #5c682c; --pf-on-accent: #fff; }
-  .pf-shell[data-tone][data-accent='oceano'] { --pf-accent: #1c5b88; --pf-on-accent: #fff; }
-  .pf-shell[data-tone][data-accent='vino'] { --pf-accent: #7b1f3f; --pf-on-accent: #fff; }
-  .pf-shell[data-tone][data-accent='oro'] { --pf-accent: #94701f; --pf-on-accent: #fff; }
+  /* "Claro" is plain white on paper. */
+  .pf-shell[data-tone='claro'] { --pf-bg: #fff; }
 
   .pf-page { max-width: none; padding: 0; }
   .pf-mode { animation: none !important; opacity: 1 !important; transform: none !important; }
-  .pf-hero { margin-bottom: 36px; }
-  .pf-hero-img { max-height: 120mm; box-shadow: none !important; opacity: 1 !important; transform: none !important; }
-  .pf-section { margin-top: 32px; break-inside: auto; }
-  .pf-section-title { break-after: avoid; }
-  .pf-work, .pf-entry, .pf-quote, .pf-track, .pf-pdf, .pf-link-block, .pf-photo { break-inside: avoid; }
+
+  /* Page one is a cover: the picture, the name, how to reach them. The rest starts on page two. */
+  .pf-hero {
+    min-height: 232mm;
+    margin-bottom: 0;
+    align-content: center;
+    break-after: page;
+  }
+  .pf-hero-img { max-height: 150mm; box-shadow: none !important; opacity: 1 !important; transform: none !important; }
+  /* A short statement shares the cover, under the name, and the cover ends after it. */
+  .pf-hero:has(+ .pf-section[data-cover]) { min-height: 0; break-after: auto; }
+  .pf-hero:has(+ .pf-section[data-cover]) { gap: 20px; }
+  .pf-hero:has(+ .pf-section[data-cover]) .pf-hero-img { max-height: 104mm; }
+  .pf-section[data-cover] { margin-top: 26px; break-after: page; }
+  .pf-section[data-cover] .pf-section-title { margin-bottom: 14px; }
+
+  /* Nothing is cut between pages: a part moves whole to the next page when it does not fit.
+     Only parts long enough to fill most of a page continue, and then between works, dates,
+     quotes or lines, never through one, and never leaving a title alone at the bottom. */
+  .pf-section { margin-top: 30px; }
+  .pf-section[data-print='whole'] { break-inside: avoid; }
+  .pf-section-title { break-after: avoid; break-inside: avoid; }
+  .pf-prose { orphans: 4; widows: 4; }
+  .pf-para { break-inside: avoid; }
+  .pf-work, .pf-entry, .pf-quote, .pf-track, .pf-pdf, .pf-link-block, .pf-photo, .pf-file { break-inside: avoid; }
   .pf-works { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; gap: 18px 14px !important; }
   .pf-shell[data-style='galeria'] .pf-works { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
-  .pf-work-art img { transform: none !important; }
+  /* Pictures sized so two rows of works fit on one sheet with their part. */
+  .pf-work-art { width: fit-content; max-width: 100%; }
+  .pf-work-art img { width: auto; max-width: 100%; max-height: 58mm; transform: none !important; }
+  .pf-shell[data-style='galeria'] .pf-work-art img { max-height: 78mm; }
   .pf-print-only { display: inline; }
-  .pf-footer { margin-top: 40px; }
-  .pf-footer .pf-print-only { display: block; font-size: 12px; }
-  .pf-contact { background: none; color: #111; padding: 0; min-height: 0; }
+  .pf-footer { margin-top: 40px; break-inside: avoid; }
+  .pf-footer .pf-print-only { display: block; font-size: 12px; color: var(--pf-muted); }
+  .pf-brand { opacity: 1; }
+  .pf-contact { background: none; color: var(--pf-fg); padding: 0; min-height: 0; }
   .pf-contact svg { display: none; }
   .pf-link-host { margin-left: 12px; }
   .pf-link-block { padding-bottom: 8px; }

@@ -11,6 +11,8 @@ import {
   type Discipline,
   type FileKind,
   type PortfolioAccent,
+  type PortfolioStyle,
+  type PortfolioTone,
   type PortfolioContent,
   type PortfolioRecord,
   type PortfolioVisibility,
@@ -321,6 +323,31 @@ export function makeDraft(discipline: Discipline, profile: Profile, works: Portf
 export function isEmptySection(section: Section): boolean {
   if (section.type === 'about' || section.type === 'text') return !section.text.trim();
   return section.items.length === 0;
+}
+
+export const TONE_LABELS: Record<PortfolioTone, { es: string; en: string }> = {
+  claro: { es: 'Claro', en: 'Light' },
+  papel: { es: 'Papel', en: 'Paper' },
+  piedra: { es: 'Piedra', en: 'Stone' },
+  oscuro: { es: 'Oscuro', en: 'Dark' },
+  pizarra: { es: 'Pizarra', en: 'Slate' },
+};
+
+/**
+ * On paper, a part stays whole on one page unless it is long enough to fill most of one:
+ * then it may continue on the next, but never through the middle of a work, a date or a quote.
+ */
+export function keepsTogetherOnPaper(section: Section, style: PortfolioStyle): boolean {
+  // Roughly what fits on one A4 sheet with the part's title, as printed.
+  switch (section.type) {
+    case 'about':
+    case 'text': return section.text.length <= 1600;
+    case 'works': return section.items.length <= (style === 'galeria' ? 6 : 9);
+    case 'entries': return section.items.length <= 12;
+    case 'files': return section.items.length <= 5;
+    case 'quotes': return section.items.reduce((sum, quote) => sum + quote.text.length + 80, 0) <= 1400;
+    case 'links': return section.items.length <= 14;
+  }
 }
 
 export const ACCENT_LABELS: Record<PortfolioAccent, { es: string; en: string }> = {

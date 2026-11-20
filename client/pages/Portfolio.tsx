@@ -19,6 +19,7 @@ import {
   expandPortfolio,
   deletePortfolio,
   isEmptySection,
+  keepsTogetherOnPaper,
   loadOwnWorks,
   loadPortfolio,
   loadWorks,
@@ -193,10 +194,13 @@ export default function Portfolio() {
     });
   }, [ownWorks]);
 
-  // Serif letters for the classic look come only when someone needs them.
+  // Serif letters (the classic look, work titles, the «MAKWIN portfolio» mark) load once there is a portfolio to show.
+  const hasContent = !!content;
   useEffect(() => {
-    if (content?.design.style === 'clasico') loadPoemFont('elegante');
-  }, [content?.design.style]);
+    if (!hasContent) return;
+    loadPoemFont('elegante');
+    void import('@fontsource/cormorant-garamond/500-italic.css').catch(() => undefined);
+  }, [hasContent]);
 
   // ---- Saving itself -----------------------------------------------------------------
 
@@ -621,6 +625,8 @@ export default function Portfolio() {
             ref={(element) => { if (element) sectionEls.current.set(section.id, element); else sectionEls.current.delete(section.id); }}
             className="pf-section"
             data-type={section.type}
+            data-print={keepsTogetherOnPaper(section, design.style) ? 'whole' : 'flow'}
+            data-cover={(!editing && index === 0 && section.type === 'about' && section.text.length <= 650) || undefined}
             data-hidden={(editing && section.hidden) || undefined}
             data-leaving={leaving.has(section.id) || undefined}
             data-fresh={fresh === section.id || undefined}
@@ -686,7 +692,11 @@ export default function Portfolio() {
               </Link>
             )}
           </div>
-          <p className="pf-made">{es ? 'Hecho con' : 'Made with'} <span className="pf-made-mark">MAKWIN</span></p>
+          <a href="https://www.makwin.art" className="pf-brand" aria-label="MAKWIN portfolio">
+            <span className="pf-brand-word">MAKWIN</span>
+            <span className="pf-brand-rule" aria-hidden="true" />
+            <span className="pf-brand-sub">portfolio</span>
+          </a>
         </footer>
       </main>
 

@@ -14,6 +14,8 @@ import {
   ACCENT_LABELS,
   SECTION_INFO,
   STYLES,
+  TONES,
+  TONE_LABELS,
   fileProblem,
   uploadPortfolioFile,
   workPicture,
@@ -61,13 +63,25 @@ export function DesignSheet({ es, design, onChange, onClose }: { es: boolean; de
 
         <div>
           <p className="pf-sheet-label">{es ? 'Fondo' : 'Background'}</p>
-          <Segmented
-            label={es ? 'Fondo' : 'Background'}
-            value={design.tone}
-            onChange={(tone) => onChange({ ...design, tone })}
-            options={[{ value: 'claro', label: es ? 'Claro' : 'Light' }, { value: 'oscuro', label: es ? 'Oscuro' : 'Dark' }]}
-            className="segmented--snug"
-          />
+          <div role="radiogroup" aria-label={es ? 'Fondo' : 'Background'} className="pf-tones">
+            {TONES.map((tone) => (
+              <button
+                key={tone}
+                type="button"
+                role="radio"
+                aria-checked={design.tone === tone}
+                onClick={() => onChange({ ...design, tone })}
+                className="pf-tone ios-press"
+              >
+                <span className="pf-tone-sample" data-tone={tone} data-accent={design.accent} aria-hidden="true">
+                  <span className="pf-tone-aa">Aa</span>
+                  <span className="pf-tone-dot" />
+                </span>
+                <span className="pf-tone-name">{es ? TONE_LABELS[tone].es : TONE_LABELS[tone].en}</span>
+              </button>
+            ))}
+          </div>
+          <p className="pf-sheet-hint">{es ? 'El PDF sale con el mismo fondo.' : 'The PDF comes out with the same background.'}</p>
         </div>
 
         <div>

@@ -10,7 +10,8 @@ export type Discipline = (typeof DISCIPLINES)[number];
 export const STYLES = ['clasico', 'galeria', 'moderno'] as const;
 export type PortfolioStyle = (typeof STYLES)[number];
 
-export const TONES = ['claro', 'oscuro'] as const;
+/** Backgrounds: a closed set, so every portfolio keeps the same quiet identity. The PDF uses the same one. */
+export const TONES = ['claro', 'papel', 'piedra', 'oscuro', 'pizarra'] as const;
 export type PortfolioTone = (typeof TONES)[number];
 
 export const ACCENTS = ['tinta', 'arcilla', 'oliva', 'oceano', 'vino', 'oro'] as const;
