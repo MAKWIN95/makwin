@@ -33,7 +33,6 @@ import ResetPassword from "./pages/ResetPassword";
 import Settings from "./pages/Settings";
 import Following from "./pages/Following";
 import NotFound from "./pages/NotFound";
-import ComingSoon from "./pages/ComingSoon";
 import Admin from "./pages/Admin";
 import Legal from "./pages/Legal";
 import { startAnalytics } from "@/lib/analytics";
@@ -50,16 +49,6 @@ import { FollowProvider } from "@/lib/FollowContext";
 import { PageShown, rememberHeader } from "@/lib/header-morph";
 
 const queryClient = new QueryClient();
-
-// Detect if we're on the makwin.art domain (Coming Soon experience)
-const isComingSoonDomain = (): boolean => {
-  const hostname = window.location.hostname;
-  const pathname = window.location.pathname;
-  const isMakwinDomain = hostname === "makwin.art" || hostname === "www.makwin.art";
-
-  // Allow /beats to bypass the coming soon experience on makwin.art
-  return isMakwinDomain && !pathname.startsWith("/beats");
-};
 
 const BeatsPage = () => {
   const [hash, setHash] = useState(window.location.hash);
@@ -258,27 +247,6 @@ const RoutesWrapper = () => {
 };
 
 const App = () => {
-  // If we're on makwin.art, show Coming Soon page without providers
-  if (isComingSoonDomain()) {
-    // The legal pages must be readable on makwin.art even before it opens (Google and
-    // the law ask for them), without letting the rest of the site through.
-    const doc = LEGAL_DOCS.find((d) => window.location.pathname === `/${d}`);
-    if (doc) {
-      return (
-        <I18nProvider>
-          <BrowserRouter>
-            <Routes>
-              {LEGAL_DOCS.map((d) => <Route key={d} path={`/${d}`} element={<Legal doc={d} bare />} />)}
-              <Route path="*" element={<ComingSoon />} />
-            </Routes>
-          </BrowserRouter>
-        </I18nProvider>
-      );
-    }
-    return <ComingSoon />;
-  }
-
-  // Otherwise render the full app with all providers
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
