@@ -54,8 +54,8 @@ export default function LanguageSelector() {
     // Not modal: a modal menu locks the page and spends the next tap on closing itself.
     <DropdownMenu modal={false}>
       <DropdownMenuTrigger asChild>
-        <button id="lang-selector-btn" aria-label={language === 'es' ? 'Cambiar idioma' : 'Change language'} className="header-button inline-flex items-center justify-center shrink-0 p-2 phone:p-0 phone:w-11 phone:h-11 max-[429px]:!w-9 max-[374px]:!w-8" onMouseDown={(e)=>e.preventDefault()}>
-          <Globe className="w-4 h-4 phone:w-5 phone:h-5 text-[hsl(var(--foreground))]" />
+        <button id="lang-selector-btn" aria-label={language === 'es' ? 'Cambiar idioma' : 'Change language'} className="header-button inline-flex items-center justify-center shrink-0 w-10 h-10 phone:w-11 phone:h-11 max-[429px]:!w-9 max-[374px]:!w-8" onMouseDown={(e)=>e.preventDefault()}>
+          <Globe className="w-5 h-5 text-[hsl(var(--foreground))]" />
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent

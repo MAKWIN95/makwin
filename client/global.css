@@ -2011,6 +2011,30 @@ html.dark body {
 
 
 
+/* Computers, with the phone's comfort: letters and buttons a size up, a deeper dark that
+   does not look grey on screens that are not OLED, and stronger contrast for quiet text. */
+@media (min-width: 641px) and (pointer: fine) {
+  html { font-size: 17px; }
+
+  html.dark,
+  .dark {
+    --background: 220 14% 3.5%;
+    --card: 220 10% 7%;
+    --popover: 220 10% 5%;
+    --border: 0 0% 14%;
+    --muted-foreground: 0 0% 76%;
+  }
+
+  .dark .glass-bar,
+  .dark .glass-menu {
+    background: hsl(var(--popover) / 0.72);
+  }
+}
+
+@media (min-width: 1440px) and (pointer: fine) {
+  html { font-size: 18px; }
+}
+
 /* Mobile-specific override: make header/text color switch snappy and avoid brief invisibility */
 @media (max-width: 640px) {
   .fast-theme, .fast-theme * {
