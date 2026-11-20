@@ -16,6 +16,11 @@ describe('storedReport', () => {
     expect(storedReport(['copia', 'ia'], 'link')).toEqual({ reason: 'otro', details: '[copia+ia-only] link' });
     expect(storedReport(['porno', 'copia'], 'link')).toEqual({ reason: 'porno', details: '[copia] link' });
   });
+
+  it('stores "not an artwork" without needing words', () => {
+    expect(storedReport(['no_obra'], '')).toEqual({ reason: 'otro', details: '[no_obra-only]' });
+    expect(storedReport(['no_obra', 'spam'], '')).toEqual({ reason: 'spam', details: '[no_obra]' });
+  });
 });
 
 describe('requestBaseUrl', () => {

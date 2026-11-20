@@ -26,6 +26,7 @@ const REPORT_REASONS = [
   { value: 'acoso', label: 'Acoso/Abuso', labelEn: 'Harassment' },
   { value: 'ia', label: 'Hecho con IA', labelEn: 'Made with AI' },
   { value: 'copia', label: 'Es una copia', labelEn: "It's a copy" },
+  { value: 'no_obra', label: 'No es una obra', labelEn: "It's not an artwork" },
   { value: 'otro', label: 'Otro', labelEn: 'Other' },
 ];
 

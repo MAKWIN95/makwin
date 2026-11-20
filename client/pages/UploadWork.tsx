@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState, type DragEvent, type KeyboardEvent, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Check, Feather, ImagePlus, Loader2, Mic, Music, X } from 'lucide-react';
+import { Check, Feather, ImagePlus, Images, Loader2, Mic, Music, X } from 'lucide-react';
 import { useBodyScrollLock } from '@/hooks/use-body-scroll-lock';
 import { prepareImage, readImage } from '@/lib/compress-image';
 import { DEFAULT_FRAME, framePhoto, frameRatio, needsFraming, NO_EDIT, type FrameStyle, type PhotoEdit } from '@/lib/frame-photo';
@@ -16,6 +16,7 @@ import PhotoEditor from '@/components/PhotoEditor';
 import UploadThumbs, { type UploadMedia } from '@/components/UploadThumbs';
 import { Switch } from '@/components/ui/switch';
 import Reveal from '@/components/Reveal';
+import WhatToUploadSheet from '@/components/WhatToUploadSheet';
 import { cn, normalizeHashtags } from '@/lib/utils';
 import { toast } from 'sonner';
 import { track as countEvent } from '@/lib/analytics';
@@ -36,6 +37,8 @@ type Progress = { step: 'preparing' | 'uploading'; done: number; total: number }
 const newMedia = (file: File): UploadMedia => ({ id: crypto.randomUUID(), file, url: URL.createObjectURL(file) });
 const extensionOf = (file: File) => file.name.split('.').pop();
 const notify = (message: string) => toast.error(message, { position: 'top-center' });
+// Each account sees what belongs on MAKWIN once on each device, before its first upload there.
+const rulesSeenKey = (userId: string) => `makwin:que-subir:${userId}`;
 
 async function inParallel<T>(tasks: Array<() => Promise<T>>): Promise<T[]> {
   const results: T[] = new Array(tasks.length);
@@ -76,6 +79,7 @@ export default function UploadWork() {
   const [progress, setProgress] = useState<Progress>(null);
   const [poemFontId, setPoemFontId] = useState(DEFAULT_POEM_FONT);
   const [confirmDiscard, setConfirmDiscard] = useState(false);
+  const [showRules, setShowRules] = useState(false);
 
   const pickInput = useRef<HTMLInputElement>(null);
   const coverInput = useRef<HTMLInputElement>(null);
@@ -95,6 +99,19 @@ export default function UploadWork() {
   useEffect(() => {
     if (kind) window.scrollTo({ top: 0 });
   }, [kind]);
+
+  useEffect(() => {
+    if (!user) return;
+    let seen = false;
+    try { seen = localStorage.getItem(rulesSeenKey(user.id)) === '1'; } catch { /* private mode: show it */ }
+    if (!seen) setShowRules(true);
+  }, [user?.id]);
+
+  const closeRules = () => {
+    setShowRules(false);
+    if (!user) return;
+    try { localStorage.setItem(rulesSeenKey(user.id), '1'); } catch { /* nothing to remember */ }
+  };
 
 
   const fileProblem = (file: File): string | null => {
@@ -260,7 +277,7 @@ export default function UploadWork() {
     if (!workType) return { field: 'type', message: es ? '¿Es una pintura o una fotografía?' : 'Is it a painting or a photograph?' };
     if (!description.trim()) {
       if (workType === 'poema' && kind === 'poem') return { field: 'description', message: es ? 'Escribe tu poema.' : 'Write your poem.' };
-      return { field: 'description', message: es ? 'Cuenta algo sobre esta obra.' : 'Say something about this work.' };
+      return { field: 'description', message: es ? 'Cuenta qué hay detrás de esta obra.' : 'Tell us what is behind this work.' };
     }
     if (workType === 'cancion' && !lyrics.trim()) return { field: 'lyrics', message: es ? 'Añade la letra de la canción.' : 'Add the song lyrics.' };
     if (sellable && isForSale && !(Number(price) > 0)) return { field: 'price', message: es ? 'Indica un precio mayor que cero.' : 'Enter a price above zero.' };
@@ -422,6 +439,12 @@ export default function UploadWork() {
                   {es ? 'Escribir un poema' : 'Write a poem'}
                 </button>
               </div>
+              <p className="mt-6 text-xs text-[hsl(var(--muted-foreground))]">
+                {es ? 'MAKWIN es para obras, no para tu día a día.' : 'MAKWIN is for artworks, not your everyday life.'}{' '}
+                <button type="button" onClick={() => setShowRules(true)} className="ios-press inline-flex items-center min-h-11 -my-3 text-[hsl(var(--foreground))] underline underline-offset-4 decoration-[hsl(var(--foreground)/0.3)]">
+                  {es ? '¿Qué puedo subir?' : 'What can I share?'}
+                </button>
+              </p>
             </div>
           ) : (
             <div className="relative glass-panel max-sm:!rounded-none max-sm:!border-x-0 max-sm:!border-t-0 max-sm:!shadow-none mx-auto max-w-5xl overflow-hidden" data-kind={kind}>
@@ -462,7 +485,11 @@ export default function UploadWork() {
                         onAdd={() => pickInput.current?.click()}
                       />
                       <Reveal open={photos.length > 1} className="-mt-3">
-                        <p className="text-xs text-[hsl(var(--muted-foreground))]">
+                        <p className="flex items-start gap-2 text-xs text-[hsl(var(--foreground))]">
+                          <Images aria-hidden="true" className="w-3.5 h-3.5 shrink-0 mt-px" strokeWidth={1.75} />
+                          {es ? 'Todas las fotos del carrusel son de la misma obra: la serie, sus detalles o su proceso.' : 'Every photo in the carousel belongs to the same work: the series, its details or its process.'}
+                        </p>
+                        <p className="mt-1.5 text-xs text-[hsl(var(--muted-foreground))]">
                           {es ? 'Mantén pulsada una foto y arrástrala para cambiar el orden. La primera es la portada.' : 'Hold a photo and drag it to change the order. The first one is the cover.'}
                         </p>
                       </Reveal>
@@ -549,7 +576,7 @@ export default function UploadWork() {
                         maxLength={5000}
                         aria-label={es ? 'Descripción' : 'Description'}
                         data-field="description"
-                        placeholder={es ? 'Cuenta algo sobre esta obra…' : 'Say something about this work…'}
+                        placeholder={es ? 'Cuenta qué hay detrás de esta obra…' : 'Tell us what is behind this work…'}
                         className={cn(fieldText, 'mt-3 text-sm resize-none leading-relaxed')}
                       />
                     )}
@@ -682,6 +709,7 @@ export default function UploadWork() {
           </button>
         </div>
       )}
+      {showRules && <WhatToUploadSheet onClose={closeRules} />}
       <Footer />
     </div>
   );

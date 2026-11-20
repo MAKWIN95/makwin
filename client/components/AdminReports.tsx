@@ -23,6 +23,7 @@ const REASONS: Record<string, { es: string; en: string }> = {
   acoso: { es: 'Acoso o abuso', en: 'Harassment or abuse' },
   ia: { es: 'Hecho con IA', en: 'Made with AI' },
   copia: { es: 'Es una copia (derechos de autor)', en: 'A copy (copyright)' },
+  no_obra: { es: 'No es una obra (foto del día a día)', en: 'Not an artwork (everyday photo)' },
   otro: { es: 'Otro', en: 'Other' },
 };
 

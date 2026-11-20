@@ -212,16 +212,23 @@ video {
   background: rgba(0, 0, 0, 0.3);
 }
 
-/* Choosing a profile photo: the page behind goes dark and soft so only the photo matters. */
-.avatar-crop-overlay {
+/* Choosing a profile photo, or reading what belongs on MAKWIN: the page behind goes
+   dark and soft so only the window matters. */
+.avatar-crop-overlay,
+.rules-sheet-overlay {
   background: rgba(0, 0, 0, 0.5);
   -webkit-backdrop-filter: blur(14px);
   backdrop-filter: blur(14px);
   animation: avatar-crop-in 0.28s ease both;
 }
 
-.avatar-crop-overlay[data-closing] {
+.avatar-crop-overlay[data-closing],
+.rules-sheet-overlay[data-closing] {
   animation: avatar-crop-out 0.2s ease-in both;
+}
+
+.rules-sheet-overlay[data-closing] .rules-sheet {
+  animation: glass-menu-out 0.18s ease-in both;
 }
 
 /* A little taller than wide on a phone, and short enough that both windows always fit. */

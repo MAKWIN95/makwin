@@ -214,6 +214,13 @@ Al eliminar → Modal con confirmación → Cambiar status a 'removed_user'
 4. Insert en tabla `works` con `status: 'published'`
 5. **Redirigir a `/work/{id}`** - NO a una página de éxito
 
+### Solo obras
+MAKWIN es para obras, no para el día a día (no es Instagram). La regla vive en un solo sitio, `client/lib/what-to-upload.ts`, y se repite igual en:
+- la ventana «MAKWIN es para obras» (`WhatToUploadSheet`), que sale una vez por cuenta y dispositivo al entrar a subir, y siempre desde «¿Qué puedo subir?»
+- el aviso del carrusel al elegir varias fotos: todas de la misma obra, serie, detalles o proceso
+- el punto 5 de las Condiciones, «Solo obras»
+- el motivo de denuncia «No es una obra» (`no_obra`, viaja en los detalles como los demás motivos nuevos)
+
 ### Manejo de Errores de Carga
 - Si work no existe inmediatamente:
   - Mostrador "Cargando obra…"

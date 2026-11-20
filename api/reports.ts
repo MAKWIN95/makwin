@@ -29,6 +29,7 @@ const REASONS: Record<string, string> = {
   acoso: 'Acoso o abuso',
   ia: 'Hecho con IA',
   copia: 'Es una copia',
+  no_obra: 'No es una obra',
   otro: 'Otro',
 };
 
