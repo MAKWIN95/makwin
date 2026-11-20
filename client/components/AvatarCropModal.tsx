@@ -174,7 +174,8 @@ export default function AvatarCropModal({ file: firstFile, name, username, accep
       aria-modal="true"
       aria-label={es ? 'Ajustar foto de perfil' : 'Adjust profile photo'}
     >
-      <div className="avatar-crop-stack flex flex-col gap-2">
+      <div aria-hidden="true" className="soft-backdrop" />
+      <div className="avatar-crop-stack relative flex flex-col gap-2">
         <div className="avatar-crop-card glass-panel p-4 flex flex-col gap-3">
           <div className="flex items-center justify-between gap-2 min-h-11">
             <h2 className="text-base font-light text-[hsl(var(--foreground))]">{es ? 'Ajusta tu foto' : 'Adjust your photo'}</h2>

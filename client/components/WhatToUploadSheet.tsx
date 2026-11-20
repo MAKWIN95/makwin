@@ -51,14 +51,13 @@ export default function WhatToUploadSheet({ onClose }: { onClose: () => void }) 
     <div
       className="rules-sheet-overlay fixed inset-0 z-[70] flex items-center justify-center p-4"
       data-closing={closing || undefined}
-      onClick={close}
     >
+      <div aria-hidden="true" className="soft-backdrop" onClick={close} />
       <div
         role="dialog"
         aria-modal="true"
         aria-labelledby="what-to-upload-title"
-        className="rules-sheet glass-panel w-full max-w-sm max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain p-6"
-        onClick={(event) => event.stopPropagation()}
+        className="rules-sheet glass-panel relative w-full max-w-sm max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain p-6"
       >
         <h2 id="what-to-upload-title" className="text-xl font-light tracking-tight text-[hsl(var(--foreground))]">{text.title}</h2>
         <p className="mt-1.5 text-sm leading-relaxed text-[hsl(var(--muted-foreground))]">{text.test}</p>
