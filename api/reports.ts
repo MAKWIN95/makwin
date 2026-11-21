@@ -7,6 +7,8 @@ import { HELP_ADDRESS, requestBaseUrl, sendEmail } from '../server/lib/email.js'
 import { notify } from '../server/lib/notify.js';
 import { keyOf, r2Config, removeObjects } from '../server/lib/r2.js';
 import { runBackup } from '../server/lib/backup.js';
+import { forgetWork } from '../server/lib/forget-work.js';
+import { sweepOrphanFiles } from '../server/lib/orphan-files.js';
 import { withSmallCopies } from '../shared/photo-paths.js';
 
 // policy_reports only lets reporters read their own rows, so moderators and the
@@ -170,6 +172,7 @@ async function decideHeldWork(req: VercelRequest, res: VercelResponse) {
     const { error: updateError } = await supabaseAdmin.from('works').update({ status: 'published', policy_flags: [] }).eq('id', id);
     if (updateError) throw updateError;
   } else {
+    await forgetWork(supabaseAdmin, id, work.user_id);
     const { error: deleteError } = await supabaseAdmin.from('works').delete().eq('id', id);
     if (deleteError) throw deleteError;
     const urls = [work.file_url, work.cover_url, ...(work.extra_images ?? [])];
@@ -263,6 +266,12 @@ async function backupNow(res: VercelResponse) {
     storage,
   );
   console.log('[backup]', JSON.stringify(result));
+  // Then the files nobody uses any more; it never stops the copy from being reported.
+  try {
+    console.log('[orphans]', JSON.stringify(await sweepOrphanFiles(supabaseAdmin, storage)));
+  } catch (error: any) {
+    console.error('[orphans] Not swept:', error?.message || error);
+  }
   res.setHeader('Cache-Control', 'no-store');
   return res.status(200).json(result);
 }

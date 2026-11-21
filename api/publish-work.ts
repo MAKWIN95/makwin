@@ -8,7 +8,8 @@ import { notify } from '../server/lib/notify.js';
 import { findBlockedTerms } from '../server/lib/moderation-text.js';
 import { withSmallCopies } from '../shared/photo-paths.js';
 import { LIMITS, allow, tooMany } from '../server/lib/rate-limit.js';
-import { keyOf, publicUrlOf, r2Config, removeObjects, signedUpload, browserHeaders } from '../server/lib/r2.js';
+import { keyOf, listObjects, publicUrlOf, r2Config, removeObjects, signedUpload, browserHeaders } from '../server/lib/r2.js';
+import { forgetWork } from '../server/lib/forget-work.js';
 import { randomBytes } from 'node:crypto';
 import {
   LIMITS as PORTFOLIO, SAME_AS_CONTENT, VISIBILITIES, cleanPortfolio, compactPortfolio, expandPortfolio, mediaToCheck, publicView, textsOf, type PortfolioContent,
@@ -316,6 +317,7 @@ async function deleteWork(req: VercelRequest, res: VercelResponse, userId: strin
   if (readError) throw readError;
   if (!work || work.user_id !== userId) return res.status(404).json({ error: 'Obra no encontrada' });
 
+  await forgetWork(supabaseAdmin, id, userId);
   const { error } = await supabaseAdmin.from('works').delete().eq('id', id);
   if (error) throw error;
   await removeOwnFiles([work.file_url, work.cover_url, ...(work.extra_images ?? [])], userId);
@@ -470,7 +472,22 @@ async function renewPortfolioKey(res: VercelResponse, userId: string) {
 async function deletePortfolio(res: VercelResponse, userId: string) {
   const { error } = await supabaseAdmin.from('portfolios').delete().eq('user_id', userId);
   if (error) throw error;
+  // The files uploaded for it go too; the works' own pictures live elsewhere and stay.
+  await removePortfolioFiles(userId).catch((err) => console.error('[PORTFOLIO] Files not removed:', err?.message || err));
   return res.status(200).json({ deleted: true });
+}
+
+async function removePortfolioFiles(userId: string) {
+  const folder = `${userId}/portfolio`;
+  const r2 = r2Config();
+  if (r2) {
+    const keys = await listObjects(r2, `${folder}/`);
+    if (keys.length) await removeObjects(r2, keys);
+  }
+  const { data, error } = await supabaseAdmin.storage.from('works').list(folder, { limit: 1000 });
+  if (error) throw error;
+  const paths = (data ?? []).filter((item) => item.id).map((item) => `${folder}/${item.name}`);
+  if (paths.length) await supabaseAdmin.storage.from('works').remove(paths);
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {

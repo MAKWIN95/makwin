@@ -183,3 +183,24 @@ export async function listObjects(config: R2Config, prefix: string): Promise<str
   } while (token);
   return keys;
 }
+
+/** Every file whose name starts with this, with when it was last written. */
+export async function listObjectsDated(config: R2Config, prefix: string): Promise<Array<{ key: string; modified: number }>> {
+  const files: Array<{ key: string; modified: number }> = [];
+  let token: string | null = null;
+  do {
+    const query: Record<string, string> = { 'list-type': '2', prefix, ...(token ? { 'continuation-token': token } : {}) };
+    const response = await fetch(sign(config, 'GET', null, { query }));
+    const body = await response.text();
+    if (!response.ok) throw new Error(`R2 list ${response.status}`);
+    for (const block of body.matchAll(/<Contents>([\s\S]*?)<\/Contents>/g)) {
+      const key = block[1].match(/<Key>([\s\S]*?)<\/Key>/)?.[1];
+      const modified = Date.parse(block[1].match(/<LastModified>([\s\S]*?)<\/LastModified>/)?.[1] ?? '');
+      // Without a date it cannot be told old, so it is treated as brand new and left alone.
+      if (key) files.push({ key: unescapeXml(key), modified: Number.isFinite(modified) ? modified : Date.now() });
+    }
+    const truncated = /<IsTruncated>true<\/IsTruncated>/.test(body);
+    token = truncated ? unescapeXml(body.match(/<NextContinuationToken>([\s\S]*?)<\/NextContinuationToken>/)?.[1] ?? '') || null : null;
+  } while (token);
+  return files;
+}
