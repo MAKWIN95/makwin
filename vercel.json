@@ -5,7 +5,8 @@
     "functions":  {
         "api/publish-work.ts":  {
             "maxDuration":  60,
-            "includeFiles":  "node_modules/.pnpm/ffmpeg-static*/node_modules/ffmpeg-static/ffmpeg"
+            "includeFiles":  "node_modules/.pnpm/ffmpeg-static*/node_modules/ffmpeg-static/ffmpeg",
+            "excludeFiles":  "node_modules/.pnpm/nsfwjs*/node_modules/nsfwjs/dist/models/{inception_v3,mobilenet_v2_mid}/**"
         },
         "api/reports.ts":  {
             "maxDuration":  60
