@@ -222,8 +222,8 @@ export default function Header({ showSearch = true, showSearchCentered = false, 
           /* HOME PAGE LAYOUT - CENTERED MAKWIN */
           <div className="w-full flex items-center justify-center">
             <div onClick={handleMakwinClick} className="cursor-pointer flex items-center gap-2">
-              <span className="logo-makwin tracking-widest hover:opacity-80 transition-opacity duration-200 whitespace-nowrap leading-tight text-2xl sm:text-3xl md:text-4xl">
-                MAKWIN
+              <span className="logo-makwin hover:opacity-80 transition-opacity duration-200 whitespace-nowrap leading-tight text-2xl sm:text-3xl md:text-4xl">
+                makwin
               </span>
             </div>
           </div>
@@ -237,9 +237,8 @@ export default function Header({ showSearch = true, showSearchCentered = false, 
               <ArrowLeft className="w-5 h-5 text-[hsl(var(--foreground))] transition-colors duration-300" />
             </button>
             <div data-morph="logo" onClick={handleMakwinClick} className={`cursor-pointer flex items-center gap-2 ml-1 min-w-0 overflow-hidden phone:min-h-11 ${isGallery ? 'max-sm:ml-2 max-[359px]:ml-1' : ''}`}>
-              <span className={`logo-makwin tracking-widest hover:opacity-80 transition-opacity duration-200 whitespace-nowrap leading-tight max-[374px]:!text-sm ${hideSearch ? 'text-lg sm:text-xl' : 'text-lg sm:text-xl lg:text-[22px]'}`}>
-                <span className="phone:hidden">MAKWIN</span>
-                <span className="hidden phone:inline">MKWN</span>
+              <span className={`logo-makwin hover:opacity-80 transition-opacity duration-200 whitespace-nowrap leading-tight max-[374px]:!text-sm ${hideSearch ? 'text-lg sm:text-xl' : 'text-lg sm:text-xl lg:text-[22px]'}`}>
+                makwin
               </span>
               {breadcrumb && <>
                 <span data-morph-fade className="max-sm:hidden text-[hsl(var(--muted-foreground))] font-light">/</span>

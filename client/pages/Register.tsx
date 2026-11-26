@@ -258,7 +258,7 @@ export default function Register() {
 
       <div className="relative z-10 w-full max-w-sm page-enter">
         <Link to="/" className="block text-center mb-10">
-          <span className="text-3xl font-black tracking-widest uppercase text-[hsl(var(--foreground))]">MAKWIN</span>
+          <span className="logo-makwin text-3xl">makwin</span>
         </Link>
 
         <div className="glass-panel p-8">

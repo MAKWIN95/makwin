@@ -102,7 +102,7 @@ export default function Legal({ doc, bare = false }: { doc: LegalDoc; bare?: boo
       {bare ? (
         <div className="pt-8 text-center">
           {/* A full load, so makwin.art goes back to its own front page. */}
-          <a href="/" className="text-xl font-bold tracking-[0.3em] text-[hsl(var(--foreground))]">MAKWIN</a>
+          <a href="/" className="logo-makwin text-xl">makwin</a>
         </div>
       ) : (
         <Header hideSearch />

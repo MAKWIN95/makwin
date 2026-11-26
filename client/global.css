@@ -2091,21 +2091,11 @@ html:not(.dark) .star {
   }
 }
 
-/* Logo outline in light mode */
+/* The name: lowercase «makwin», Inter 800, a little tight. Solid ink in both themes. */
 .logo-makwin {
-  font-weight: 900;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-}
-
-.light .logo-makwin {
-  color: transparent;
-  -webkit-text-stroke: 1.5px rgba(0, 0, 0, 0.5);
-  text-stroke: 1.5px rgba(0, 0, 0, 0.5);
-  paint-order: stroke fill;
-}
-
-.dark .logo-makwin {
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  text-transform: none;
   color: hsl(var(--foreground));
 }
 

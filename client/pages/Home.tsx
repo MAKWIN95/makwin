@@ -135,9 +135,9 @@ export default function Home() {
           <div className="mb-20 sm:mb-32 text-center">
             <h1 
               ref={heroTitleRef}
-              className="text-5xl sm:text-6xl lg:text-7xl font-black uppercase tracking-wider text-[hsl(var(--foreground))] mb-6 leading-tight"
+              className="logo-makwin text-5xl sm:text-6xl lg:text-7xl mb-6 leading-tight"
             >
-              MAKWIN
+              makwin
             </h1>
             <p className="text-lg sm:text-xl text-[hsl(var(--muted-foreground))] font-light max-w-2xl mx-auto leading-relaxed">
               {es

@@ -693,7 +693,7 @@ export default function Portfolio() {
             )}
           </div>
           <a href="https://www.makwin.art" className="pf-brand" aria-label="MAKWIN portfolio">
-            <span className="pf-brand-word">MAKWIN</span>
+            <span className="pf-brand-word">makwin</span>
             <span className="pf-brand-rule" aria-hidden="true" />
             <span className="pf-brand-sub">portfolio</span>
           </a>
@@ -809,7 +809,7 @@ function TopBar({ es, owner, visibility, onVisibility }: { es: boolean; owner: P
     <div className="pf-top">
       <Link to={owner ? `/u/${owner.username}` : '/galeria'} className="pf-top-back ios-press" aria-label={es ? 'Volver al perfil' : 'Back to the profile'}>
         <ArrowLeft className="h-4 w-4" />
-        <span className="pf-top-mark">MAKWIN</span>
+        <span className="pf-top-mark">makwin</span>
       </Link>
       {visibility && onVisibility && (
         <button type="button" onClick={onVisibility} className="pf-top-chip ios-press" data-visibility={visibility}>
