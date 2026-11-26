@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
-import { track } from '@/lib/analytics';
+import { track, cardOrigin } from '@/lib/analytics';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase, Profile, DEFAULT_USER_AVATAR } from './supabase';
 import { getPasswordPolicyError } from './passwordPolicy';
@@ -426,7 +426,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }, { onConflict: 'id' });
     }
 
-    track('registro', { metodo: 'email' });
+    track('registro', { metodo: 'email', ...cardOrigin() });
     return { error: null };
   };
 
@@ -670,7 +670,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setNeedsUsernameSetup(false);
       setOnboardingUser(null);
       clearOnboardingState();
-      track('registro', { metodo: 'google' });
+      track('registro', { metodo: 'google', ...cardOrigin() });
 
       if (typeof window !== 'undefined') {
         try {
