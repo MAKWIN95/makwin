@@ -25,6 +25,7 @@ export function track(name: string, data?: EventData): void {
 }
 
 /* ---------- business cards: each card's QR opens makwin.art/?t=<design> ---------- */
+/* PRINTED on paper, never change or reuse: c1 = Gigante, c2 = Mil sitios (guarded by analytics.test.ts). */
 
 const CARD_KEY = 'makwin-tarjeta';
 
