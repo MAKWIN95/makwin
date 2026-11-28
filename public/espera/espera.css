@@ -13,11 +13,11 @@
   --ease: cubic-bezier(0.32, 0.72, 0, 1);
 }
 html.dark {
-  --bg: #1c1c1c;
+  --bg: #0b0b0c;
   --ink: #fff;
   --soft: #a3a3a3;
-  --line: rgba(255, 255, 255, 0.14);
-  --field: #242424;
+  --line: rgba(255, 255, 255, 0.16);
+  --field: #161617;
   --error: #ff7a6e;
 }
 

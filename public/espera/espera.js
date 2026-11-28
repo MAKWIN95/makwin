@@ -7,9 +7,26 @@
   /* ---------- countdown ---------- */
   var launch = Date.parse(room.getAttribute('data-launch') || '');
   var shown = {};
+  var timer = 0;
+  var instant = false;
+
+  /** Shows the number at once, with no roll: one single figure in the box. */
+  function place(box, text) {
+    var only = document.createElement('span');
+    only.className = 'd';
+    only.textContent = text;
+    box.replaceChildren(only);
+  }
 
   function roll(box, text) {
-    var current = box.querySelector('.d:not(.leaving)');
+    // In the background (app switched away) the browser pauses the animation frames, and
+    // queued rolls used to pile figures on top of each other: place the number instead.
+    if (document.hidden || instant) { place(box, text); return; }
+    var all = box.querySelectorAll('.d');
+    var current = all[all.length - 1];
+    // anything older than the figure on show is gone at once, so there are never more than two
+    for (var i = 0; i < all.length - 1; i++) all[i].remove();
+    if (current) current.classList.remove('coming', 'leaving');
     if (current && current.textContent === text) return;
     var next = document.createElement('span');
     next.className = 'd coming';
@@ -46,8 +63,20 @@
     });
     var soon = room.querySelector('.soon');
     if (soon) soon.hidden = left > 0;
-    if (left > 0) setTimeout(tick, 1000 - (Date.now() % 1000) + 5);
+    clearTimeout(timer);
+    if (left > 0) timer = setTimeout(tick, 1000 - (Date.now() % 1000) + 5);
   }
+  // Back to the page (app switched back, or Safari restoring it from memory): put every
+  // number straight in place, then carry on rolling from there.
+  function resume() {
+    if (document.hidden || isNaN(launch)) return;
+    shown = {};
+    instant = true;
+    tick();
+    instant = false;
+  }
+  document.addEventListener('visibilitychange', resume);
+  window.addEventListener('pageshow', function (e) { if (e.persisted) resume(); });
   if (!isNaN(launch)) tick();
 
   /* ---------- statistics (only on the real site) ---------- */

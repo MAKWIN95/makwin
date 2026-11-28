@@ -19,7 +19,7 @@ export function paginaEspera(launchIso: string): string {
 <meta name="description" content="${DESCRIPTION}" />
 <meta name="robots" content="noindex" />
 <meta name="theme-color" media="(prefers-color-scheme: light)" content="#fbfaf8" />
-<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#1c1c1c" />
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0b0b0c" />
 <meta property="og:site_name" content="MAKWIN" />
 <meta property="og:title" content="MAKWIN · Abrimos muy pronto" />
 <meta property="og:description" content="${DESCRIPTION}" />
