@@ -10,10 +10,13 @@ import { Loader2, Heart } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
 import { useWorks } from '@/lib/WorksContext';
 import { useStarsBackground } from '@/hooks/use-stars-background';
+import PageTitle from '@/components/PageTitle';
+import { Link } from 'react-router-dom';
 
 const PAGE_SIZE = 40;
 
-const GRID_COLUMNS: MasonryColumns = { base: 1, sm: 2, lg: 3, xl: 4 };
+// The same grid as Guardados and the gallery.
+const GRID_COLUMNS: MasonryColumns = { base: 2, sm: 3, lg: 4, xl: 5, '2xl': 6 };
 
 export default function Following() {
   useRequireAuth();
@@ -145,29 +148,30 @@ export default function Following() {
     <div className="min-h-screen bg-[hsl(var(--background))]">
       <div id="following-stars-background" className="fixed inset-0 pointer-events-none z-0 stars-background" />
 
-        <Header showSearch showSearchCentered breadcrumb={currentLang === 'es' ? 'Siguiendo' : 'Following'} />
+        <Header showSearchCentered breadcrumb={currentLang === 'es' ? 'Siguiendo' : 'Following'} />
 
-      <main className="relative z-10 w-full max-w-7xl mx-auto px-4 py-8">
+      <main className="relative z-10 max-w-6xl mx-auto px-4 sm:px-8 py-10 phone:py-6 page-enter">
+        <PageTitle
+          icon={<Heart />}
+          title={currentLang === 'es' ? 'Siguiendo' : 'Following'}
+          subtitle={currentLang === 'es' ? 'Las obras de los artistas que sigues' : 'Works by the artists you follow'}
+        />
+
         {loading && (
-          <div className="h-96 flex items-center justify-center">
-            <div className="flex flex-col items-center gap-4">
-              <Loader2 className="w-8 h-8 animate-spin text-[hsl(var(--muted-foreground))]" />
-              <p className="text-[hsl(var(--muted-foreground))]">{currentLang === 'es' ? 'Cargando contenido...' : 'Loading feed...'}</p>
-            </div>
+          <div className="flex items-center justify-center py-20">
+            <Loader2 className="w-8 h-8 animate-spin text-[hsl(var(--muted-foreground))]" />
           </div>
         )}
 
         {!loading && works.length === 0 && (
-          <div className="h-96 flex items-center justify-center">
-            <div className="text-center">
-              <Heart className="w-12 h-12 text-[hsl(var(--muted-foreground))]/30 mx-auto mb-4" />
-              <h2 className="text-xl font-semibold text-[hsl(var(--foreground))] mb-2">
-                {currentLang === 'es' ? 'No hay contenido' : 'No content yet'}
-              </h2>
-              <p className="text-[hsl(var(--muted-foreground))]">
-                {currentLang === 'es' ? 'Aún no sigues a nadie o no tienen obras publicadas.' : 'You are not following anyone yet, or they have not published any works.'}
-              </p>
-            </div>
+          <div className="page-empty">
+            <Heart className="w-10 h-10 text-[hsl(var(--muted-foreground))] mx-auto mb-3" />
+            <p className="text-[hsl(var(--muted-foreground))] text-sm mb-4">
+              {currentLang === 'es' ? 'Aún no sigues a nadie, o los artistas que sigues no han publicado nada todavía.' : 'You are not following anyone yet, or they have not published anything yet.'}
+            </p>
+            <Link to="/" className="tap-area text-sm text-[hsl(var(--foreground))] underline underline-offset-2">
+              {currentLang === 'es' ? 'Descubrir artistas →' : 'Discover artists →'}
+            </Link>
           </div>
         )}
 

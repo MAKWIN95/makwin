@@ -36,6 +36,15 @@ hover:bg-[color-with-opacity-increase]
   - **Guardados** no está en la barra: está en tu propio perfil (botón «Guardados» junto al portfolio) y en el menú de la foto.
 - **Ordenador:** las tres líneas, a la izquierda de la flecha de volver, abren `client/components/NavDrawer.tsx`, un panel de cristal que entra desde la izquierda con todo agrupado (Explorar, Lo tuyo, Cuenta). Se cierra con Esc, al pulsar fuera, con la X o al elegir una página. Su estado está en `client/lib/nav-drawer.ts`, fuera de las páginas, para que se cierre con su propia animación aunque cambie la página.
 
+## 🔔 Siguiendo, Guardados y Notificaciones (desde v1.1.38)
+
+- Las tres páginas empiezan igual, con `client/components/PageTitle.tsx`: el icono en una gota de cristal, el nombre de la página y una línea que dice qué hay («Las obras de los artistas que sigues», «Las obras que has guardado»…). Así sabes dónde estás aunque hayas llegado tocando un icono sin palabras.
+- Siguiendo y Guardados usan la misma rejilla que la galería (2 columnas en el móvil) y el mismo aviso cuando no hay nada (`.page-empty`).
+- **Notificaciones** (`client/pages/Notifications.tsx`): cristal transparente sobre las estrellas y una fila corta por aviso (icono, texto en 2 líneas como mucho, quién o qué y cuándo en una sola línea).
+  - Van por grupos: «Nuevas» (sin leer), «Esta semana» y, plegadas en una sola fila, «Anteriores» (más de 7 días), que se abre al tocarla, como en TikTok.
+  - Si solo hay antiguas, salen abiertas.
+  - No se pueden borrar: el dueño lo descartó.
+
 ## 📤 Subir obra (desde v1.1.37)
 
 `client/pages/UploadWork.tsx`, como «nueva publicación» en una red social:
