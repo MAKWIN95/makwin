@@ -25,16 +25,25 @@ hover:bg-[color-with-opacity-increase]
 
 ---
 
-## 🧭 Navegación (desde v1.1.36)
+## 🧭 Navegación (desde v1.1.36; v1.1.37)
 
-- **Móvil y pantallas táctiles** (la misma regla que `phone:`): `client/components/TabBar.tsx` es una barra flotante de cristal abajo con Inicio, Siguiendo, Subir obra, Guardados, Notificaciones (con la cifra en rojo) y Mi perfil (la foto).
-  - Una gota de cristal se desliza con un pequeño rebote hasta la pestaña de la página en la que estás.
+- **Móvil y pantallas táctiles** (la misma regla que `phone:`): `client/components/TabBar.tsx` es una barra flotante de cristal abajo con cinco botones: Inicio, Siguiendo, **Subir obra en el centro**, Notificaciones (con la cifra en rojo) y Mi perfil (la foto).
+  - Una gota de cristal se desliza hasta la pestaña de la página en la que estás. Solo se mueve con `transform` (sin rebote ni pasarse) y empieza a moverse al tocar, antes de que cargue la página nueva, para que nunca se entrecorte.
   - Al bajar por la página la barra se encoge un poco y al subir vuelve a su tamaño.
   - Tocar la pestaña en la que ya estás sube al principio de la página.
-  - Se esconde deslizándose en las páginas que tienen su propia barra abajo o que se envían a otros: `/subir-obra`, el inicio de sesión, `/p/`, `/beats`.
+  - Se esconde deslizándose en las páginas que tienen su propia barra abajo o que se envían a otros: el inicio de sesión, `/p/`, `/beats`. En `/subir-obra` se queda.
   - Mientras está visible, `html.has-tabbar` deja espacio debajo.
-  - En el móvil, el menú de la foto ya no repite lo que tiene la barra.
+  - **Guardados** no está en la barra: está en tu propio perfil (botón «Guardados» junto al portfolio) y en el menú de la foto.
 - **Ordenador:** las tres líneas, a la izquierda de la flecha de volver, abren `client/components/NavDrawer.tsx`, un panel de cristal que entra desde la izquierda con todo agrupado (Explorar, Lo tuyo, Cuenta). Se cierra con Esc, al pulsar fuera, con la X o al elegir una página. Su estado está en `client/lib/nav-drawer.ts`, fuera de las páginas, para que se cierre con su propia animación aunque cambie la página.
+
+## 📤 Subir obra (desde v1.1.37)
+
+`client/pages/UploadWork.tsx`, como «nueva publicación» en una red social:
+
+- **Inicio:** «Nueva obra». Una tarjeta grande de Galería (hasta 10 fotos o un vídeo) y debajo Cámara (solo móvil), Poema y Audio. En el ordenador también se pueden arrastrar archivos.
+- **Móvil, en dos pasos:** primero la obra (encuadre, formato, orden) con «Siguiente»; luego «Detalles» (miniatura, título, descripción, tipo) con «Publicar». Si falta algo, «Publicar» vuelve al paso donde falta.
+- **Ordenador:** la obra a la izquierda y los detalles a la derecha, en una sola pantalla.
+- **Hashtags:** se escriben dentro de la descripción («… #retrato #oleo»). Al publicar, `splitHashtags` (`client/lib/utils.ts`) los saca del texto y los guarda aparte, y la obra los enseña separados. Mientras escribes se ven como etiquetas debajo. Los poemas mantienen su campo propio de hashtags, para no tocar los versos.
 
 ## ⏳ Sala de espera (acceso anticipado, desde v1.1.33)
 

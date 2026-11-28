@@ -1,18 +1,20 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { House, Heart, SquarePlus, Bookmark, Bell, User } from 'lucide-react';
+import { House, Heart, SquarePlus, Bell, User } from 'lucide-react';
 import { useAuth } from '@/lib/AuthContext';
 import { useI18n } from '@/lib/i18n';
 import { useUnreadNotifications } from '@/lib/notifications';
 
-// The phone's tab bar (v1.1.36): a floating pill of liquid glass at the bottom, like the
-// iPhone apps. A drop of glass sits under the page you are on and slides, stretching a little,
-// to the one you tap. It shrinks a touch while you scroll down and grows back when you scroll up.
+// The phone's tab bar (v1.1.36, v1.1.37): a floating pill of liquid glass at the bottom, like the
+// iPhone apps, with "Subir obra" in the middle. A drop of glass sits under the page you are on and
+// slides to the one you tap the moment your finger lifts, before the new page has even drawn: it
+// only moves (transform), which the phone animates on its own, so a busy page can't make it stutter.
+// It shrinks a touch while you scroll down and grows back when you scroll up.
 // Shown only on phones and touch screens (the same rule as Tailwind's `phone:`), and it
 // slides away on pages that need the whole screen or have their own bar at the bottom.
 
 /** Pages without the bar: their own bottom bar, sign-in steps, or pages made to be sent to others. */
-const AWAY = ['/subir-obra', '/login', '/registro', '/reset-password', '/completar-perfil', '/p/', '/beats', '/home'];
+const AWAY = ['/login', '/registro', '/reset-password', '/completar-perfil', '/p/', '/beats', '/home'];
 
 type Tab = {
   key: string;
@@ -40,7 +42,6 @@ export default function TabBar() {
     { key: 'home', to: '/', label: es ? 'Inicio' : 'Home', icon: <House />, active: path === '/' || path === '/galeria' },
     { key: 'following', to: gated('/siguiendo'), label: es ? 'Siguiendo' : 'Following', icon: <Heart />, active: path === '/siguiendo' },
     { key: 'upload', to: gated('/subir-obra'), label: es ? 'Subir obra' : 'Upload work', icon: <SquarePlus />, active: path === '/subir-obra' },
-    { key: 'saved', to: gated('/favoritos'), label: es ? 'Guardados' : 'Saved', icon: <Bookmark />, active: path === '/favoritos' },
     {
       key: 'news',
       to: gated('/notificaciones'),
@@ -65,35 +66,52 @@ export default function TabBar() {
   ];
   const activeKey = tabs.find((t) => t.active)?.key ?? null;
 
-  // The drop of glass: measured under the tab you are on, never fixed, so it follows any width.
+  // The drop of glass. Every tab is the same width, so the drop only ever slides (transform);
+  // its width changes only when the screen does, never while it moves.
   const barRef = useRef<HTMLElement | null>(null);
+  const dropRef = useRef<HTMLSpanElement | null>(null);
   const itemRefs = useRef<Record<string, HTMLAnchorElement | null>>({});
-  const [drop, setDrop] = useState<{ x: number; w: number } | null>(null);
-  const [moving, setMoving] = useState(false);
-  const lastKey = useRef<string | null>(activeKey);
+  const shownKey = useRef<string | null>(null);
+
+  /** Slides the drop under `key` straight away (no waiting for React or the next page). */
+  const slideTo = (key: string | null, animate = true) => {
+    const drop = dropRef.current;
+    const bar = barRef.current;
+    const item = key ? itemRefs.current[key] : null;
+    if (!drop || !bar || !bar.offsetWidth) return;
+    if (!item) {
+      drop.classList.add('tabbar-drop-off');
+      shownKey.current = null;
+      return;
+    }
+    const from = shownKey.current;
+    drop.style.width = `${item.offsetWidth}px`;
+    if (!animate || !from) {
+      // first time, or coming back from no tab: appear in place, no slide across the bar
+      drop.style.transition = 'none';
+      drop.style.transform = `translateX(${item.offsetLeft}px)`;
+      void drop.offsetWidth;
+      drop.style.transition = '';
+    } else if (from !== key) {
+      drop.style.transform = `translateX(${item.offsetLeft}px)`;
+      // the inner glass stretches a little in the direction it travels, then settles
+      const glass = drop.firstElementChild as HTMLElement | null;
+      if (glass) {
+        glass.classList.remove('tabbar-drop-stretch');
+        void glass.offsetWidth;
+        glass.classList.add('tabbar-drop-stretch');
+      }
+    }
+    drop.classList.remove('tabbar-drop-off');
+    shownKey.current = key;
+  };
 
   useLayoutEffect(() => {
-    const place = () => {
-      const item = activeKey ? itemRefs.current[activeKey] : null;
-      const bar = barRef.current;
-      if (!item || !bar || !bar.offsetWidth) return;
-      const next = { x: item.offsetLeft, w: item.offsetWidth };
-      setDrop((cur) => (cur && cur.x === next.x && cur.w === next.w ? cur : next));
-    };
-    place();
-    window.addEventListener('resize', place);
-    return () => window.removeEventListener('resize', place);
-  }, [activeKey]);
-
-  // Sliding to another tab, the drop stretches like liquid and settles.
-  useEffect(() => {
-    if (lastKey.current && activeKey && lastKey.current !== activeKey) {
-      setMoving(true);
-      const t = window.setTimeout(() => setMoving(false), 320);
-      lastKey.current = activeKey;
-      return () => window.clearTimeout(t);
-    }
-    lastKey.current = activeKey;
+    slideTo(activeKey);
+    const onResize = () => slideTo(shownKey.current, false);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeKey]);
 
   // Scrolling down tucks the bar in a little; scrolling up brings it back.
@@ -138,11 +156,9 @@ export default function TabBar() {
       className={`tabbar ${away ? 'tabbar-away' : ''} ${compact ? 'tabbar-compact' : ''}`}
     >
       <span aria-hidden="true" className="tabbar-sheen" />
-      <span
-        aria-hidden="true"
-        className={`tabbar-drop ${activeKey ? '' : 'tabbar-drop-off'} ${moving ? 'tabbar-drop-moving' : ''} ${pressed && pressed === activeKey ? 'tabbar-drop-pressed' : ''}`}
-        style={drop ? { width: drop.w, transform: `translateX(${drop.x}px)` } : { opacity: 0 }}
-      />
+      <span ref={dropRef} aria-hidden="true" className="tabbar-drop tabbar-drop-off">
+        <span className={`tabbar-drop-glass ${pressed && pressed === shownKey.current ? 'tabbar-drop-pressed' : ''}`} />
+      </span>
       {tabs.map((tab) => (
         <Link
           key={tab.key}
@@ -159,6 +175,7 @@ export default function TabBar() {
           onClick={() => {
             // Tapping the page you are already on takes you back to its top.
             if (tab.active) window.scrollTo({ top: 0, behavior: 'smooth' });
+            else if (signedIn || tab.key === 'home') slideTo(tab.key);
           }}
         >
           <span className="tabbar-icon">{tab.icon}</span>

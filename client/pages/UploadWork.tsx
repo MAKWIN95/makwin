@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState, type DragEvent, type KeyboardEvent, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Check, Feather, ImagePlus, Images, Loader2, Mic, Music, X } from 'lucide-react';
+import { Camera, Check, ChevronLeft, Feather, ImagePlus, Images, Loader2, Mic, Music, X } from 'lucide-react';
 import { useBodyScrollLock } from '@/hooks/use-body-scroll-lock';
 import { prepareImage, readImage } from '@/lib/compress-image';
 import { DEFAULT_FRAME, framePhoto, frameRatio, needsFraming, NO_EDIT, type FrameStyle, type PhotoEdit } from '@/lib/frame-photo';
@@ -18,7 +18,7 @@ import { Switch } from '@/components/ui/switch';
 import Reveal from '@/components/Reveal';
 import WhatToUploadSheet from '@/components/WhatToUploadSheet';
 import { RULES_LINK } from '@/lib/what-to-upload';
-import { cn, normalizeHashtags } from '@/lib/utils';
+import { cn, normalizeHashtags, splitHashtags } from '@/lib/utils';
 import { toast } from 'sonner';
 import { track as countEvent } from '@/lib/analytics';
 
@@ -33,6 +33,9 @@ const SELLABLE_TYPES = ['pintura', 'cancion'];
 // What was picked decides the rest: photos become a carousel, one video or one
 // audio stands alone, and a poem starts from its text.
 type Kind = 'photos' | 'video' | 'audio' | 'poem';
+// On a phone, like Instagram: first the work itself (edit), then what you say about it (details).
+// On a computer both are side by side.
+type Step = 'edit' | 'details';
 type Progress = { step: 'preparing' | 'uploading'; done: number; total: number } | { step: 'publishing' } | null;
 
 const newMedia = (file: File): UploadMedia => ({ id: crypto.randomUUID(), file, url: URL.createObjectURL(file) });
@@ -81,10 +84,15 @@ export default function UploadWork() {
   const [poemFontId, setPoemFontId] = useState(DEFAULT_POEM_FONT);
   const [confirmDiscard, setConfirmDiscard] = useState(false);
   const [showRules, setShowRules] = useState(false);
+  const [step, setStep] = useState<Step>('edit');
+  const [stepMotion, setStepMotion] = useState<'forward' | 'back' | null>(null);
+  const [leaving, setLeaving] = useState(false);
 
   const pickInput = useRef<HTMLInputElement>(null);
   const coverInput = useRef<HTMLInputElement>(null);
   const audioInput = useRef<HTMLInputElement>(null);
+  const cameraInput = useRef<HTMLInputElement>(null);
+  const startAudioInput = useRef<HTMLInputElement>(null);
   const titleInput = useRef<HTMLInputElement>(null);
   // A failed publish can be retried without sending the same files again.
   const uploaded = useRef(new Map<string, string>());
@@ -100,6 +108,18 @@ export default function UploadWork() {
   useEffect(() => {
     if (kind) window.scrollTo({ top: 0 });
   }, [kind]);
+
+  /** Phone only: the current step slides out and the next one slides in from its side. */
+  const goStep = (next: Step) => {
+    if (next === step || leaving) return;
+    setLeaving(true);
+    window.setTimeout(() => {
+      setLeaving(false);
+      setStepMotion(next === 'details' ? 'forward' : 'back');
+      setStep(next);
+      window.scrollTo({ top: 0 });
+    }, 160);
+  };
 
   useEffect(() => {
     if (!user) return;
@@ -229,6 +249,8 @@ export default function UploadWork() {
     setMedia(null);
     setCover(null);
     setWorkType('');
+    setStep('edit');
+    setStepMotion(null);
     setConfirmDiscard(false);
     uploaded.current.clear();
   };
@@ -276,7 +298,7 @@ export default function UploadWork() {
   const missing = (): { message: string; field: string } | null => {
     if (!title.trim()) return { field: 'title', message: es ? 'Ponle un título a tu obra.' : 'Give your work a title.' };
     if (!workType) return { field: 'type', message: es ? '¿Es una pintura o una fotografía?' : 'Is it a painting or a photograph?' };
-    if (!description.trim()) {
+    if (!(kind === 'poem' ? description : splitHashtags(description).text).trim()) {
       if (workType === 'poema' && kind === 'poem') return { field: 'description', message: es ? 'Escribe tu poema.' : 'Write your poem.' };
       return { field: 'description', message: es ? 'Cuenta qué hay detrás de esta obra.' : 'Tell us what is behind this work.' };
     }
@@ -308,10 +330,22 @@ export default function UploadWork() {
     const problem = missing();
     if (problem) {
       notify(problem.message);
-      document.querySelector(`[data-field="${problem.field}"]`)?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      // On a phone the missing field may be on the other step: go there first.
+      const fieldStep: Step = problem.field === 'description' && kind === 'poem' ? 'edit' : 'details';
+      const phone = window.matchMedia('(max-width: 1023px)').matches;
+      if (phone && fieldStep !== step) goStep(fieldStep);
+      window.setTimeout(() => {
+        document.querySelector(`[data-field="${problem.field}"]`)?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      }, phone && fieldStep !== step ? 260 : 0);
       return;
     }
     if (!user) return;
+
+    // Hashtags are written in the description and shown apart, as tags. A poem keeps its own
+    // tags line, since its description is the poem itself.
+    const written = kind === 'poem'
+      ? { text: description, tags: normalizeHashtags([...tags, tagDraft]) }
+      : splitHashtags(description);
 
     const stamp = Date.now();
     let finalPhotos = photos;
@@ -348,13 +382,13 @@ export default function UploadWork() {
         },
         body: JSON.stringify({
           title,
-          description,
+          description: written.text,
           workType,
           fileUrl: photoUrls[0] ?? mediaUrl,
           extraImages: photoUrls.slice(1),
           coverUrl,
           lyrics,
-          hashtags: normalizeHashtags([...tags, tagDraft]),
+          hashtags: written.tags,
           isForSale: sellable && isForSale,
           price: sellable && isForSale && price ? Number(price) : null,
           poemFont: workType === 'poema' ? poemFontId : null,
@@ -409,10 +443,13 @@ export default function UploadWork() {
       />
       <input ref={coverInput} type="file" accept="image/*" className="hidden" onChange={(event) => { void pickCover(event.target.files); event.target.value = ''; }} />
       <input ref={audioInput} type="file" accept="audio/*" className="hidden" onChange={(event) => { pickRecital(event.target.files); event.target.value = ''; }} />
+      <input ref={cameraInput} type="file" accept="image/*" capture="environment" className="hidden" onChange={(event) => { handleFiles(event.target.files); event.target.value = ''; }} />
+      <input ref={startAudioInput} type="file" accept="audio/*" className="hidden" onChange={(event) => { handleFiles(event.target.files); event.target.value = ''; }} />
 
       <main className="w-full page-enter">
         <div className={cn('sm:px-8 sm:py-10', !kind && 'px-4 py-6')}>
           {!kind ? (
+            /* Like opening "new post" in a social app: where the work comes from, in big tiles. */
             <div
               onDragOver={(event) => {
                 event.preventDefault();
@@ -420,27 +457,42 @@ export default function UploadWork() {
               }}
               onDragLeave={() => setDragOver(false)}
               onDrop={handleDrop}
-              className={cn('upload-stage glass-panel mx-auto max-w-2xl flex flex-col items-center justify-center text-center px-6 py-16 sm:py-24', dragOver && 'upload-stage--over')}
+              className={cn('create-start mx-auto max-w-2xl', dragOver && 'create-start--over')}
             >
-              <ImagePlus className="w-12 h-12 mb-5 text-[hsl(var(--foreground))]" strokeWidth={1.25} />
-              <h1 className="text-2xl font-light tracking-tight text-[hsl(var(--foreground))] mb-2">
-                {es ? 'Comparte tu obra' : 'Share your work'}
-              </h1>
-              <p className="max-w-xs text-sm text-[hsl(var(--muted-foreground))] mb-7">
-                {es
-                  ? `Arrastra aquí tus fotos, un vídeo o un audio. Puedes subir hasta ${MAX_PHOTOS} fotos en un mismo carrusel.`
-                  : `Drop your photos, a video or an audio here. A carousel can hold up to ${MAX_PHOTOS} photos.`}
-              </p>
-              <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-                <button type="button" onClick={() => pickInput.current?.click()} className="glass-button glass-button--primary">
-                  {es ? 'Elegir archivos' : 'Choose files'}
+              <div className="create-head">
+                <h1>{es ? 'Nueva obra' : 'New work'}</h1>
+                <p>{es ? '¿Qué quieres compartir hoy?' : 'What would you like to share today?'}</p>
+              </div>
+
+              <button type="button" onClick={() => pickInput.current?.click()} className="create-tile create-tile--main" style={{ ['--i' as string]: 0 }}>
+                <span className="create-tile-art" aria-hidden="true">
+                  <span /><span /><span><Images strokeWidth={1.5} /></span>
+                </span>
+                <span className="create-tile-words">
+                  <span className="create-tile-title">{es ? 'Galería' : 'Gallery'}</span>
+                  <span className="create-tile-sub">{es ? `Fotos de tu obra (hasta ${MAX_PHOTOS}) o un vídeo` : `Photos of your work (up to ${MAX_PHOTOS}) or a video`}</span>
+                </span>
+              </button>
+
+              <div className="create-row">
+                <button type="button" onClick={() => cameraInput.current?.click()} className="create-tile create-tile-camera" style={{ ['--i' as string]: 1 }}>
+                  <Camera strokeWidth={1.5} />
+                  <span className="create-tile-title">{es ? 'Cámara' : 'Camera'}</span>
                 </button>
-                <button type="button" onClick={startPoem} className="glass-button">
-                  <Feather className="w-4 h-4" />
-                  {es ? 'Escribir un poema' : 'Write a poem'}
+                <button type="button" onClick={startPoem} className="create-tile" style={{ ['--i' as string]: 2 }}>
+                  <Feather strokeWidth={1.5} />
+                  <span className="create-tile-title">{es ? 'Poema' : 'Poem'}</span>
+                </button>
+                <button type="button" onClick={() => startAudioInput.current?.click()} className="create-tile" style={{ ['--i' as string]: 3 }}>
+                  <Music strokeWidth={1.5} />
+                  <span className="create-tile-title">{es ? 'Audio' : 'Audio'}</span>
                 </button>
               </div>
-              <p className="mt-6 text-xs text-[hsl(var(--muted-foreground))]">
+
+              <p className="create-drop-hint phone:hidden">
+                {es ? 'También puedes arrastrar tus archivos a esta ventana.' : 'You can also drop your files on this window.'}
+              </p>
+              <p className="create-rules">
                 {es ? 'MAKWIN es para obras, no para tu día a día.' : 'MAKWIN is for artworks, not your everyday life.'}{' '}
                 <button type="button" onClick={() => setShowRules(true)} className="ios-press inline-flex items-center min-h-11 -my-3 text-[hsl(var(--foreground))] underline underline-offset-4 decoration-[hsl(var(--foreground)/0.3)]">
                   {es ? '¿Qué puedo subir?' : 'What can I share?'}
@@ -451,16 +503,44 @@ export default function UploadWork() {
             <div className="relative glass-panel max-sm:!rounded-none max-sm:!border-x-0 max-sm:!border-t-0 max-sm:!shadow-none mx-auto max-w-5xl overflow-hidden" data-kind={kind}>
               {/* Top bar */}
               <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 px-3 h-14 border-b border-[hsl(var(--foreground)/0.1)]">
-                <DiscardButton es={es} open={confirmDiscard} onOpen={setConfirmDiscard} onDiscard={startOver} />
-                <h1 className="text-sm font-medium text-[hsl(var(--foreground))]">{es ? 'Nueva obra' : 'New work'}</h1>
-                <button type="button" onClick={publish} disabled={busy} className="glass-button glass-button--primary !min-h-9 !px-4 justify-self-end max-lg:hidden">
-                  {publishLabel}
-                </button>
+                <div className="justify-self-start flex items-center">
+                  {step === 'details' && (
+                    <button type="button" onClick={() => goStep('edit')} className="lg:hidden ios-press header-button w-10 h-10 inline-flex items-center justify-center -ml-1" aria-label={es ? 'Volver a la obra' : 'Back to the work'}>
+                      <ChevronLeft className="w-6 h-6" />
+                    </button>
+                  )}
+                  <div className={cn(step === 'details' && 'max-lg:hidden')}>
+                    <DiscardButton es={es} open={confirmDiscard} onOpen={setConfirmDiscard} onDiscard={startOver} />
+                  </div>
+                </div>
+                <h1 className="text-sm font-medium text-[hsl(var(--foreground))]">
+                  <span key={step} className="create-title-swap lg:hidden">{step === 'details' ? (es ? 'Detalles' : 'Details') : (es ? 'Nueva obra' : 'New work')}</span>
+                  <span className="max-lg:hidden">{es ? 'Nueva obra' : 'New work'}</span>
+                </h1>
+                <div className="justify-self-end flex items-center">
+                  {step === 'edit' ? (
+                    <button type="button" onClick={() => goStep('details')} className="lg:hidden glass-button glass-button--primary !min-h-9 !px-4">
+                      {es ? 'Siguiente' : 'Next'}
+                    </button>
+                  ) : (
+                    <button type="button" onClick={publish} disabled={busy} className="lg:hidden glass-button glass-button--primary !min-h-9 !px-4">
+                      {publishLabel}
+                    </button>
+                  )}
+                  <button type="button" onClick={publish} disabled={busy} className="glass-button glass-button--primary !min-h-9 !px-4 max-lg:hidden">
+                    {publishLabel}
+                  </button>
+                </div>
               </div>
 
               <div className="lg:grid lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
                 {/* Left: the work itself */}
-                <div className="p-4 sm:p-5 lg:border-r border-[hsl(var(--foreground)/0.1)] flex flex-col gap-4 min-w-0">
+                <div className={cn(
+                  'p-4 sm:p-5 lg:border-r border-[hsl(var(--foreground)/0.1)] flex flex-col gap-4 min-w-0',
+                  step === 'details' && 'max-lg:hidden',
+                  step === 'edit' && stepMotion === 'back' && 'create-step-back',
+                  step === 'edit' && leaving && 'create-step-leave',
+                )}>
                   {kind === 'photos' && (
                     <>
                       {photos[selected]?.width && photos[0]?.width && (
@@ -562,8 +642,16 @@ export default function UploadWork() {
                 </div>
 
                 {/* Right: what you say about it */}
-                <div className="min-w-0 divide-y divide-[hsl(var(--foreground)/0.1)]">
-                  <div className={section}>
+                <div className={cn(
+                  'min-w-0 divide-y divide-[hsl(var(--foreground)/0.1)]',
+                  step === 'edit' && 'max-lg:hidden',
+                  step === 'details' && stepMotion === 'forward' && 'create-step-forward',
+                  step === 'details' && leaving && 'create-step-leave',
+                )}>
+                  <div className={cn(section, 'flex gap-3')}>
+                    {/* Phone: the work in small, next to what you write, like a social app's last step. */}
+                    <WorkThumb kind={kind} photo={photos[0]?.url} media={media} cover={cover?.url} poem={description} />
+                    <div className="flex-1 min-w-0">
                     {profile?.username && <p className="text-xs text-[hsl(var(--muted-foreground))] mb-2">@{profile.username}</p>}
                     <input
                       ref={titleInput}
@@ -583,10 +671,12 @@ export default function UploadWork() {
                         maxLength={5000}
                         aria-label={es ? 'Descripción' : 'Description'}
                         data-field="description"
-                        placeholder={es ? 'Cuenta qué hay detrás de esta obra…' : 'Tell us what is behind this work…'}
+                        placeholder={es ? 'Cuenta qué hay detrás de esta obra… y añade #hashtags' : 'Tell us what is behind this work… and add #hashtags'}
                         className={cn(fieldText, 'mt-3 text-sm resize-none leading-relaxed')}
                       />
                     )}
+                    {kind !== 'poem' && <WrittenTags tags={splitHashtags(description).tags} />}
+                    </div>
                   </div>
 
                   {typeChips.length > 0 && (
@@ -638,6 +728,7 @@ export default function UploadWork() {
                     </div>
                   )}
 
+                  {kind === 'poem' && (
                   <div className={cn(section, 'flex flex-wrap items-center gap-1.5')}>
                     {tags.map((tag) => (
                       <button
@@ -657,10 +748,11 @@ export default function UploadWork() {
                       onKeyDown={handleTagKey}
                       onBlur={commitTag}
                       aria-label={es ? 'Etiquetas' : 'Tags'}
-                      placeholder={tags.length ? '' : (es ? 'Añade etiquetas' : 'Add tags')}
+                      placeholder={tags.length ? '' : (es ? 'Añade #hashtags' : 'Add #hashtags')}
                       className={cn(fieldText, 'flex-1 min-w-24 text-sm py-1')}
                     />
                   </div>
+                  )}
 
                   <Reveal open={sellable}>
                   <SaleRow es={es} isForSale={isForSale} setIsForSale={setIsForSale}>
@@ -708,17 +800,36 @@ export default function UploadWork() {
         </div>
       )}
 
-      {/* On small screens the button stays at hand while the page scrolls */}
-      {kind && (
-        <div className="lg:hidden sticky bottom-0 z-30 px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 header-glass">
-          <button type="button" onClick={publish} disabled={busy} className="glass-button glass-button--primary w-full">
-            {publishLabel}
-          </button>
-        </div>
-      )}
       {showRules && <WhatToUploadSheet onClose={closeRules} />}
       <Footer />
     </div>
+  );
+}
+
+/** The work in small, beside the title on a phone's details step. */
+function WorkThumb({ kind, photo, media, cover, poem }: { kind: Kind | null; photo?: string; media: UploadMedia | null; cover?: string; poem: string }) {
+  return (
+    <div aria-hidden="true" className="lg:hidden shrink-0 w-[72px] h-[72px] rounded-xl overflow-hidden bg-[hsl(var(--foreground)/0.06)] flex items-center justify-center">
+      {kind === 'photos' && photo && <img src={photo} alt="" className="w-full h-full object-cover" />}
+      {kind === 'video' && (cover ? <img src={cover} alt="" className="w-full h-full object-cover" /> : media && <video src={media.url} muted playsInline preload="metadata" className="w-full h-full object-cover" />)}
+      {kind === 'audio' && (cover ? <img src={cover} alt="" className="w-full h-full object-cover" /> : <Music className="w-6 h-6 text-[hsl(var(--muted-foreground))]" strokeWidth={1.5} />)}
+      {kind === 'poem' && (cover
+        ? <img src={cover} alt="" className="w-full h-full object-cover" />
+        : <span className="px-1.5 text-[8px] leading-tight text-center text-[hsl(var(--muted-foreground))] line-clamp-5 whitespace-pre-line">{poem.trim() || '…'}</span>)}
+    </div>
+  );
+}
+
+/** The hashtags found in the description, shown as tags as they are typed: this is how the work will show them. */
+function WrittenTags({ tags }: { tags: string[] }) {
+  return (
+    <Reveal open={tags.length > 0}>
+      <div className="flex flex-wrap gap-1.5 pt-3">
+        {tags.map((tag) => (
+          <span key={tag} className="work-tag create-tag-in inline-flex items-center rounded-full px-2.5 py-1 text-xs text-[hsl(var(--foreground))]">#{tag}</span>
+        ))}
+      </div>
+    </Reveal>
   );
 }
 

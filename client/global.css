@@ -2122,7 +2122,7 @@ html:not(.dark) .star {
 @media (max-width: 640px), (pointer: coarse) {
   .tabbar {
     --tab-ease: cubic-bezier(0.32, 0.72, 0, 1);
-    --tab-spring: cubic-bezier(0.34, 1.32, 0.5, 1);
+    --tab-spring: cubic-bezier(0.3, 1.2, 0.5, 1);
     position: fixed;
     z-index: 60;
     left: 50%;
@@ -2178,25 +2178,39 @@ html:not(.dark) .star {
 }
 .dark .tabbar-sheen { opacity: 0.25; }
 
-/* The drop under the page you are on. It slides with a little spring and stretches as it goes. */
+/* The drop under the page you are on. The outer part only slides (transform, run by the
+   phone's compositor, so a page drawing behind can't make it stutter); the glass inside
+   stretches a touch while it travels and settles. A short, soft ease: no overshoot. */
 .tabbar-drop {
   position: absolute;
   top: 5px;
   bottom: 5px;
   left: 0;
+  pointer-events: none;
+  will-change: transform;
+  transition: transform 0.42s cubic-bezier(0.25, 0.9, 0.3, 1), opacity 0.25s ease;
+}
+.tabbar-drop-off { opacity: 0; }
+.tabbar-drop-glass {
+  position: absolute;
+  inset: 0;
   border-radius: 9999px;
   background: hsl(var(--foreground) / 0.09);
   box-shadow:
     inset 0 1px 0.5px rgba(255, 255, 255, 0.35),
     inset 0 0 0 0.5px hsl(var(--foreground) / 0.08),
     0 2px 10px rgba(0, 0, 0, 0.08);
-  transition: transform 0.5s var(--tab-spring), width 0.5s var(--tab-spring), opacity 0.3s ease, scale 0.32s var(--tab-spring);
-  pointer-events: none;
+  transition: transform 0.3s cubic-bezier(0.25, 0.9, 0.3, 1);
 }
-.dark .tabbar-drop { background: hsl(var(--foreground) / 0.12); box-shadow: inset 0 1px 0.5px rgba(255, 255, 255, 0.16), inset 0 0 0 0.5px rgba(255, 255, 255, 0.06); }
-.tabbar-drop-moving { scale: 1.18 0.86; }
-.tabbar-drop-pressed { scale: 1.08 0.94; }
-.tabbar-drop-off { opacity: 0 !important; scale: 0.6; }
+.dark .tabbar-drop-glass { background: hsl(var(--foreground) / 0.12); box-shadow: inset 0 1px 0.5px rgba(255, 255, 255, 0.16), inset 0 0 0 0.5px rgba(255, 255, 255, 0.06); }
+.tabbar-drop-off .tabbar-drop-glass { transform: scale(0.7); }
+.tabbar-drop-stretch { animation: tabbar-stretch 0.42s cubic-bezier(0.25, 0.9, 0.3, 1); }
+@keyframes tabbar-stretch {
+  0% { transform: scale(1, 1); }
+  35% { transform: scale(1.14, 0.9); }
+  100% { transform: scale(1, 1); }
+}
+.tabbar-drop-pressed { transform: scale(1.06, 0.95); }
 
 .tabbar-item {
   position: relative;
@@ -2387,5 +2401,97 @@ html:not(.dark) .star {
 .menu-lines-open span:nth-child(3) { top: 6.1px; transform: rotate(-45deg); }
 
 @media (prefers-reduced-motion: reduce) {
-  .tabbar, .tabbar-drop, .tabbar-icon, .nav-drawer, .nav-drawer-backdrop, .nav-drawer-me, .nav-drawer-title, .nav-drawer-item { animation: none !important; transition-duration: 0.01ms !important; }
+  .tabbar, .tabbar-drop, .tabbar-drop-glass, .tabbar-icon, .nav-drawer, .nav-drawer-backdrop, .nav-drawer-me, .nav-drawer-title, .nav-drawer-item { animation: none !important; transition-duration: 0.01ms !important; }
+}
+
+/* ---------- New work (v1.1.37): like opening "new post" in a social app ---------- */
+.create-start {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  border-radius: 28px;
+  transition: background-color 0.3s ease, box-shadow 0.3s ease;
+}
+.create-start--over { background: hsl(var(--foreground) / 0.04); box-shadow: 0 0 0 2px hsl(var(--foreground) / 0.25) inset; }
+.create-head { padding: 8px 4px 8px; animation: nav-item-in 0.5s cubic-bezier(0.32, 0.72, 0, 1) backwards; }
+.create-head h1 { margin: 0; font-size: 28px; font-weight: 800; letter-spacing: -0.03em; color: hsl(var(--foreground)); }
+.create-head p { margin: 4px 0 0; font-size: 15px; color: hsl(var(--muted-foreground)); }
+
+.create-tile {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 104px;
+  padding: 16px 12px;
+  border-radius: 22px;
+  border: 1px solid hsl(var(--foreground) / 0.1);
+  background: hsl(var(--foreground) / 0.04);
+  color: hsl(var(--foreground));
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1), background-color 0.25s ease, border-color 0.25s ease;
+  animation: create-tile-in 0.55s cubic-bezier(0.32, 0.72, 0, 1) backwards;
+  animation-delay: calc(0.06s + var(--i, 0) * 0.05s);
+}
+.create-tile:hover { background: hsl(var(--foreground) / 0.07); border-color: hsl(var(--foreground) / 0.18); }
+.create-tile:active { transform: scale(0.97); }
+.create-tile svg { width: 26px; height: 26px; }
+.create-tile-title { font-size: 15px; font-weight: 600; }
+.create-tile-sub { font-size: 13px; color: hsl(var(--muted-foreground)); }
+@keyframes create-tile-in { from { opacity: 0; transform: translateY(14px) scale(0.98); } }
+
+/* The gallery: the big one, with a little stack of pictures that fans out under your finger. */
+.create-tile--main {
+  flex-direction: row;
+  justify-content: flex-start;
+  gap: 18px;
+  min-height: 150px;
+  padding: 22px;
+  text-align: left;
+  background: hsl(var(--foreground) / 0.06);
+}
+.create-tile-words { display: flex; flex-direction: column; gap: 4px; }
+.create-tile--main .create-tile-title { font-size: 19px; font-weight: 700; letter-spacing: -0.01em; }
+.create-tile-art { position: relative; width: 84px; height: 96px; flex: none; }
+.create-tile-art > span {
+  position: absolute;
+  inset: 8px 10px;
+  border-radius: 14px;
+  border: 1px solid hsl(var(--foreground) / 0.14);
+  background: hsl(var(--background));
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+  transition: transform 0.45s cubic-bezier(0.32, 0.72, 0, 1);
+}
+.create-tile-art > span:nth-child(1) { transform: rotate(-9deg) translateX(-6px); opacity: 0.55; }
+.create-tile-art > span:nth-child(2) { transform: rotate(7deg) translateX(6px); opacity: 0.8; }
+.create-tile-art > span:nth-child(3) { display: flex; align-items: center; justify-content: center; }
+.create-tile--main:hover .create-tile-art > span:nth-child(1),
+.create-tile--main:active .create-tile-art > span:nth-child(1) { transform: rotate(-15deg) translateX(-12px); }
+.create-tile--main:hover .create-tile-art > span:nth-child(2),
+.create-tile--main:active .create-tile-art > span:nth-child(2) { transform: rotate(13deg) translateX(12px); }
+
+.create-row { display: flex; gap: 12px; }
+.create-row > .create-tile { flex: 1; }
+/* The camera only exists on phones and touch screens. */
+.create-tile-camera { display: none; }
+@media (max-width: 640px), (pointer: coarse) { .create-tile-camera { display: flex; } }
+.create-drop-hint, .create-rules { margin: 6px 4px 0; font-size: 13px; color: hsl(var(--muted-foreground)); text-align: center; }
+
+/* Phone steps: the one leaving fades back a little, the next slides in from its side. */
+@media (max-width: 1023px) {
+  .create-step-forward { animation: create-from-right 0.4s cubic-bezier(0.32, 0.72, 0, 1) backwards; }
+  .create-step-back { animation: create-from-left 0.4s cubic-bezier(0.32, 0.72, 0, 1) backwards; }
+  .create-step-leave { transition: opacity 0.16s ease, transform 0.16s ease; opacity: 0; transform: scale(0.985); }
+}
+@keyframes create-from-right { from { opacity: 0; transform: translateX(28px); } }
+@keyframes create-from-left { from { opacity: 0; transform: translateX(-28px); } }
+.create-title-swap { display: inline-block; animation: create-title 0.35s cubic-bezier(0.32, 0.72, 0, 1) backwards; }
+@keyframes create-title { from { opacity: 0; transform: translateY(6px); } }
+.create-tag-in { animation: create-tag 0.35s cubic-bezier(0.3, 1.2, 0.5, 1) backwards; }
+@keyframes create-tag { from { opacity: 0; transform: scale(0.8); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .create-tile, .create-head, .create-step-forward, .create-step-back, .create-title-swap, .create-tag-in { animation: none !important; }
 }

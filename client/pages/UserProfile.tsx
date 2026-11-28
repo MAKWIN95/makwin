@@ -16,7 +16,7 @@ import MasonryGrid, { type MasonryColumns } from '@/components/MasonryGrid';
 import ProfileWorksBar, { type WorksChoice } from '@/components/ProfileWorksBar';
 import type { TranslationKey } from '@/lib/i18n/translations';
 import FollowersModal from '@/components/FollowersModal';
-import { Briefcase, Camera, Check, X, ExternalLink, Loader2, Pencil, Plus } from 'lucide-react';
+import { Briefcase, Camera, Check, X, ExternalLink, Loader2, Pencil, Plus, Bookmark } from 'lucide-react';
 import { loadPortfolio } from '@/lib/portfolio';
 import { CACHE_FOR_A_YEAR } from '@/lib/small-photo';
 import AvatarCropModal from '@/components/AvatarCropModal';
@@ -550,8 +550,9 @@ export default function UserProfile() {
                   )}
                 </div>
                 )}
-                {(hasPortfolio || (isOwnProfile && hasPortfolio === false)) && (
-                  <div className="page-enter flex max-sm:justify-center mt-1 mb-3 phone:mb-1">
+                {(hasPortfolio || isOwnProfile) && (
+                  <div className="page-enter flex flex-wrap gap-2 max-sm:justify-center mt-1 mb-3 phone:mb-1">
+                    {(hasPortfolio || (isOwnProfile && hasPortfolio === false)) && (
                     <Link
                       to={`/p/${profile.username}`}
                       className="ios-press inline-flex items-center gap-2 min-h-9 px-3.5 rounded-full border border-[hsl(var(--foreground)/0.16)] text-xs font-medium text-[hsl(var(--foreground))] hover:bg-[hsl(var(--foreground)/0.06)] transition-colors"
@@ -561,6 +562,17 @@ export default function UserProfile() {
                         ? (isOwnProfile ? (es ? 'Mi portfolio' : 'My portfolio') : 'Portfolio')
                         : (es ? 'Crear mi portfolio' : 'Create my portfolio')}
                     </Link>
+                    )}
+                    {/* What you saved lives in your own profile, like on Instagram: always at hand, out of the bar. */}
+                    {isOwnProfile && (
+                      <Link
+                        to="/favoritos"
+                        className="ios-press inline-flex items-center gap-2 min-h-9 px-3.5 rounded-full border border-[hsl(var(--foreground)/0.16)] text-xs font-medium text-[hsl(var(--foreground))] hover:bg-[hsl(var(--foreground)/0.06)] transition-colors"
+                      >
+                        <Bookmark className="w-3.5 h-3.5" />
+                        {es ? 'Guardados' : 'Saved'}
+                      </Link>
+                    )}
                   </div>
                 )}
                 </div>

@@ -368,7 +368,7 @@ export default function Header({ showSearch = true, showSearchCentered = false, 
                         {unread > 0 && <span className="min-w-5 h-5 px-1.5 rounded-full bg-red-500 text-white text-xs font-medium flex items-center justify-center">{unread}</span>}
                       </Link>
                       <Link to="/favoritos" onClick={() => setShowUserMenu(false)}
-                        className="phone:hidden flex items-center gap-3 px-4 py-2.5 phone:py-3 text-sm text-[hsl(var(--foreground))] hover:bg-[hsl(var(--muted))] transition-colors">
+                        className="flex items-center gap-3 px-4 py-2.5 phone:py-3 text-sm text-[hsl(var(--foreground))] hover:bg-[hsl(var(--muted))] transition-colors">
                         <Bookmark className="w-4 h-4" /> {es ? 'Guardados' : 'Saved works'}
                       </Link>
                       <Link to="/siguiendo" onClick={() => setShowUserMenu(false)}
