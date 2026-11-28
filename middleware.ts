@@ -83,7 +83,7 @@ export async function validPass(value: string | undefined, secret: string | unde
 
 /** Passwords are forgiving about capitals, accents, spaces and dashes: «Lienzo Azul» = «lienzo-azul». */
 export function normalise(text: string): string {
-  return text.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[\s\-_.·]+/g, '');
+  return text.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[\s\-_.·/]+/g, '');
 }
 
 /** Compares the typed password with every accepted one (comma-separated in the setting). */

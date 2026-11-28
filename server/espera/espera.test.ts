@@ -139,6 +139,9 @@ describe('contraseñas', () => {
     expect(normalise('  Lienzo-Azúl ')).toBe('lienzoazul');
     expect(await rightPassword('LIENZOAZUL', PASSWORD)).toBe(true);
     expect(await rightPassword('otra', 'una, otra')).toBe(true);
+    expect(await rightPassword('09/06/2006', '09062006')).toBe(true);
+    expect(await rightPassword('09-06-2006', '09062006')).toBe(true);
+    expect(await rightPassword('0906200', '09062006')).toBe(false);
     expect(await rightPassword('', 'una, ,otra')).toBe(false);
   });
 });
