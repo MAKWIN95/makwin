@@ -25,6 +25,17 @@ hover:bg-[color-with-opacity-increase]
 
 ---
 
+## 🧭 Navegación (desde v1.1.36)
+
+- **Móvil y pantallas táctiles** (la misma regla que `phone:`): `client/components/TabBar.tsx` es una barra flotante de cristal abajo con Inicio, Siguiendo, Subir obra, Guardados, Notificaciones (con la cifra en rojo) y Mi perfil (la foto).
+  - Una gota de cristal se desliza con un pequeño rebote hasta la pestaña de la página en la que estás.
+  - Al bajar por la página la barra se encoge un poco y al subir vuelve a su tamaño.
+  - Tocar la pestaña en la que ya estás sube al principio de la página.
+  - Se esconde deslizándose en las páginas que tienen su propia barra abajo o que se envían a otros: `/subir-obra`, el inicio de sesión, `/p/`, `/beats`.
+  - Mientras está visible, `html.has-tabbar` deja espacio debajo.
+  - En el móvil, el menú de la foto ya no repite lo que tiene la barra.
+- **Ordenador:** las tres líneas, a la izquierda de la flecha de volver, abren `client/components/NavDrawer.tsx`, un panel de cristal que entra desde la izquierda con todo agrupado (Explorar, Lo tuyo, Cuenta). Se cierra con Esc, al pulsar fuera, con la X o al elegir una página. Su estado está en `client/lib/nav-drawer.ts`, fuera de las páginas, para que se cierre con su propia animación aunque cambie la página.
+
 ## ⏳ Sala de espera (acceso anticipado, desde v1.1.33)
 
 Mientras `ESPERA_ACTIVA` sea `true` en `middleware.ts`, makwin.art está cerrada. Cualquier dirección (páginas, `/beats`, portfolios, obras) enseña la cuenta atrás y la caja de contraseña de acceso anticipado.

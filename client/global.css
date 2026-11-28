@@ -2114,3 +2114,278 @@ html:not(.dark) .star {
     transform: none;
   }
 }
+
+/* ---------- Phone tab bar (v1.1.36): a floating pill of liquid glass ---------- */
+.tabbar {
+  display: none;
+}
+@media (max-width: 640px), (pointer: coarse) {
+  .tabbar {
+    --tab-ease: cubic-bezier(0.32, 0.72, 0, 1);
+    --tab-spring: cubic-bezier(0.34, 1.32, 0.5, 1);
+    position: fixed;
+    z-index: 60;
+    left: 50%;
+    bottom: calc(10px + env(safe-area-inset-bottom));
+    display: flex;
+    align-items: stretch;
+    width: min(440px, calc(100vw - 20px));
+    height: 62px;
+    padding: 5px;
+    border-radius: 9999px;
+    /* Liquid glass: what passes below bends to colour and blur; a bright rim catches the light. */
+    background: linear-gradient(180deg, hsl(var(--popover) / 0.5), hsl(var(--popover) / 0.34));
+    -webkit-backdrop-filter: blur(22px) saturate(200%) brightness(1.06);
+    backdrop-filter: blur(22px) saturate(200%) brightness(1.06);
+    border: 1px solid hsl(var(--foreground) / 0.1);
+    box-shadow:
+      inset 0 1px 0.5px rgba(255, 255, 255, 0.45),
+      inset 0 -1px 1px rgba(255, 255, 255, 0.08),
+      0 10px 30px rgba(0, 0, 0, 0.22),
+      0 2px 6px rgba(0, 0, 0, 0.08);
+    transform: translateX(-50%);
+    transform-origin: 50% 100%;
+    animation: tabbar-in 0.6s var(--tab-ease) backwards;
+    transition: transform 0.45s var(--tab-ease), opacity 0.35s var(--tab-ease), background-color 0.3s ease;
+  }
+  .dark .tabbar {
+    box-shadow:
+      inset 0 1px 0.5px rgba(255, 255, 255, 0.18),
+      inset 0 -1px 1px rgba(255, 255, 255, 0.04),
+      0 10px 34px rgba(0, 0, 0, 0.55);
+  }
+  .tabbar-compact { transform: translateX(-50%) translateY(4px) scale(0.92); }
+  .tabbar-away {
+    transform: translateX(-50%) translateY(calc(100% + 30px));
+    opacity: 0;
+    pointer-events: none;
+  }
+  html.has-tabbar body { padding-bottom: calc(86px + env(safe-area-inset-bottom)); }
+}
+
+@keyframes tabbar-in {
+  from { transform: translateX(-50%) translateY(calc(100% + 30px)); opacity: 0; }
+}
+
+/* A soft bright edge along the top of the glass, like light on a curved surface. */
+.tabbar-sheen {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0) 42%);
+  opacity: 0.6;
+}
+.dark .tabbar-sheen { opacity: 0.25; }
+
+/* The drop under the page you are on. It slides with a little spring and stretches as it goes. */
+.tabbar-drop {
+  position: absolute;
+  top: 5px;
+  bottom: 5px;
+  left: 0;
+  border-radius: 9999px;
+  background: hsl(var(--foreground) / 0.09);
+  box-shadow:
+    inset 0 1px 0.5px rgba(255, 255, 255, 0.35),
+    inset 0 0 0 0.5px hsl(var(--foreground) / 0.08),
+    0 2px 10px rgba(0, 0, 0, 0.08);
+  transition: transform 0.5s var(--tab-spring), width 0.5s var(--tab-spring), opacity 0.3s ease, scale 0.32s var(--tab-spring);
+  pointer-events: none;
+}
+.dark .tabbar-drop { background: hsl(var(--foreground) / 0.12); box-shadow: inset 0 1px 0.5px rgba(255, 255, 255, 0.16), inset 0 0 0 0.5px rgba(255, 255, 255, 0.06); }
+.tabbar-drop-moving { scale: 1.18 0.86; }
+.tabbar-drop-pressed { scale: 1.08 0.94; }
+.tabbar-drop-off { opacity: 0 !important; scale: 0.6; }
+
+.tabbar-item {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  color: hsl(var(--foreground) / 0.62);
+  -webkit-tap-highlight-color: transparent;
+  transition: color 0.3s ease;
+}
+.tabbar-item-on { color: hsl(var(--foreground)); }
+.tabbar-icon {
+  display: inline-flex;
+  transition: transform 0.4s var(--tab-spring);
+}
+.tabbar-icon svg { width: 24px; height: 24px; stroke-width: 1.75; transition: stroke-width 0.3s ease; }
+.tabbar-item-on .tabbar-icon svg { stroke-width: 2.3; }
+.tabbar-item-on .tabbar-icon { transform: scale(1.06); }
+.tabbar-item-pressed .tabbar-icon { transform: scale(0.84); transition-duration: 0.15s; }
+
+.tabbar-avatar {
+  width: 27px;
+  height: 27px;
+  border-radius: 9px;
+  overflow: hidden;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: hsl(var(--muted));
+  box-shadow: 0 0 0 1px hsl(var(--foreground) / 0.18);
+  transition: box-shadow 0.3s ease;
+}
+.tabbar-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.tabbar-avatar-letter { font-size: 13px; font-weight: 700; }
+.tabbar-item-on .tabbar-avatar { box-shadow: 0 0 0 2px hsl(var(--foreground)); }
+
+.tabbar-badge {
+  position: absolute;
+  top: 8px;
+  left: calc(50% + 5px);
+  min-width: 17px;
+  height: 17px;
+  padding: 0 4px;
+  border-radius: 9999px;
+  background: #ef4444;
+  color: #fff;
+  font-size: 10.5px;
+  font-weight: 700;
+  line-height: 17px;
+  text-align: center;
+  box-shadow: 0 0 0 2px hsl(var(--background) / 0.9);
+  transition: transform 0.35s var(--tab-spring, ease), opacity 0.25s ease;
+}
+.tabbar-badge-off { transform: scale(0); opacity: 0; }
+
+/* On phones the bar does this work: the avatar's menu keeps only what is not in it. */
+
+/* ---------- Computer side menu (v1.1.36) ---------- */
+.nav-drawer-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+}
+.nav-drawer-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.32);
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+  animation: nav-fade-in 0.35s ease backwards;
+}
+.nav-drawer {
+  position: absolute;
+  top: 12px;
+  bottom: 12px;
+  left: 12px;
+  width: min(320px, calc(100vw - 24px));
+  display: flex;
+  flex-direction: column;
+  padding: 16px 12px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  animation: nav-drawer-in 0.5s cubic-bezier(0.32, 0.72, 0, 1) backwards;
+}
+.nav-drawer-overlay[data-closing] .nav-drawer { animation: nav-drawer-out 0.3s cubic-bezier(0.4, 0, 0.7, 0.2) forwards; }
+.nav-drawer-overlay[data-closing] .nav-drawer-backdrop { animation: nav-fade-out 0.3s ease forwards; }
+
+@keyframes nav-drawer-in { from { transform: translateX(calc(-100% - 24px)); } }
+@keyframes nav-drawer-out { to { transform: translateX(calc(-100% - 24px)); } }
+@keyframes nav-fade-in { from { opacity: 0; } }
+@keyframes nav-fade-out { to { opacity: 0; } }
+
+.nav-drawer-top { display: flex; align-items: center; justify-content: space-between; padding: 2px 6px 14px 10px; }
+
+.nav-drawer-me,
+.nav-drawer-title,
+.nav-drawer-item {
+  animation: nav-item-in 0.5s cubic-bezier(0.32, 0.72, 0, 1) backwards;
+  animation-delay: calc(0.08s + var(--i, 0) * 0.025s);
+}
+@keyframes nav-item-in { from { opacity: 0; transform: translateX(-14px); } }
+
+.nav-drawer-me {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0 0 8px;
+  padding: 10px;
+  border-radius: 14px;
+  background: hsl(var(--foreground) / 0.05);
+  transition: background-color 0.25s ease, transform 0.25s cubic-bezier(0.32, 0.72, 0, 1);
+}
+.nav-drawer-me:hover { background: hsl(var(--foreground) / 0.08); }
+.nav-drawer-me:active { transform: scale(0.98); }
+.nav-drawer-avatar {
+  width: 44px;
+  height: 44px;
+  flex: none;
+  border-radius: 12px;
+  overflow: hidden;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: hsl(var(--muted));
+  font-weight: 700;
+}
+.nav-drawer-avatar img { width: 100%; height: 100%; object-fit: cover; }
+
+.nav-drawer-groups { display: flex; flex-direction: column; gap: 14px; margin-top: 6px; }
+.nav-drawer-title {
+  margin: 0 0 4px;
+  padding: 0 12px;
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: hsl(var(--muted-foreground));
+}
+.nav-drawer-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 42px;
+  padding: 0 12px;
+  border-radius: 12px;
+  font-size: 15px;
+  color: hsl(var(--foreground));
+  transition: background-color 0.2s ease, transform 0.25s cubic-bezier(0.32, 0.72, 0, 1);
+}
+.nav-drawer-item:hover { background: hsl(var(--foreground) / 0.06); }
+.nav-drawer-item:active { transform: scale(0.98); }
+.nav-drawer-item-on { background: hsl(var(--foreground) / 0.09); font-weight: 600; }
+.nav-drawer-icon { display: inline-flex; }
+.nav-drawer-icon svg { width: 20px; height: 20px; stroke-width: 1.8; }
+.nav-drawer-item-on .nav-drawer-icon svg { stroke-width: 2.3; }
+.nav-drawer-badge {
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 9999px;
+  background: #ef4444;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 20px;
+  text-align: center;
+}
+
+/* The three lines turn into an X while the menu is open. */
+.menu-lines { position: relative; width: 18px; height: 14px; display: inline-block; }
+.menu-lines span {
+  position: absolute;
+  left: 0;
+  width: 18px;
+  height: 1.8px;
+  border-radius: 2px;
+  background: hsl(var(--foreground));
+  transition: transform 0.4s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.25s ease, top 0.4s cubic-bezier(0.32, 0.72, 0, 1);
+}
+.menu-lines span:nth-child(1) { top: 1px; }
+.menu-lines span:nth-child(2) { top: 6.1px; }
+.menu-lines span:nth-child(3) { top: 11.2px; }
+.menu-lines-open span:nth-child(1) { top: 6.1px; transform: rotate(45deg); }
+.menu-lines-open span:nth-child(2) { opacity: 0; transform: scaleX(0.3); }
+.menu-lines-open span:nth-child(3) { top: 6.1px; transform: rotate(-45deg); }
+
+@media (prefers-reduced-motion: reduce) {
+  .tabbar, .tabbar-drop, .tabbar-icon, .nav-drawer, .nav-drawer-backdrop, .nav-drawer-me, .nav-drawer-title, .nav-drawer-item { animation: none !important; transition-duration: 0.01ms !important; }
+}

@@ -11,6 +11,7 @@ import { authHeaders } from "@/lib/adminApi";
 import { morphHeader, PageShown } from "@/lib/header-morph";
 import { useUnreadNotifications } from "@/lib/notifications";
 import NotificationsPanel from "./NotificationsPanel";
+import { toggleNavDrawer, useNavDrawer } from "@/lib/nav-drawer";
 
 const readSearch = (search: string) => (new URLSearchParams(search).get('search') ?? '').replace(/^#/, '').trim();
 
@@ -65,6 +66,7 @@ export default function Header({ showSearch = true, showSearchCentered = false, 
   const { isDark, toggleTheme } = useTheme();
   const unread = useUnreadNotifications(user?.id, location.pathname);
   const MUSIC_FEATURE_ENABLED = false;
+  const drawerOpen = useNavDrawer();
 
   // Before the first paint: this header starts as the shape the last one had.
   useLayoutEffect(() => {
@@ -233,6 +235,17 @@ export default function Header({ showSearch = true, showSearchCentered = false, 
 
           {/* Left: navigation + logo */}
           <div className={`${isHomePage ? 'hidden' : 'col-span-1'} flex items-center gap-1 sm:gap-2 min-w-0 relative`}>
+            {/* Computer: the side menu with every page in one place. On phones the bar at the bottom does this. */}
+            <button
+              type="button"
+              data-morph="menu"
+              onClick={toggleNavDrawer}
+              aria-expanded={drawerOpen}
+              aria-label={es ? (drawerOpen ? 'Cerrar menú' : 'Menú') : (drawerOpen ? 'Close menu' : 'Menu')}
+              className="phone:hidden header-button ios-press p-0 w-10 h-10 flex items-center justify-center shrink-0"
+            >
+              <span aria-hidden="true" className={`menu-lines ${drawerOpen ? 'menu-lines-open' : ''}`}><span /><span /><span /></span>
+            </button>
             <button data-morph="back" onClick={handleGoBack} className={`${isGallery ? 'header-back-peek' : ''} max-[359px]:hidden header-button ios-press p-0 w-10 h-10 phone:w-11 phone:h-11 max-[429px]:!w-9 max-[374px]:!w-8 flex items-center justify-center shrink-0`} aria-label={es ? 'Atrás' : 'Back'}>
               <ArrowLeft className="w-5 h-5 text-[hsl(var(--foreground))] transition-colors duration-300" />
             </button>
@@ -298,12 +311,12 @@ export default function Header({ showSearch = true, showSearchCentered = false, 
               </span>
             </button>
 
-            {/* Upload shortcut */}
-            <Link to={user || authLoading ? '/subir-obra' : '/login'} className="ios-press header-button inline-flex items-center justify-center shrink-0 w-10 h-10 phone:w-11 phone:h-11 max-[429px]:!w-9 max-[374px]:!w-8" aria-label={es ? 'Subir obra' : 'Upload work'}>
+            {/* Upload shortcut (on phones it is in the bar at the bottom) */}
+            <Link to={user || authLoading ? '/subir-obra' : '/login'} className="phone:hidden ios-press header-button inline-flex items-center justify-center shrink-0 w-10 h-10 phone:w-11 phone:h-11 max-[429px]:!w-9 max-[374px]:!w-8" aria-label={es ? 'Subir obra' : 'Upload work'}>
               <Upload className="w-5 h-5 text-[hsl(var(--foreground))]" />
             </Link>
 
-            {/* News: on a phone the bar is full, so it lives in the avatar's menu and shows as a dot on it */}
+            {/* News: on a phone it lives in the bar at the bottom, with its red count */}
             {user && (
               <button
                 type="button"
@@ -332,7 +345,6 @@ export default function Header({ showSearch = true, showSearchCentered = false, 
                       : <span>{(profile?.display_name ?? profile?.username ?? 'U').charAt(0).toUpperCase()}</span>
                     }
                   </div>
-                  {unread > 0 && <span aria-hidden="true" className="hidden phone:block absolute top-1 right-1 w-2.5 h-2.5 rounded-full bg-red-500 ring-2 ring-[hsl(var(--background))]" />}
                 </button>
 
                 {showUserMenu && (
@@ -343,7 +355,7 @@ export default function Header({ showSearch = true, showSearchCentered = false, 
                     </div>
                     <div className="py-1">
                       <Link to={`/u/${profile?.username}`} onClick={() => setShowUserMenu(false)}
-                        className="flex items-center gap-3 px-4 py-2.5 phone:py-3 text-sm text-[hsl(var(--foreground))] hover:bg-[hsl(var(--muted))] transition-colors">
+                        className="phone:hidden flex items-center gap-3 px-4 py-2.5 phone:py-3 text-sm text-[hsl(var(--foreground))] hover:bg-[hsl(var(--muted))] transition-colors">
                         <User className="w-4 h-4" /> {es ? 'Mi perfil' : 'My profile'}
                       </Link>
                       <Link to={`/p/${profile?.username}`} onClick={() => setShowUserMenu(false)}
@@ -351,20 +363,20 @@ export default function Header({ showSearch = true, showSearchCentered = false, 
                         <Briefcase className="w-4 h-4" /> {es ? 'Mi portfolio' : 'My portfolio'}
                       </Link>
                       <Link to="/notificaciones" onClick={() => setShowUserMenu(false)}
-                        className="flex items-center gap-3 px-4 py-2.5 phone:py-3 text-sm text-[hsl(var(--foreground))] hover:bg-[hsl(var(--muted))] transition-colors">
+                        className="phone:hidden flex items-center gap-3 px-4 py-2.5 phone:py-3 text-sm text-[hsl(var(--foreground))] hover:bg-[hsl(var(--muted))] transition-colors">
                         <Bell className="w-4 h-4" /> <span className="flex-1">{es ? 'Notificaciones' : 'Notifications'}</span>
                         {unread > 0 && <span className="min-w-5 h-5 px-1.5 rounded-full bg-red-500 text-white text-xs font-medium flex items-center justify-center">{unread}</span>}
                       </Link>
                       <Link to="/favoritos" onClick={() => setShowUserMenu(false)}
-                        className="flex items-center gap-3 px-4 py-2.5 phone:py-3 text-sm text-[hsl(var(--foreground))] hover:bg-[hsl(var(--muted))] transition-colors">
+                        className="phone:hidden flex items-center gap-3 px-4 py-2.5 phone:py-3 text-sm text-[hsl(var(--foreground))] hover:bg-[hsl(var(--muted))] transition-colors">
                         <Bookmark className="w-4 h-4" /> {es ? 'Guardados' : 'Saved works'}
                       </Link>
                       <Link to="/siguiendo" onClick={() => setShowUserMenu(false)}
-                        className="flex items-center gap-3 px-4 py-2.5 phone:py-3 text-sm text-[hsl(var(--foreground))] hover:bg-[hsl(var(--muted))] transition-colors">
+                        className="phone:hidden flex items-center gap-3 px-4 py-2.5 phone:py-3 text-sm text-[hsl(var(--foreground))] hover:bg-[hsl(var(--muted))] transition-colors">
                         <Heart className="w-4 h-4" /> {es ? 'Siguiendo' : 'Following'}
                       </Link>
                       <Link to="/subir-obra" onClick={() => setShowUserMenu(false)}
-                        className="flex items-center gap-3 px-4 py-2.5 phone:py-3 text-sm text-[hsl(var(--foreground))] hover:bg-[hsl(var(--muted))] transition-colors">
+                        className="phone:hidden flex items-center gap-3 px-4 py-2.5 phone:py-3 text-sm text-[hsl(var(--foreground))] hover:bg-[hsl(var(--muted))] transition-colors">
                         <Upload className="w-4 h-4" /> {es ? 'Subir obra' : 'Upload work'}
                       </Link>
                       <Link to="/configuracion" onClick={() => setShowUserMenu(false)}

@@ -6,6 +6,8 @@ import "@fontsource/inter/800.css";
 import "./global.css";
 
 import { Toaster } from "@/components/ui/toaster";
+import TabBar from "./components/TabBar";
+import NavDrawer from "./components/NavDrawer";
 import { createRoot } from "react-dom/client";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -266,6 +268,8 @@ const RoutesWrapper = () => {
       {/* 404 */}
       <Route path="*" element={<NotFound />} />
     </Routes>
+    <TabBar />
+    <NavDrawer />
     </>
   );
 };
