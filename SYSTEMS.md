@@ -25,6 +25,27 @@ hover:bg-[color-with-opacity-increase]
 
 ---
 
+## ⏳ Sala de espera (acceso anticipado, desde v1.1.33)
+
+Mientras `ESPERA_ACTIVA` sea `true` en `middleware.ts`, makwin.art está cerrada. Cualquier dirección (páginas, `/beats`, portfolios, obras) enseña la cuenta atrás y la caja de contraseña de acceso anticipado.
+
+- **Dónde está:**
+  - `middleware.ts` (Vercel Routing Middleware, corre antes de servir o cachear nada);
+  - la página en `server/espera/pagina.ts`;
+  - su aspecto y comportamiento en `public/espera/` (sin scripts en línea, por la CSP).
+- **Por qué no se puede saltar:**
+  - Sin pase no se sirve nada de la web: ni HTML, ni `/assets`, ni `/api` (401), ni archivos.
+  - El pase es una cookie `makwin_acceso`: HttpOnly, Secure, SameSite=Lax, válida 120 días y firmada con HMAC-SHA256 con `GATE_SECRET`.
+  - La contraseña solo se compara en el servidor, con un máximo de 8 intentos cada 10 min por dirección (Redis).
+  - Sin `GATE_SECRET` o sin `EARLY_ACCESS_PASSWORD` no entra nadie.
+- **Contraseña:** `EARLY_ACCESS_PASSWORD` en Vercel. Admite varias separadas por comas y no distingue mayúsculas, tildes, espacios ni guiones. Cambiarla exige volver a publicar; los pases ya dados siguen valiendo.
+- **Qué sigue abierto:**
+  - solo los archivos exactos de `OPEN_FILES` (iconos, imagen para compartir, `theme-boot.js` y `/espera/*`);
+  - la copia nocturna (`/api/reports` con `CRON_SECRET`).
+- **Contador:** `LANZAMIENTO` en `middleware.ts`. Solo se enseña; la web sigue cerrada hasta poner `ESPERA_ACTIVA = false`.
+- **Tarjetas QR** (`?t=c1`, `?t=c2`): la página de espera cuenta la visita en Umami y la guarda para el registro de esa visita.
+- **Límite conocido:** la base de datos (Supabase) se consulta desde el navegador con la clave pública. Quien ya la tuviera de antes podría leer datos públicos directamente. Cerrarlo del todo exige cambiar esa clave (decisión del dueño).
+
 ## 🔐 Sistema de Autenticación y Autorización
 
 ### Estados de Usuario

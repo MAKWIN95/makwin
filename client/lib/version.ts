@@ -4,4 +4,4 @@
  * (v1.1.99 → v1.2.0), so PATCH never goes past 99.
  */
 
-export const APP_VERSION = "v1.1.32";
+export const APP_VERSION = "v1.1.33";
