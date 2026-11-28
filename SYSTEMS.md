@@ -38,12 +38,27 @@ hover:bg-[color-with-opacity-increase]
 
 ## 🔔 Siguiendo, Guardados y Notificaciones (desde v1.1.38)
 
-- Las tres páginas empiezan igual, con `client/components/PageTitle.tsx`: el icono en una gota de cristal, el nombre de la página y una línea que dice qué hay («Las obras de los artistas que sigues», «Las obras que has guardado»…). Así sabes dónde estás aunque hayas llegado tocando un icono sin palabras.
+- Las tres páginas empiezan igual, con `client/components/PageTitle.tsx`, en una sola línea pequeña (desde v1.1.39): icono pequeño, el nombre de la página, un punto y qué hay («Siguiendo · Las obras de los artistas que sigues»). Así sabes dónde estás aunque hayas llegado tocando un icono sin palabras.
 - Siguiendo y Guardados usan la misma rejilla que la galería (2 columnas en el móvil) y el mismo aviso cuando no hay nada (`.page-empty`).
 - **Notificaciones** (`client/pages/Notifications.tsx`): cristal transparente sobre las estrellas y una fila corta por aviso (icono, texto en 2 líneas como mucho, quién o qué y cuándo en una sola línea).
   - Van por grupos: «Nuevas» (sin leer), «Esta semana» y, plegadas en una sola fila, «Anteriores» (más de 7 días), que se abre al tocarla, como en TikTok.
   - Si solo hay antiguas, salen abiertas.
   - No se pueden borrar: el dueño lo descartó.
+
+## 📁 Carpetas en Guardados (desde v1.1.39)
+
+Como las colecciones de TikTok. Cada persona hace las carpetas que quiera, con el nombre que quiera, y mete en ellas sus obras guardadas.
+
+- **Base de datos** (`supabase/migrations/20261128180000_save_folders.sql`, aplicada el 28 nov 2026):
+  - `save_folders` (nombre de 1 a 40 letras, máximo 100 por persona) y `save_folder_works` (qué obra hay en qué carpeta).
+  - Privadas: cada persona solo ve y cambia las suyas. Solo se puede meter en una carpeta una obra que tengas guardada.
+  - Quitar una obra de Guardados la quita de todas tus carpetas. Borrar una cuenta, una obra o una carpeta se lleva sus filas.
+  - Borrar una carpeta nunca borra sus obras: siguen en Guardados.
+- **App:**
+  - `client/lib/save-folders.ts`: una sola copia de las carpetas para toda la app; los cambios se ven al momento y se deshacen si el servidor dice que no. Sin las tablas, la opción no aparece.
+  - `client/pages/Saved.tsx`: fila de carpetas arriba («Todo», tus carpetas con 4 portadas, «Nueva carpeta»). Al elegir una se ve solo lo suyo (`?carpeta=`), con «Añadir obras» y el menú ⋯ (cambiar nombre, borrar).
+  - `client/components/SaveToast.tsx`: al guardar una obra en cualquier sitio sale «Guardado · Añadir a carpeta» unos segundos.
+  - `client/components/SaveFolderSheets.tsx`: las ventanas (elegir carpetas, nombre, borrar, elegir obras), sobre `client/components/GlassSheet.tsx`, que sube desde abajo en el móvil y aparece en el centro en el ordenador.
 
 ## 📤 Subir obra (desde v1.1.37)
 

@@ -150,7 +150,7 @@ export default function Following() {
 
         <Header showSearchCentered breadcrumb={currentLang === 'es' ? 'Siguiendo' : 'Following'} />
 
-      <main className="relative z-10 max-w-6xl mx-auto px-4 sm:px-8 py-10 phone:py-6 page-enter">
+      <main className="relative z-10 max-w-6xl mx-auto px-4 sm:px-8 pt-5 pb-10 phone:pt-3 page-enter">
         <PageTitle
           icon={<Heart />}
           title={currentLang === 'es' ? 'Siguiendo' : 'Following'}

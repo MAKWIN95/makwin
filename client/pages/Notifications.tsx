@@ -58,7 +58,7 @@ export default function Notifications() {
       <div id="notifications-stars-background" className="absolute inset-0 z-0 stars-background" />
       <div className="relative z-10">
         <Header showSearchCentered hideSearch breadcrumb={es ? 'Notificaciones' : 'Notifications'} />
-        <main className="max-w-2xl mx-auto px-4 sm:px-8 py-10 phone:py-6 page-enter">
+        <main className="max-w-2xl mx-auto px-4 sm:px-8 pt-5 pb-10 phone:pt-3 page-enter">
           <PageTitle
             icon={<Bell />}
             title={es ? 'Notificaciones' : 'Notifications'}

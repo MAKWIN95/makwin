@@ -2500,33 +2500,34 @@ html:not(.dark) .star {
 .page-title {
   display: flex;
   align-items: center;
-  gap: 14px;
-  margin-bottom: 24px;
+  gap: 9px;
+  min-width: 0;
+  margin-bottom: 16px;
   animation: page-title-in 0.5s cubic-bezier(0.32, 0.72, 0, 1) backwards;
 }
-.page-title h1 { margin: 0; font-size: 26px; line-height: 1.15; font-weight: 800; letter-spacing: -0.03em; color: hsl(var(--foreground)); }
-.page-title p { margin: 3px 0 0; font-size: 14px; color: hsl(var(--muted-foreground)); }
+.page-title-words { display: flex; align-items: baseline; gap: 7px; min-width: 0; flex: 1; white-space: nowrap; }
+.page-title h1 { margin: 0; flex: none; font-size: 17px; line-height: 1.2; font-weight: 700; letter-spacing: -0.02em; color: hsl(var(--foreground)); }
+.page-title-dot { flex: none; width: 3px; height: 3px; border-radius: 9999px; background: hsl(var(--muted-foreground)); align-self: center; }
+.page-title p { margin: 0; min-width: 0; overflow: hidden; text-overflow: ellipsis; font-size: 14px; color: hsl(var(--muted-foreground)); }
 .page-title-icon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   flex: none;
-  width: 46px;
-  height: 46px;
+  width: 28px;
+  height: 28px;
   border-radius: 9999px;
   color: hsl(var(--foreground));
-  background: hsl(var(--foreground) / 0.06);
+  background: hsl(var(--foreground) / 0.07);
   border: 1px solid hsl(var(--foreground) / 0.1);
-  box-shadow: inset 0 1px 0 hsl(0 0% 100% / 0.08);
   -webkit-backdrop-filter: blur(24px) saturate(1.4);
   backdrop-filter: blur(24px) saturate(1.4);
 }
-.page-title-icon svg { width: 21px; height: 21px; }
+.page-title-icon svg { width: 14px; height: 14px; }
 @media (max-width: 640px), (pointer: coarse) {
-  .page-title { margin-bottom: 18px; gap: 12px; }
-  .page-title h1 { font-size: 24px; }
+  .page-title { margin-bottom: 12px; }
+  .page-title h1 { font-size: 16px; }
   .page-title p { font-size: 13px; }
-  .page-title-icon { width: 42px; height: 42px; }
 }
 @keyframes page-title-in { from { opacity: 0; transform: translateY(8px); } }
 .page-empty {
@@ -2651,4 +2652,286 @@ a.notif-body:active { background: hsl(var(--foreground) / 0.07); }
 
 @media (prefers-reduced-motion: reduce) {
   .page-title, .page-empty, .notif-row, .notif-section, .notif-more, .notif-more-list, .notif-chevron { animation: none !important; transition: none !important; }
+}
+
+/* ---------- Glass sheets (v1.1.39): rise from the bottom on a phone, appear in the middle on a computer ---------- */
+.glass-sheet-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+.glass-sheet {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 400px;
+  max-height: calc(100dvh - 32px);
+  padding: 18px 18px 18px;
+  animation: glass-menu-in 0.32s cubic-bezier(0.32, 0.72, 0, 1) both;
+}
+.glass-sheet--wide { max-width: 560px; }
+.glass-sheet-grip { display: none; }
+.glass-sheet-head { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+.glass-sheet-head h2 { flex: 1; min-width: 0; margin: 0; font-size: 17px; font-weight: 700; letter-spacing: -0.02em; color: hsl(var(--foreground)); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.glass-sheet-x {
+  display: inline-flex; align-items: center; justify-content: center; flex: none;
+  width: 30px; height: 30px; border-radius: 9999px;
+  color: hsl(var(--muted-foreground));
+  background: hsl(var(--foreground) / 0.07);
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+.glass-sheet-x:hover { background: hsl(var(--foreground) / 0.12); color: hsl(var(--foreground)); }
+.glass-sheet-x svg { width: 16px; height: 16px; }
+.glass-sheet-body { min-height: 0; overflow-y: auto; overscroll-behavior: contain; margin: 0 -6px; padding: 0 6px; }
+.glass-sheet-foot { padding-top: 14px; }
+.glass-sheet-overlay[data-closing] .soft-backdrop { animation: avatar-crop-out 0.22s ease-in forwards; }
+.glass-sheet-overlay[data-closing] .glass-sheet { animation: glass-menu-out 0.2s ease-in both; }
+@media (max-width: 640px), (pointer: coarse) {
+  .glass-sheet-overlay { align-items: flex-end; padding: 0; }
+  .glass-sheet {
+    max-width: none;
+    max-height: calc(100dvh - 48px);
+    border-radius: 28px 28px 0 0;
+    border-bottom: 0;
+    padding: 8px 18px calc(18px + env(safe-area-inset-bottom));
+    animation: glass-sheet-up 0.42s cubic-bezier(0.32, 0.72, 0, 1) both;
+  }
+  .glass-sheet-grip { display: block; width: 38px; height: 5px; margin: 0 auto 10px; border-radius: 9999px; background: hsl(var(--foreground) / 0.18); }
+  .glass-sheet-overlay[data-closing] .glass-sheet { animation: glass-sheet-down 0.26s cubic-bezier(0.4, 0, 1, 1) both; }
+}
+@keyframes glass-sheet-up { from { transform: translateY(100%); } }
+@keyframes glass-sheet-down { to { transform: translateY(100%); } }
+
+/* ---------- Folders inside Guardados (v1.1.39), like TikTok's collections ---------- */
+.folder-strip {
+  display: flex;
+  gap: 12px;
+  margin: 0 -16px 18px;
+  padding: 2px 16px 6px;
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  scroll-padding-inline: 16px;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.folder-strip::-webkit-scrollbar { display: none; }
+@media (min-width: 640px) { .folder-strip { margin: 0 -32px 22px; padding: 2px 32px 6px; scroll-padding-inline: 32px; } }
+.folder-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  flex: none;
+  width: 104px;
+  scroll-snap-align: start;
+  text-align: left;
+  color: hsl(var(--foreground));
+  -webkit-tap-highlight-color: transparent;
+  animation: folder-card-in 0.45s cubic-bezier(0.32, 0.72, 0, 1) backwards;
+  animation-delay: calc(0.04s + var(--i, 0) * 0.04s);
+}
+.folder-card:active { transform: scale(0.96); }
+.folder-card-name { margin-top: 7px; max-width: 100%; font-size: 13px; font-weight: 600; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.folder-card-count { margin-top: 1px; font-size: 12px; color: hsl(var(--muted-foreground)); }
+@keyframes folder-card-in { from { opacity: 0; transform: translateY(8px) scale(0.97); } }
+
+.folder-cover {
+  position: relative;
+  display: grid;
+  width: 104px;
+  height: 104px;
+  gap: 2px;
+  overflow: hidden;
+  border-radius: 18px;
+  background: hsl(var(--foreground) / 0.05);
+  border: 1px solid hsl(var(--foreground) / 0.09);
+  box-shadow: 0 0 0 0 hsl(var(--foreground) / 0);
+  transition: box-shadow 0.3s cubic-bezier(0.32, 0.72, 0, 1), transform 0.3s cubic-bezier(0.32, 0.72, 0, 1), border-color 0.3s ease;
+}
+.folder-cover > img, .folder-cover > .folder-cover-none { width: 100%; height: 100%; min-height: 0; object-fit: cover; }
+.folder-cover--1 { grid-template: 1fr / 1fr; }
+.folder-cover--2 { grid-template: 1fr / 1fr 1fr; }
+.folder-cover--3 { grid-template: 1fr 1fr / 1fr 1fr; }
+.folder-cover--3 > :first-child { grid-row: span 2; }
+.folder-cover--4 { grid-template: 1fr 1fr / 1fr 1fr; }
+.folder-cover--empty, .folder-cover--new { display: flex; align-items: center; justify-content: center; color: hsl(var(--muted-foreground)); }
+.folder-cover--empty svg, .folder-cover--new svg { width: 26px; height: 26px; }
+.folder-cover--new { border-style: dashed; border-color: hsl(var(--foreground) / 0.2); background: transparent; }
+.folder-card--new:hover .folder-cover--new { border-color: hsl(var(--foreground) / 0.4); color: hsl(var(--foreground)); }
+.folder-cover-none { display: flex; align-items: center; justify-content: center; background: hsl(var(--foreground) / 0.06); color: hsl(var(--muted-foreground)); }
+.folder-cover-none svg { width: 18px; height: 18px; }
+.folder-card-on .folder-cover { border-color: transparent; box-shadow: 0 0 0 2px hsl(var(--foreground)); transform: scale(0.97); }
+.folder-card:not(.folder-card-on):hover .folder-cover { border-color: hsl(var(--foreground) / 0.22); }
+
+/* The chosen folder: its name, how many, «Añadir obras» and its ⋯ menu. */
+.folder-bar {
+  position: relative;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+  padding: 10px 10px 10px 12px;
+  border-radius: 20px;
+  border: 1px solid hsl(var(--foreground) / 0.09);
+  background: hsl(var(--foreground) / 0.03);
+  -webkit-backdrop-filter: blur(40px) saturate(1.4);
+  backdrop-filter: blur(40px) saturate(1.4);
+  animation: page-title-in 0.4s cubic-bezier(0.32, 0.72, 0, 1) backwards;
+}
+.folder-bar-icon { display: inline-flex; align-items: center; justify-content: center; flex: none; width: 34px; height: 34px; border-radius: 9999px; background: hsl(var(--foreground) / 0.07); }
+.folder-bar-icon svg { width: 16px; height: 16px; }
+.folder-bar-name { margin: 0; font-size: 15px; font-weight: 700; letter-spacing: -0.01em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: hsl(var(--foreground)); }
+.folder-bar-count { margin: 0; font-size: 12.5px; color: hsl(var(--muted-foreground)); }
+.folder-bar-add {
+  display: inline-flex; align-items: center; gap: 6px; flex: none;
+  height: 36px; padding: 0 14px; border-radius: 9999px;
+  font-size: 13.5px; font-weight: 600;
+  color: hsl(var(--background));
+  background: hsl(var(--foreground));
+  transition: opacity 0.2s ease, transform 0.25s cubic-bezier(0.32, 0.72, 0, 1);
+}
+.folder-bar-add:hover { opacity: 0.88; }
+.folder-bar-add svg { width: 16px; height: 16px; }
+.folder-bar-more {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 36px; height: 36px; border-radius: 9999px;
+  color: hsl(var(--foreground));
+  background: hsl(var(--foreground) / 0.07);
+  transition: background-color 0.2s ease;
+}
+.folder-bar-more:hover, .folder-bar-more[aria-expanded='true'] { background: hsl(var(--foreground) / 0.13); }
+.folder-bar-more svg { width: 18px; height: 18px; }
+.folder-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 30;
+  min-width: 190px;
+  padding: 6px;
+  border-radius: 16px;
+  transform-origin: top right;
+  /* Inside the bar's own glass a second blur can't reach the page, so it is nearly solid. */
+  background: hsl(var(--popover) / 0.94);
+}
+.folder-menu[data-closing] { animation: glass-menu-out 0.16s ease-in both; }
+.folder-menu-item {
+  display: flex; align-items: center; gap: 10px; width: 100%;
+  padding: 10px 12px; border-radius: 11px;
+  font-size: 14px; color: hsl(var(--foreground)); text-align: left;
+  transition: background-color 0.15s ease;
+}
+.folder-menu-item:hover, .folder-menu-item:focus-visible { background: hsl(var(--foreground) / 0.08); outline: none; }
+.folder-menu-item svg { width: 16px; height: 16px; color: hsl(var(--muted-foreground)); }
+.folder-menu-item--danger { color: hsl(0 80% 62%); }
+.folder-menu-item--danger svg { color: currentColor; }
+@media (max-width: 640px), (pointer: coarse) {
+  .folder-bar-add span { display: none; }
+  .folder-bar-add { width: 36px; padding: 0; justify-content: center; }
+}
+.folder-grid-in { animation: folder-grid-in 0.42s cubic-bezier(0.32, 0.72, 0, 1) backwards; }
+@keyframes folder-grid-in { from { opacity: 0; transform: translateY(10px); } }
+
+/* Inside the windows: the list of folders with their ticks, the name field, the works to pick. */
+.folder-pick-list { margin: 6px 0 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 2px; }
+.folder-pick-list > li { animation: notif-in 0.35s cubic-bezier(0.32, 0.72, 0, 1) backwards; animation-delay: calc(var(--i, 0) * 0.03s); }
+.folder-pick-row {
+  display: flex; align-items: center; gap: 12px; width: 100%;
+  padding: 9px 10px; border-radius: 14px;
+  font-size: 14.5px; color: hsl(var(--foreground));
+  transition: background-color 0.15s ease;
+}
+.folder-pick-row:hover { background: hsl(var(--foreground) / 0.06); }
+.folder-pick-new { font-weight: 600; }
+.folder-pick-icon { display: inline-flex; align-items: center; justify-content: center; flex: none; width: 38px; height: 38px; border-radius: 12px; background: hsl(var(--foreground) / 0.07); }
+.folder-pick-icon svg { width: 18px; height: 18px; }
+.folder-pick-empty { margin: 8px 4px 0; font-size: 13.5px; line-height: 1.45; color: hsl(var(--muted-foreground)); }
+.folder-check {
+  display: inline-flex; align-items: center; justify-content: center; flex: none;
+  width: 24px; height: 24px; border-radius: 9999px;
+  border: 1.5px solid hsl(var(--foreground) / 0.28);
+  color: transparent;
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, transform 0.3s cubic-bezier(0.3, 1.5, 0.5, 1);
+}
+.folder-check svg { width: 14px; height: 14px; stroke-width: 3; }
+.folder-check-on { background: hsl(var(--foreground)); border-color: hsl(var(--foreground)); color: hsl(var(--background)); transform: scale(1.06); }
+.folder-inline { display: flex; gap: 8px; align-items: stretch; animation: page-title-in 0.3s cubic-bezier(0.32, 0.72, 0, 1) backwards; }
+.folder-inline .folder-name-field { flex: 1; }
+.folder-inline-go { flex: none; padding-left: 16px; padding-right: 16px; }
+.folder-name-field {
+  display: flex; align-items: center; gap: 10px;
+  min-height: 46px; padding: 0 14px; border-radius: 14px;
+  background: hsl(var(--foreground) / 0.06);
+  border: 1px solid hsl(var(--foreground) / 0.1);
+  transition: border-color 0.2s ease, background-color 0.2s ease;
+}
+.folder-name-field:focus-within { border-color: hsl(var(--foreground) / 0.35); background: hsl(var(--foreground) / 0.08); }
+.folder-name-field > svg { width: 18px; height: 18px; flex: none; color: hsl(var(--muted-foreground)); }
+.folder-name-field input { flex: 1; min-width: 0; background: transparent; border: 0; outline: none; font-size: 16px; color: hsl(var(--foreground)); }
+.folder-name-field input::placeholder { color: hsl(var(--muted-foreground)); }
+.folder-name-count { flex: none; font-size: 12px; color: hsl(var(--muted-foreground)); font-variant-numeric: tabular-nums; }
+.folder-works-grid { margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+@media (min-width: 641px) and (pointer: fine) { .folder-works-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.folder-works-grid > li { animation: folder-card-in 0.35s cubic-bezier(0.32, 0.72, 0, 1) backwards; animation-delay: calc(var(--i, 0) * 0.02s); }
+.folder-works-item {
+  position: relative; display: block; width: 100%; aspect-ratio: 1; overflow: hidden;
+  border-radius: 12px; background: hsl(var(--foreground) / 0.06);
+  transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+}
+.folder-works-item > img { width: 100%; height: 100%; object-fit: cover; transition: opacity 0.25s ease; }
+.folder-works-item:not(.folder-works-item-on) > img, .folder-works-item:not(.folder-works-item-on) > .folder-works-text { opacity: 0.7; }
+.folder-works-item-on { transform: scale(0.94); }
+.folder-works-item .folder-check { position: absolute; top: 6px; right: 6px; background: hsl(0 0% 0% / 0.3); border-color: #fff; }
+.folder-works-item .folder-check-on { background: #fff; border-color: #fff; color: #000; }
+.folder-works-text { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; height: 100%; padding: 8px; font-size: 11.5px; line-height: 1.2; text-align: center; color: hsl(var(--foreground)); }
+.folder-works-text .folder-cover-none { width: 32px; height: 32px; border-radius: 9999px; }
+
+/* «Guardado · Añadir a carpeta»: a pill of glass above the bar for a few seconds. */
+.save-toast-wrap {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: calc(24px + env(safe-area-inset-bottom));
+  z-index: 75;
+  display: flex;
+  justify-content: center;
+  padding: 0 16px;
+  pointer-events: none;
+}
+html.has-tabbar .save-toast-wrap { bottom: calc(96px + env(safe-area-inset-bottom)); }
+.save-toast {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 420px;
+  width: auto;
+  padding: 6px 6px 6px 8px;
+  border-radius: 9999px;
+  pointer-events: auto;
+  animation: save-toast-in 0.45s cubic-bezier(0.32, 0.72, 0, 1) both !important;
+}
+.save-toast-wrap[data-leaving] .save-toast { animation: save-toast-out 0.26s cubic-bezier(0.4, 0, 1, 1) both !important; }
+.save-toast-done { display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; border-radius: 9999px; background: hsl(var(--foreground)); color: hsl(var(--background)); flex: none; }
+.save-toast-done svg { width: 15px; height: 15px; fill: currentColor; animation: save-toast-pop 0.5s 0.12s cubic-bezier(0.3, 1.6, 0.5, 1) backwards; }
+.save-toast-text { font-size: 14px; font-weight: 600; color: hsl(var(--foreground)); padding-right: 4px; }
+.save-toast-action {
+  display: inline-flex; align-items: center; gap: 2px;
+  height: 32px; padding: 0 10px 0 14px; border-radius: 9999px;
+  font-size: 13.5px; font-weight: 600;
+  color: hsl(var(--foreground));
+  background: hsl(var(--foreground) / 0.09);
+  transition: background-color 0.2s ease;
+}
+.save-toast-action:hover { background: hsl(var(--foreground) / 0.15); }
+.save-toast-action svg { width: 16px; height: 16px; }
+@keyframes save-toast-in { from { opacity: 0; transform: translateY(16px) scale(0.94); } }
+@keyframes save-toast-out { to { opacity: 0; transform: translateY(12px) scale(0.96); } }
+@keyframes save-toast-pop { from { transform: scale(0.4); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .glass-sheet, .folder-card, .folder-bar, .folder-grid-in, .folder-pick-list > li, .folder-works-grid > li, .folder-inline, .save-toast, .save-toast-done svg { animation: none !important; }
 }

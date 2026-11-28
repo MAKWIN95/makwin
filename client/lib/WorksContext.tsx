@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useCallback, ReactNode, useRef, useMemo } from 'react';
 import { supabase } from '@/lib/supabase';
+import { announceSaved, forgetWorkInFolders } from '@/lib/save-folders';
 import { track } from '@/lib/analytics';
 
 interface LikeSaveState {
@@ -236,6 +237,7 @@ export const WorksProvider = ({ children }: { children: ReactNode }) => {
           console.error('[WorksContext:toggleSave] Delete error:', error);
           throw error;
         }
+        forgetWorkInFolders(workId);
       } else {
         const { error } = await supabase
           .from('saves')
@@ -250,6 +252,7 @@ export const WorksProvider = ({ children }: { children: ReactNode }) => {
           }
         } else {
           track('guardar-obra');
+          announceSaved(workId);
         }
       }
 

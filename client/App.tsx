@@ -8,6 +8,7 @@ import "./global.css";
 import { Toaster } from "@/components/ui/toaster";
 import TabBar from "./components/TabBar";
 import NavDrawer from "./components/NavDrawer";
+import SaveToast from "./components/SaveToast";
 import { createRoot } from "react-dom/client";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -270,6 +271,7 @@ const RoutesWrapper = () => {
     </Routes>
     <TabBar />
     <NavDrawer />
+    <SaveToast />
     </>
   );
 };
